@@ -1,0 +1,350 @@
+/* Дизайн-токены DataEdu — концепт «Terminal» (тёмная тема).
+   Перенос из Next-версии. Переключатель светлой темы добавим позже. */
+:root {
+  --bg: #0c0f0d;
+  --surface: #161a17;
+  --surface-2: #1d231f;
+  --text: #e6ede8;
+  --muted: #8fa398;
+  --accent: #a3e635;
+  --on-accent: #0c0f0d;
+  --secondary: #f0b458;
+  --border: rgba(230, 237, 232, 0.1);
+  --hairline: rgba(230, 237, 232, 0.14);
+}
+
+* {
+  box-sizing: border-box;
+}
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: "Geist", system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  min-height: 100vh;
+}
+::selection {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+h1,
+h2,
+h3,
+h4 {
+  font-family: "Space Grotesk", sans-serif;
+}
+code,
+kbd,
+samp,
+pre,
+.mono {
+  font-family: "IBM Plex Mono", monospace;
+}
+
+.container {
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 0 40px;
+}
+
+/* Шапка */
+.site-header {
+  border-bottom: 1px solid var(--border);
+}
+.site-header .container {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 22px;
+  padding-bottom: 22px;
+}
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  text-decoration: none;
+}
+.brand .sigil {
+  font-family: "IBM Plex Mono", monospace;
+  font-weight: 600;
+  font-size: 18px;
+  color: var(--accent);
+}
+.brand .name {
+  font-family: "Space Grotesk", sans-serif;
+  font-weight: 700;
+  font-size: 20px;
+  letter-spacing: -0.01em;
+  color: var(--text);
+}
+.nav {
+  display: flex;
+  gap: 28px;
+}
+.nav a {
+  font-family: "IBM Plex Mono", monospace;
+  color: var(--muted);
+  font-size: 13.5px;
+  font-weight: 500;
+  text-decoration: none;
+  transition: color 0.2s;
+}
+.nav a:hover {
+  color: var(--accent);
+}
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 22px;
+}
+.link-muted {
+  font-family: "IBM Plex Mono", monospace;
+  color: var(--muted);
+  font-size: 13.5px;
+  text-decoration: none;
+  transition: color 0.2s;
+}
+.link-muted:hover {
+  color: var(--text);
+}
+
+/* Кнопки */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 7px;
+  font-family: "Space Grotesk", sans-serif;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: none;
+  transition:
+    transform 0.2s,
+    border-color 0.2s,
+    background 0.2s;
+}
+.btn-primary {
+  background: var(--accent);
+  color: var(--on-accent);
+  border: none;
+  font-size: 16px;
+  padding: 14px 32px;
+}
+.btn-primary:hover {
+  transform: translateY(-2px);
+}
+.btn-ghost {
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--hairline);
+  font-size: 14px;
+  padding: 8px 18px;
+}
+.btn-ghost:hover {
+  border-color: var(--accent);
+  background: var(--surface-2);
+}
+
+/* Герой */
+.hero {
+  display: grid;
+  grid-template-columns: 1.12fr 0.88fr;
+  gap: 60px;
+  align-items: center;
+  padding: 84px 0 0;
+}
+.eyebrow {
+  font-family: "IBM Plex Mono", monospace;
+  font-weight: 500;
+  font-size: 12.5px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.eyebrow .prompt {
+  color: var(--accent);
+}
+.hero h1 {
+  font-size: clamp(38px, 5vw, 64px);
+  line-height: 1.04;
+  letter-spacing: -0.028em;
+  margin: 20px 0 0;
+  font-weight: 700;
+}
+.hero h1 .accent {
+  color: var(--accent);
+}
+.hero p.lead {
+  font-size: 18.5px;
+  line-height: 1.62;
+  color: var(--muted);
+  max-width: 520px;
+  margin: 22px 0 0;
+}
+.hero-actions {
+  display: flex;
+  align-items: center;
+  gap: 22px;
+  margin-top: 36px;
+}
+.link-plain {
+  background: none;
+  border: none;
+  color: var(--text);
+  font-family: "Space Grotesk", sans-serif;
+  font-weight: 600;
+  font-size: 15px;
+  cursor: pointer;
+  text-decoration: none;
+  transition: color 0.2s;
+}
+.link-plain:hover {
+  color: var(--accent);
+}
+.meta {
+  font-family: "IBM Plex Mono", monospace;
+  margin-top: 30px;
+  font-size: 13px;
+  color: var(--muted);
+  display: flex;
+  align-items: center;
+  gap: 11px;
+}
+.meta .slash {
+  color: var(--secondary);
+}
+
+/* Мок-терминал */
+.terminal {
+  background: var(--surface);
+  border: 1px solid var(--hairline);
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 30px 70px -34px rgba(0, 0, 0, 0.55);
+}
+.terminal-bar {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface-2);
+}
+.dot {
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+}
+.dot-r {
+  background: #e0533f;
+}
+.dot-y {
+  background: #f0b458;
+}
+.dot-g {
+  background: #a3e635;
+}
+.terminal-title {
+  margin-left: 10px;
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 12px;
+  color: var(--muted);
+}
+.terminal-body {
+  padding: 22px 20px;
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 13.5px;
+  line-height: 1.85;
+  color: var(--muted);
+}
+.terminal-body .pr {
+  color: var(--accent);
+}
+.terminal-body .cmd {
+  color: var(--text);
+}
+.caret {
+  display: inline-block;
+  width: 8px;
+  height: 16px;
+  background: var(--accent);
+  margin-left: 3px;
+  vertical-align: -2px;
+  animation: caret-blink 1.05s step-end infinite;
+}
+@keyframes caret-blink {
+  0%,
+  49% {
+    opacity: 1;
+  }
+  50%,
+  100% {
+    opacity: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .caret {
+    animation: none;
+  }
+}
+.t-table {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px dashed var(--border);
+}
+.t-row {
+  display: grid;
+  grid-template-columns: 1fr 70px 64px;
+  gap: 8px;
+}
+.t-head {
+  color: var(--secondary);
+  font-size: 12px;
+}
+.t-row.data {
+  margin-top: 6px;
+  color: var(--text);
+}
+.ok {
+  color: var(--accent);
+}
+.pending {
+  color: var(--secondary);
+}
+.t-rows-note {
+  margin-top: 12px;
+  font-size: 12px;
+}
+
+/* Подвал */
+.site-footer {
+  margin-top: 90px;
+  border-top: 1px solid var(--border);
+}
+.site-footer .container {
+  padding-top: 24px;
+  padding-bottom: 24px;
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+/* Базовая адаптивность (полная — на этапе 12) */
+@media (max-width: 860px) {
+  .hero {
+    grid-template-columns: 1fr;
+    gap: 36px;
+    padding-top: 48px;
+  }
+  .container {
+    padding: 0 20px;
+  }
+  .nav {
+    display: none;
+  }
+}

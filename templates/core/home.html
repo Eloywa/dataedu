@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}DataEdu — базы данных на практике{% endblock %}
+
+{% block content %}
+<section class="container hero">
+  <div>
+    <div class="eyebrow"><span class="prompt">$</span> учебная платформа · базы данных</div>
+    <h1>Базы данных — <span class="accent">на практике</span>, а&nbsp;не по конспекту.</h1>
+    <p class="lead">
+      Интерактивный курс по PostgreSQL: теория, тесты, SQL-тренажёр в безопасной
+      песочнице и система достижений.
+    </p>
+    <div class="hero-actions">
+      <a class="btn btn-primary" href="#">Начать</a>
+      <a class="link-plain" href="#">Смотреть каталог →</a>
+    </div>
+    <div class="meta">
+      <span class="slash">//</span><span>9 недель · 18 уроков · тесты и практика</span>
+    </div>
+  </div>
+
+  <div class="terminal">
+    <div class="terminal-bar">
+      <span class="dot dot-r"></span><span class="dot dot-y"></span><span class="dot dot-g"></span>
+      <span class="terminal-title">psql — sandbox</span>
+    </div>
+    <div class="terminal-body">
+      <div>
+        <span class="pr">dataedu=#</span> <span class="cmd">SELECT * FROM roadmap;</span><span class="caret"></span>
+      </div>
+      <div class="t-table">
+        <div class="t-row t-head"><span>topic</span><span>week</span><span>state</span></div>
+        <div class="t-row data"><span>schema</span><span>01</span><span class="ok">ok</span></div>
+        <div class="t-row data"><span>joins</span><span>02</span><span class="ok">ok</span></div>
+        <div class="t-row data"><span>indexes</span><span>03</span><span class="pending">…</span></div>
+      </div>
+      <div class="t-rows-note">(3 rows)</div>
+    </div>
+  </div>
+</section>
+{% endblock %}

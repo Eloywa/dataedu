@@ -1,0 +1,41 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{% block title %}DataEdu{% endblock %}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Geist:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="{% static 'css/terminal.css' %}" />
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="container">
+        <div style="display: flex; align-items: center; gap: 44px">
+          <a class="brand" href="{% url 'core:home' %}">
+            <span class="sigil">~/</span><span class="name">DataEdu</span>
+          </a>
+          <nav class="nav">
+            <a href="#">Каталог</a>
+            <a href="#">Тренажёр</a>
+          </nav>
+        </div>
+        <div class="header-actions">
+          <a class="link-muted" href="#">Регистрация</a>
+          <a class="btn btn-ghost" href="#">Войти</a>
+        </div>
+      </div>
+    </header>
+
+    <main>{% block content %}{% endblock %}</main>
+
+    <footer class="site-footer">
+      <div class="container">// DataEdu — учебная платформа по базам данных</div>
+    </footer>
+  </body>
+</html>

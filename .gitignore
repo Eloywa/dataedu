@@ -1,0 +1,23 @@
+# Python / Django
+__pycache__/
+*.py[cod]
+*.sqlite3
+.venv/
+db.sqlite3
+
+# Окружение (секреты)
+.env
+!.env.example
+
+# Статика, собранная для прода
+/staticfiles/
+
+# Временные файлы и логи
+tmp_*
+*.log
+
+# IDE / ОС
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
