@@ -45,7 +45,15 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     # Приложения проекта
     'core',
+    'accounts',
+    'courses',
+    'assessments',
+    'learning',
+    'gamification',
 ]
+
+# Кастомная модель пользователя (вход по email)
+AUTH_USER_MODEL = 'accounts.User'
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
