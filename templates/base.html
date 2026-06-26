@@ -26,8 +26,16 @@
           </nav>
         </div>
         <div class="header-actions">
-          <a class="link-muted" href="#">Регистрация</a>
-          <a class="btn btn-ghost" href="#">Войти</a>
+          {% if user.is_authenticated %}
+            <span class="link-muted">{{ user.full_name }}{% if user.role %} · {{ user.role.name }}{% endif %}</span>
+            <form method="post" action="{% url 'accounts:logout' %}" style="margin: 0">
+              {% csrf_token %}
+              <button class="btn btn-ghost" type="submit">Выйти</button>
+            </form>
+          {% else %}
+            <a class="link-muted" href="{% url 'accounts:register' %}">Регистрация</a>
+            <a class="btn btn-ghost" href="{% url 'accounts:login' %}">Войти</a>
+          {% endif %}
         </div>
       </div>
     </header>

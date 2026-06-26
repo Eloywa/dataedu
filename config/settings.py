@@ -55,6 +55,11 @@ INSTALLED_APPS = [
 # Кастомная модель пользователя (вход по email)
 AUTH_USER_MODEL = 'accounts.User'
 
+# Аутентификация: куда отправлять и куда возвращать
+LOGIN_URL = '/login/'
+LOGIN_REDIRECT_URL = '/'
+LOGOUT_REDIRECT_URL = '/'
+
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',

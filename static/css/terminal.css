@@ -334,6 +334,90 @@ pre,
   color: var(--muted);
 }
 
+.accent-ink {
+  color: var(--accent);
+}
+
+/* Формы аутентификации */
+.auth-wrap {
+  max-width: 420px;
+  margin: 0 auto;
+  padding: 64px 0;
+}
+.auth-card {
+  background: var(--surface);
+  border: 1px solid var(--hairline);
+  border-radius: 10px;
+  padding: 28px;
+}
+.auth-title {
+  font-size: 26px;
+  font-weight: 700;
+  margin: 0 0 6px;
+}
+.auth-sub {
+  color: var(--muted);
+  font-size: 14px;
+  margin: 0 0 20px;
+}
+.field {
+  margin-bottom: 14px;
+}
+.field label {
+  display: block;
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 12px;
+  color: var(--muted);
+  margin-bottom: 6px;
+}
+.field input {
+  width: 100%;
+  background: var(--bg);
+  border: 1px solid var(--hairline);
+  border-radius: 7px;
+  color: var(--text);
+  font-family: "Geist", system-ui, sans-serif;
+  font-size: 15px;
+  padding: 10px 12px;
+}
+.field input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+.btn-block {
+  width: 100%;
+  justify-content: center;
+}
+.form-error {
+  background: rgba(224, 83, 63, 0.12);
+  border: 1px solid rgba(224, 83, 63, 0.4);
+  color: #f3a99c;
+  border-radius: 7px;
+  padding: 10px 12px;
+  font-size: 14px;
+  margin-bottom: 14px;
+}
+.auth-foot {
+  margin-top: 16px;
+  font-size: 14px;
+  color: var(--muted);
+}
+.auth-foot a {
+  color: var(--accent);
+  text-decoration: none;
+}
+.demo-note {
+  max-width: 420px;
+  margin: 18px auto 0;
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 12.5px;
+  color: var(--muted);
+  line-height: 1.7;
+}
+.demo-note code {
+  color: var(--secondary);
+}
+
 /* Базовая адаптивность (полная — на этапе 12) */
 @media (max-width: 860px) {
   .hero {

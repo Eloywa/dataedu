@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}Регистрация — DataEdu{% endblock %}
+
+{% block content %}
+<div class="auth-wrap">
+  <div class="auth-card">
+    <h1 class="auth-title">Регистрация</h1>
+    <p class="auth-sub">Создайте аккаунт студента.</p>
+
+    {% if error %}<div class="form-error" role="alert">{{ error }}</div>{% endif %}
+
+    <form method="post">
+      {% csrf_token %}
+      <div class="field">
+        <label for="full_name">имя и фамилия</label>
+        <input id="full_name" name="full_name" type="text" autocomplete="name" required />
+      </div>
+      <div class="field">
+        <label for="email">email</label>
+        <input id="email" name="email" type="email" autocomplete="email" required />
+      </div>
+      <div class="field">
+        <label for="password">пароль (от 8 символов)</label>
+        <input id="password" name="password" type="password" autocomplete="new-password" required />
+      </div>
+      <div class="field">
+        <label for="confirm">повторите пароль</label>
+        <input id="confirm" name="confirm" type="password" autocomplete="new-password" required />
+      </div>
+      <button class="btn btn-primary btn-block" type="submit">Зарегистрироваться</button>
+    </form>
+
+    <div class="auth-foot">
+      Уже есть аккаунт? <a href="{% url 'accounts:login' %}">Войти</a>
+    </div>
+  </div>
+</div>
+{% endblock %}
