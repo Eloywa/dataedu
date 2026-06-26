@@ -27,7 +27,7 @@
         </div>
         <div class="header-actions">
           {% if user.is_authenticated %}
-            <span class="link-muted">{{ user.full_name }}{% if user.role %} · {{ user.role.name }}{% endif %}</span>
+            <a class="link-muted" href="{% url 'accounts:settings' %}">{{ user.full_name }}{% if user.role %} · {{ user.role.name }}{% endif %}</a>
             <form method="post" action="{% url 'accounts:logout' %}" style="margin: 0">
               {% csrf_token %}
               <button class="btn btn-ghost" type="submit">Выйти</button>

@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}Настройки — DataEdu{% endblock %}
+
+{% block content %}
+<div class="auth-wrap">
+  <div class="auth-card">
+    <h1 class="auth-title">Смена пароля</h1>
+    <p class="auth-sub">{{ user.full_name }} · {{ user.email }}</p>
+
+    {% if done %}<div class="form-ok" role="status">Пароль изменён.</div>{% endif %}
+    {% if error %}<div class="form-error" role="alert">{{ error }}</div>{% endif %}
+
+    <form method="post">
+      {% csrf_token %}
+      <div class="field">
+        <label for="current">текущий пароль</label>
+        <input id="current" name="current" type="password" autocomplete="current-password" required />
+      </div>
+      <div class="field">
+        <label for="new">новый пароль (от 8 символов)</label>
+        <input id="new" name="new" type="password" autocomplete="new-password" required />
+      </div>
+      <div class="field">
+        <label for="confirm">повторите новый пароль</label>
+        <input id="confirm" name="confirm" type="password" autocomplete="new-password" required />
+      </div>
+      <button class="btn btn-primary btn-block" type="submit">Сохранить</button>
+    </form>
+  </div>
+</div>
+{% endblock %}

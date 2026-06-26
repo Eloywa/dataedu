@@ -1,4 +1,5 @@
-from django.contrib.auth import authenticate, login, logout
+from django.contrib.auth import authenticate, login, logout, update_session_auth_hash
+from django.contrib.auth.decorators import login_required
 from django.shortcuts import redirect, render
 
 from .models import Role, User
@@ -53,3 +54,29 @@ def register_view(request):
             return redirect("core:home")
 
     return render(request, "accounts/register.html", {"error": error})
+
+
+@login_required
+def settings_view(request):
+    error = None
+    done = False
+    if request.method == "POST":
+        current = request.POST.get("current", "")
+        new = request.POST.get("new", "")
+        confirm = request.POST.get("confirm", "")
+
+        if not request.user.check_password(current):
+            error = "Текущий пароль неверный."
+        elif len(new) < 8:
+            error = "Новый пароль должен быть не короче 8 символов."
+        elif new != confirm:
+            error = "Пароли не совпадают."
+        elif new == current:
+            error = "Новый пароль совпадает с текущим."
+        else:
+            request.user.set_password(new)
+            request.user.save(update_fields=["password"])
+            update_session_auth_hash(request, request.user)  # не разлогинивать
+            done = True
+
+    return render(request, "accounts/settings.html", {"error": error, "done": done})
