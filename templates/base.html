@@ -23,6 +23,7 @@
           <nav class="nav">
             <a href="{% url 'courses:catalog' %}">Каталог</a>
             <a href="{% url 'core:trainer' %}">Тренажёр</a>
+            {% if user.is_authenticated and not user.is_teacher %}<a href="{% url 'assessments:practice' %}">Задания</a>{% endif %}
           </nav>
         </div>
         <div class="header-actions">

@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% load course_extras %}
+{% block title %}Задания — DataEdu{% endblock %}
+
+{% block content %}
+<main class="container page">
+  <h1 class="page-title accent-ink">Задания</h1>
+  <p class="page-sub">
+    SQL-задачи с автопроверкой. Запрос выполняется в твоём браузере (PGlite),
+    а итог независимо проверяет сервер.
+  </p>
+
+  <div class="practice-grid">
+    {% for a in assignments %}
+      <a href="{% url 'assessments:assignment_detail' a.id %}" class="practice-card">
+        <div class="practice-card-top">
+          <span class="badge badge-{{ a.level|level_tone }}">{{ a.level|level_label }}</span>
+          {% if a.is_solved %}<span class="badge badge-success">решено</span>{% endif %}
+        </div>
+        <h3 class="practice-card-title">{{ a.title }}</h3>
+        <div class="practice-card-course mono">{{ a.course.title }}</div>
+      </a>
+    {% empty %}
+      <p class="page-sub">Заданий пока нет.</p>
+    {% endfor %}
+  </div>
+</main>
+{% endblock %}

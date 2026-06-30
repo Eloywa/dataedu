@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% load static course_extras %}
+{% block title %}{{ assignment.title }} — DataEdu{% endblock %}
+
+{% block content %}
+<main class="container page" style="max-width: 900px">
+  <a href="{% url 'assessments:practice' %}" class="back-link">← Задания</a>
+  <h1 class="page-title accent-ink">{{ assignment.title }}</h1>
+  <div class="course-meta">
+    <span class="badge badge-{{ assignment.level|level_tone }}">{{ assignment.level|level_label }}</span>
+    {% if solved %}<span class="badge badge-success">решено</span>{% endif %}
+    <span class="mono" style="color: var(--muted)">{{ assignment.course.title }}</span>
+  </div>
+  {% if assignment.description %}<p class="page-sub" style="margin-top: 12px">{{ assignment.description }}</p>{% endif %}
+
+  <div
+    id="assignment"
+    class="trainer"
+    data-check-url="{% url 'assessments:check' assignment.id %}"
+    data-csrf="{{ csrf_token }}"
+  >
+    <textarea id="sql" class="trainer-input mono" rows="6" spellcheck="false" placeholder="Ваш SQL-запрос…"></textarea>
+    <div class="trainer-actions">
+      <button id="check" class="btn btn-primary" disabled>Проверить</button>
+      <button id="resetdb" class="btn btn-ghost" disabled>Сбросить ввод</button>
+      <span id="status" class="trainer-status mono">Загрузка PGlite…</span>
+    </div>
+    <div id="verdict"></div>
+    <div id="output" class="trainer-output"></div>
+  </div>
+</main>
+
+{{ assignment.setup_sql|json_script:"setup-sql" }}
+<script type="module" src="{% static 'js/assignment.js' %}"></script>
+{% endblock %}

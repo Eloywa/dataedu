@@ -981,6 +981,60 @@ pre,
   white-space: pre-wrap;
 }
 
+/* Задания / автопроверка */
+.practice-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 16px;
+}
+.practice-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 16px 18px;
+  text-decoration: none;
+  color: inherit;
+  transition:
+    border-color 0.2s,
+    transform 0.2s;
+}
+.practice-card:hover {
+  border-color: rgba(163, 230, 53, 0.4);
+  transform: translateY(-2px);
+}
+.practice-card-top {
+  display: flex;
+  gap: 8px;
+}
+.practice-card-title {
+  font-size: 16px;
+  font-weight: 600;
+  margin: 2px 0 0;
+}
+.practice-card-course {
+  color: var(--muted);
+  font-size: 12px;
+}
+.verdict {
+  display: inline-block;
+  padding: 10px 16px;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 15px;
+  margin: 4px 0 12px;
+}
+.verdict.ok {
+  background: var(--success-soft);
+  color: var(--success);
+}
+.verdict.fail {
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+
 /* Тесты */
 .lesson-test-block {
   margin-top: 32px;

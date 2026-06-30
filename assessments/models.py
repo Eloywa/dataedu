@@ -89,6 +89,10 @@ class Assignment(models.Model):
     level = models.CharField(max_length=50)
     type = models.CharField(max_length=50)
     expected_sql = models.TextField(blank=True, null=True)
+    # Заготовка данных для задачи (создаётся в PGlite у студента и при расчёте эталона)
+    setup_sql = models.TextField(blank=True, null=True)
+    # Предрасчитанный эталонный результат: {"columns": [...], "rows": [[...], ...]}
+    expected_result = models.JSONField(blank=True, null=True)
     max_score = models.IntegerField()
     is_final = models.BooleanField(default=False)
     created_at = models.DateTimeField(default=timezone.now)
