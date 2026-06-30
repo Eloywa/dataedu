@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}SQL-тренажёр — DataEdu{% endblock %}
+
+{% block content %}
+<main class="container page" style="max-width: 900px">
+  <h1 class="page-title accent-ink">SQL-тренажёр</h1>
+  <p class="page-sub">
+    Песочница PostgreSQL прямо в браузере (PGlite). База у каждого своя — можно
+    <code>SELECT</code>, <code>INSERT</code>, <code>UPDATE</code>, <code>CREATE</code>;
+    что-то сломалось — нажми «Сбросить базу».
+  </p>
+
+  <div class="trainer">
+    <div class="trainer-schema mono">
+      <span class="schema-title"># доступные таблицы</span>
+      <div><b>students</b>(id, full_name, group_id, xp)</div>
+      <div><b>groups</b>(id, name, curator)</div>
+    </div>
+
+    <textarea id="sql" class="trainer-input mono" rows="6" spellcheck="false" placeholder="SELECT * FROM students ORDER BY xp DESC;"></textarea>
+
+    <div class="trainer-actions">
+      <button id="run" class="btn btn-primary" disabled>Выполнить</button>
+      <button id="reset" class="btn btn-ghost" disabled>Сбросить базу</button>
+      <span id="status" class="trainer-status mono">Загрузка PGlite…</span>
+    </div>
+
+    <div id="output" class="trainer-output"></div>
+  </div>
+</main>
+
+<script type="module" src="{% static 'js/trainer.js' %}"></script>
+{% endblock %}

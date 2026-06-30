@@ -44,3 +44,8 @@ def home(request):
         "core/home_student.html",
         {"current": current, "enroll_count": enrollments.count()},
     )
+
+
+def trainer(request):
+    """SQL-тренажёр: страница-обёртка; вся работа — в браузере (PGlite)."""
+    return render(request, "core/trainer.html")
