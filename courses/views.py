@@ -171,6 +171,11 @@ def lesson_detail(request, lesson_id):
             user=request.user, lesson=lesson, status="completed"
         ).exists()
 
+    test = lesson.tests.first()
+    best_attempt = None
+    if test and request.user.is_authenticated:
+        best_attempt = test.attempts.filter(user=request.user).order_by("-score").first()
+
     return render(
         request,
         "lessons/lesson_detail.html",
@@ -181,6 +186,8 @@ def lesson_detail(request, lesson_id):
             "next_lesson": next_lesson,
             "done": done,
             "resources": get_course_resources(course.slug),
+            "test": test,
+            "best_attempt": best_attempt,
         },
     )
 

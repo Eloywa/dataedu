@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}Результат теста — DataEdu{% endblock %}
+
+{% block content %}
+<main class="container page" style="max-width: 760px">
+  <a href="{% url 'courses:lesson_detail' lesson.id %}" class="back-link">← {{ lesson.title }}</a>
+  <h1 class="page-title">Результат теста</h1>
+
+  <div class="result-banner {% if is_passed %}ok{% else %}fail{% endif %}">
+    <span class="result-score">{{ score }}%</span>
+    <span>
+      {% if is_passed %}Тест пройден (нужно {{ test.pass_score }}%){% else %}Не пройден — нужно {{ test.pass_score }}%{% endif %}
+    </span>
+  </div>
+
+  {% for r in results %}
+    <div class="quiz-q">
+      <div class="quiz-q-text">
+        <span class="q-mark {% if r.is_correct %}ok{% else %}fail{% endif %}">{% if r.is_correct %}✓{% else %}✗{% endif %}</span>
+        {{ forloop.counter }}. {{ r.question.text }}
+      </div>
+      <div class="quiz-options">
+        {% for o in r.options %}
+          {% with oid=o.id|stringformat:'s' %}
+            <div class="quiz-option-result {% if oid == r.correct_id %}correct{% elif oid == r.chosen_id %}wrong{% endif %}">
+              <span>{{ o.text }}</span>
+              {% if oid == r.correct_id %}<span class="opt-tag tag-ok">верно</span>
+              {% elif oid == r.chosen_id %}<span class="opt-tag tag-wrong">ваш ответ</span>{% endif %}
+            </div>
+          {% endwith %}
+        {% endfor %}
+      </div>
+    </div>
+  {% endfor %}
+
+  <div class="course-actions">
+    <a class="btn btn-primary" href="{% url 'assessments:lesson_test' lesson.id %}">Пройти заново</a>
+    <a class="btn btn-ghost" href="{% url 'courses:lesson_detail' lesson.id %}">Вернуться к уроку</a>
+  </div>
+</main>
+{% endblock %}

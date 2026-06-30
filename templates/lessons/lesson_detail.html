@@ -14,7 +14,26 @@
 
       <div class="prose">{{ lesson.theory_content|md_to_html }}</div>
 
-      {# Места под тест (этап 6), рефлексию (этап 10) и gating (этап 9) — подключим на своих этапах. #}
+      {% if test %}
+        <div class="lesson-test-block">
+          <div class="mono small-label">тест</div>
+          <h2 class="section-h" style="margin-top: 4px">{{ test.title }}</h2>
+          {% if best_attempt %}
+            <p class="page-sub" style="margin-bottom: 14px">
+              Лучший результат: <strong>{{ best_attempt.score }}%</strong>
+              {% if best_attempt.is_passed %}<span class="badge badge-success">пройден</span>
+              {% else %}<span class="badge badge-danger">не пройден</span>{% endif %}
+            </p>
+          {% endif %}
+          {% if user.is_authenticated %}
+            <a class="btn btn-primary" href="{% url 'assessments:lesson_test' lesson.id %}">{% if best_attempt %}Пройти заново{% else %}Пройти тест{% endif %}</a>
+          {% else %}
+            <a class="btn btn-primary" href="{% url 'accounts:login' %}?next={{ request.path }}">Войдите, чтобы пройти тест</a>
+          {% endif %}
+        </div>
+      {% endif %}
+
+      {# Места под рефлексию (этап 10) и gating (этап 9) — подключим на своих этапах. #}
 
       <div class="lesson-foot">
         <div class="lesson-nav">

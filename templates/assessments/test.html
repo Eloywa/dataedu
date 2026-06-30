@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}{{ test.title }} — DataEdu{% endblock %}
+
+{% block content %}
+<main class="container page" style="max-width: 760px">
+  <a href="{% url 'courses:lesson_detail' lesson.id %}" class="back-link">← {{ lesson.title }}</a>
+  <h1 class="page-title accent-ink">{{ test.title }}</h1>
+  <p class="page-sub">Проходной балл: {{ test.pass_score }}%. Вопросов: {{ questions|length }}.</p>
+
+  <form method="post" class="test-form">
+    {% csrf_token %}
+    {% for q in questions %}
+      <div class="quiz-q">
+        <div class="quiz-q-text">{{ forloop.counter }}. {{ q.text }}</div>
+        <div class="quiz-options">
+          {% for o in q.options.all %}
+            <label class="quiz-option">
+              <input type="radio" name="q_{{ q.id }}" value="{{ o.id }}" required />
+              <span>{{ o.text }}</span>
+            </label>
+          {% endfor %}
+        </div>
+      </div>
+    {% endfor %}
+    <button class="btn btn-primary" type="submit">Завершить тест</button>
+  </form>
+</main>
+{% endblock %}

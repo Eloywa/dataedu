@@ -881,6 +881,113 @@ pre,
   border-radius: 8px;
 }
 
+/* Тесты */
+.lesson-test-block {
+  margin-top: 32px;
+  padding-top: 24px;
+  border-top: 1px solid var(--border);
+}
+.quiz-q {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 16px 18px;
+  margin-bottom: 14px;
+}
+.quiz-q-text {
+  font-size: 15.5px;
+  font-weight: 500;
+  margin-bottom: 12px;
+}
+.quiz-options {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.quiz-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  border: 1px solid var(--hairline);
+  border-radius: 8px;
+  cursor: pointer;
+  transition:
+    border-color 0.15s,
+    background 0.15s;
+}
+.quiz-option:hover {
+  border-color: var(--accent);
+}
+.quiz-option input {
+  accent-color: var(--accent);
+}
+.test-form > .btn {
+  margin-top: 6px;
+}
+.result-banner {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 18px 20px;
+  border-radius: 10px;
+  margin-bottom: 22px;
+}
+.result-banner.ok {
+  background: var(--success-soft);
+  color: var(--success);
+}
+.result-banner.fail {
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+.result-score {
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 30px;
+  font-weight: 700;
+}
+.q-mark {
+  display: inline-block;
+  width: 20px;
+}
+.q-mark.ok {
+  color: var(--success);
+}
+.q-mark.fail {
+  color: var(--danger);
+}
+.quiz-option-result {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 9px 12px;
+  border: 1px solid var(--hairline);
+  border-radius: 8px;
+  color: var(--muted);
+  margin-bottom: 6px;
+}
+.quiz-option-result.correct {
+  border-color: var(--success);
+  color: var(--text);
+  background: var(--success-soft);
+}
+.quiz-option-result.wrong {
+  border-color: var(--danger);
+  color: var(--text);
+  background: var(--danger-soft);
+}
+.opt-tag {
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 11px;
+}
+.tag-ok {
+  color: var(--success);
+}
+.tag-wrong {
+  color: var(--danger);
+}
+
 /* Теория (prose) */
 .prose {
   color: var(--text);
