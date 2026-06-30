@@ -4,6 +4,7 @@ version = "0.1.0"
 requires-python = ">=3.13"
 dependencies = [
     "django==5.2.*",
+    "markdown>=3.10.2",
     "psycopg[binary]>=3.3.4",
     "python-dotenv>=1.2.2",
 ]

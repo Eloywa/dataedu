@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+{% load course_extras %}
+{% block title %}{{ course.title }} — DataEdu{% endblock %}
+
+{% block content %}
+<main class="container page">
+  <a href="{% url 'courses:catalog' %}" class="back-link">← К каталогу</a>
+
+  <div class="course-layout">
+    <div class="course-main">
+      <div class="course-header">
+        <span class="badge badge-{{ course.level|level_tone }}">{{ course.level|level_label }}</span>
+        <h1 class="page-title">{{ course.title }}</h1>
+        {% if course.description %}<p class="page-sub">{{ course.description }}</p>{% endif %}
+        <div class="course-meta">
+          {% if course.author %}<span>Автор: {{ course.author.full_name }}</span>{% endif %}
+          {% if rating_count %}<span class="stars">{{ rating_avg|stars }} {{ rating_avg|floatformat:1 }} ({{ rating_count }})</span>{% endif %}
+        </div>
+
+        <div class="course-actions">
+          {% if enrolled %}
+            {% if next_lesson %}
+              <a class="btn btn-primary" href="{% url 'courses:lesson_detail' next_lesson.id %}">Продолжить →</a>
+            {% endif %}
+            {% if progress %}<span class="progress-label">{{ progress.done }}/{{ progress.total }} уроков · {{ progress.pct }}%</span>{% endif %}
+          {% elif user.is_authenticated %}
+            <form method="post" action="{% url 'courses:enroll' course.slug %}">
+              {% csrf_token %}
+              <button class="btn btn-primary" type="submit">Записаться на курс</button>
+            </form>
+          {% else %}
+            <a class="btn btn-primary" href="{% url 'accounts:login' %}?next={{ request.path }}">Войдите, чтобы записаться</a>
+          {% endif %}
+        </div>
+      </div>
+
+      <section class="modules">
+        {% for module in modules %}
+          <div class="module">
+            <div class="module-head">
+              <h2 class="module-title">{{ module.title }}</h2>
+              {% if module.week_number %}<span class="module-week mono">неделя {{ module.week_number }}</span>{% endif %}
+            </div>
+            {% if module.description %}<p class="module-desc">{{ module.description }}</p>{% endif %}
+            <ul class="lesson-list">
+              {% for lesson in module.lessons.all %}
+                <li class="lesson-item">
+                  <a href="{% url 'courses:lesson_detail' lesson.id %}" class="lesson-link">
+                    <span class="lesson-check {% if lesson.done %}done{% endif %}">{% if lesson.done %}✓{% else %}○{% endif %}</span>
+                    <span class="lesson-name">{{ lesson.title }}</span>
+                    {% if lesson.est_minutes %}<span class="lesson-time mono">{{ lesson.est_minutes }} мин</span>{% endif %}
+                  </a>
+                </li>
+              {% endfor %}
+            </ul>
+          </div>
+        {% endfor %}
+      </section>
+
+      <section class="reviews">
+        <h2 class="section-h">Отзывы</h2>
+        {% if enrolled %}
+          <form method="post" action="{% url 'courses:review' course.slug %}" class="review-form">
+            {% csrf_token %}
+            <label class="mono small-label">Ваша оценка</label>
+            <div class="rating-input">
+              {% for n in "54321" %}
+                <input type="radio" id="star{{ n }}" name="rating" value="{{ n }}" {% if my_rating and my_rating.rating|stringformat:'s' == n %}checked{% endif %} />
+                <label for="star{{ n }}" title="{{ n }}">★</label>
+              {% endfor %}
+            </div>
+            <textarea name="comment" rows="2" class="review-text" placeholder="Комментарий (по желанию)">{% if my_rating %}{{ my_rating.comment|default:'' }}{% endif %}</textarea>
+            <button class="btn btn-ghost" type="submit">{% if my_rating %}Обновить отзыв{% else %}Оставить отзыв{% endif %}</button>
+          </form>
+        {% endif %}
+
+        {% for r in reviews %}
+          <div class="review">
+            <div class="review-head">
+              <span class="review-author">{{ r.user.full_name }}</span>
+              <span class="stars">{{ r.rating|stars }}</span>
+            </div>
+            {% if r.comment %}<p class="review-comment">{{ r.comment }}</p>{% endif %}
+          </div>
+        {% empty %}
+          <p class="page-sub">Отзывов пока нет.</p>
+        {% endfor %}
+      </section>
+    </div>
+
+    <aside class="course-side">
+      <div class="side-card">
+        <h3 class="side-title mono"># литература</h3>
+        <ul class="resource-list">
+          {% for res in resources %}
+            <li>
+              <a href="{{ res.url }}" target="_blank" rel="noopener noreferrer" class="resource-link">{{ res.title }}</a>
+              <span class="resource-kind mono">{{ res.kind }}</span>
+            </li>
+          {% endfor %}
+        </ul>
+      </div>
+    </aside>
+  </div>
+</main>
+{% endblock %}

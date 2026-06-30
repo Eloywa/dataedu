@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}DataEdu{% endblock %}
+
+{% block content %}
+<main class="container page">
+  <h1 class="page-title">С возвращением, <span class="accent-ink">{{ user.full_name }}</span></h1>
+
+  {% if current %}
+    <div class="module" style="margin-top: 18px">
+      <div class="mono" style="color: var(--accent); font-size: 13px">продолжить обучение</div>
+      <h2 class="module-title" style="margin-top: 6px">{{ current.course.title }}</h2>
+      <div class="progress-row" style="max-width: 420px">
+        <div class="progress-bar"><span style="width: {{ current.pct }}%"></span></div>
+        <span class="progress-label">{{ current.done }}/{{ current.total }} · {{ current.pct }}%</span>
+      </div>
+      <div style="margin-top: 14px">
+        <a class="btn btn-primary" href="{% url 'courses:lesson_detail' current.next_lesson.id %}">Продолжить →</a>
+      </div>
+    </div>
+  {% else %}
+    <p class="page-sub">
+      {% if enroll_count %}Все курсы пройдены — выберите новый в каталоге.
+      {% else %}Вы ещё не записаны на курс — выберите подходящий в каталоге.{% endif %}
+    </p>
+  {% endif %}
+
+  <div class="course-actions" style="margin-top: 20px">
+    <a class="btn btn-ghost" href="{% url 'courses:catalog' %}">Каталог курсов</a>
+    <a class="btn btn-ghost" href="{% url 'accounts:settings' %}">Настройки</a>
+  </div>
+</main>
+{% endblock %}

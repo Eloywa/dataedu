@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}DataEdu{% endblock %}
+
+{% block content %}
+<main class="container page">
+  <h1 class="page-title">Здравствуйте, <span class="accent-ink">{{ user.full_name }}</span></h1>
+  <p class="page-sub">Управляйте курсами и следите за прогрессом студентов.</p>
+
+  <div class="course-actions">
+    <a class="btn btn-primary" href="/admin/">Управление курсами</a>
+    <a class="btn btn-ghost" href="{% url 'courses:catalog' %}">Каталог</a>
+  </div>
+
+  <p class="page-sub mono" style="margin-top: 22px; font-size: 13px">// дашборд с аналитикой и зонами риска — на следующих этапах</p>
+</main>
+{% endblock %}

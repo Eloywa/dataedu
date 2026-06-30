@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% load course_extras %}
+{% block title %}Каталог курсов — DataEdu{% endblock %}
+
+{% block content %}
+<main class="container page">
+  <h1 class="page-title accent-ink">Каталог курсов</h1>
+  <p class="page-sub">Курсы по базам данных — от основ SQL до проектирования, транзакций и производительности.</p>
+
+  <form method="get" class="catalog-toolbar">
+    <input type="text" name="q" value="{{ q }}" placeholder="Поиск курса…" class="toolbar-search" aria-label="Поиск курса" />
+    <select name="level" class="toolbar-select" aria-label="Уровень" onchange="this.form.submit()">
+      <option value="">Все уровни</option>
+      <option value="basic" {% if level == 'basic' %}selected{% endif %}>Начальный</option>
+      <option value="medium" {% if level == 'medium' %}selected{% endif %}>Средний</option>
+      <option value="advanced" {% if level == 'advanced' %}selected{% endif %}>Продвинутый</option>
+    </select>
+    <select name="topic" class="toolbar-select" aria-label="Тема" onchange="this.form.submit()">
+      <option value="">Все темы</option>
+      {% for t in topics %}
+        <option value="{{ t.code }}" {% if topic == t.code %}selected{% endif %}>{{ t.name }}</option>
+      {% endfor %}
+    </select>
+    <select name="sort" class="toolbar-select" aria-label="Сортировка" onchange="this.form.submit()">
+      <option value="popular" {% if sort == 'popular' %}selected{% endif %}>по популярности</option>
+      <option value="rating" {% if sort == 'rating' %}selected{% endif %}>по рейтингу</option>
+      <option value="new" {% if sort == 'new' %}selected{% endif %}>сначала новые</option>
+    </select>
+    <button type="submit" class="btn btn-ghost">Найти</button>
+  </form>
+
+  <div class="catalog-count">Найдено курсов: {{ courses|length }}</div>
+
+  <div class="course-grid">
+    {% for course in courses %}
+      <a href="{% url 'courses:course_detail' course.slug %}" class="course-card">
+        {% course_cover course.slug "card-cover" %}
+        {% if course.is_enrolled %}<span class="enrolled-badge">✓ Вы записаны</span>{% endif %}
+        <div class="course-card-body">
+          <div class="card-meta-top">
+            <span class="badge badge-{{ course.level|level_tone }}">{{ course.level|level_label }}</span>
+            <span class="stars" title="{{ course.rating_avg|default:0|floatformat:1 }}">{{ course.rating_avg|stars }}</span>
+          </div>
+          <h3 class="course-card-title">{{ course.title }}</h3>
+          {% if course.description %}<p class="course-card-desc">{{ course.description }}</p>{% endif %}
+          <div class="card-meta-bottom">
+            {% if course.author %}<span>{{ course.author.full_name }}</span>{% endif %}
+            <span>{{ course.lesson_count }} уроков</span>
+          </div>
+          {% if course.is_enrolled and course.prog %}
+            <div class="progress-row">
+              <div class="progress-bar"><span style="width: {{ course.prog.pct }}%"></span></div>
+              <span class="progress-label">{{ course.prog.pct }}% пройдено</span>
+            </div>
+          {% endif %}
+        </div>
+      </a>
+    {% empty %}
+      <p class="page-sub">Ничего не найдено. Измените запрос или фильтры.</p>
+    {% endfor %}
+  </div>
+</main>
+{% endblock %}

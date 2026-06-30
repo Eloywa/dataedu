@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% load course_extras %}
+{% block title %}{{ lesson.title }} — DataEdu{% endblock %}
+
+{% block content %}
+<main class="container page">
+  <a href="{% url 'courses:course_detail' course.slug %}" class="back-link">← {{ course.title }}</a>
+
+  <div class="lesson-layout">
+    <article class="lesson-main">
+      <div class="lesson-eyebrow mono">{{ lesson.module.title }}</div>
+      <h1 class="page-title accent-ink">{{ lesson.title }}</h1>
+      {% if lesson.est_minutes %}<div class="lesson-time-top mono">Примерное время: {{ lesson.est_minutes }} мин</div>{% endif %}
+
+      <div class="prose">{{ lesson.theory_content|md_to_html }}</div>
+
+      {# Места под тест (этап 6), рефлексию (этап 10) и gating (этап 9) — подключим на своих этапах. #}
+
+      <div class="lesson-foot">
+        <div class="lesson-nav">
+          {% if prev_lesson %}<a class="btn btn-ghost" href="{% url 'courses:lesson_detail' prev_lesson.id %}">← Назад</a>{% endif %}
+          {% if next_lesson %}<a class="btn btn-ghost" href="{% url 'courses:lesson_detail' next_lesson.id %}">Вперёд →</a>{% endif %}
+        </div>
+        {% if user.is_authenticated %}
+          {% if done %}
+            <span class="done-pill">✓ Урок пройден</span>
+          {% else %}
+            <form method="post" action="{% url 'courses:complete_lesson' lesson.id %}">
+              {% csrf_token %}
+              <button class="btn btn-primary" type="submit">Отметить пройденным</button>
+            </form>
+          {% endif %}
+        {% endif %}
+      </div>
+    </article>
+
+    <aside class="course-side">
+      <div class="side-card">
+        <h3 class="side-title mono"># литература</h3>
+        <ul class="resource-list">
+          {% for res in resources %}
+            <li>
+              <a href="{{ res.url }}" target="_blank" rel="noopener noreferrer" class="resource-link">{{ res.title }}</a>
+              <span class="resource-kind mono">{{ res.kind }}</span>
+            </li>
+          {% endfor %}
+        </ul>
+      </div>
+    </aside>
+  </div>
+</main>
+{% endblock %}
