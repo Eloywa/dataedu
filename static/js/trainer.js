@@ -39,6 +39,24 @@ INSERT INTO students (id, full_name, group_id, xp) VALUES
 const $ = (id) => document.getElementById(id);
 let db = null;
 
+// Отметка об удачном запуске: серверу уходит только факт (для аналитики и
+// достижения «Первый запрос»), сам SQL остаётся в браузере.
+async function logRun() {
+  const root = $("trainer");
+  const url = root && root.dataset.logUrl;
+  if (!url) return; // гость — не логируем
+  try {
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { "X-CSRFToken": root.dataset.csrf },
+    });
+    const data = await res.json();
+    if (data.achievement) setStatus("🏆 Достижение: «" + data.achievement + "»", "ok");
+  } catch {
+    // молча: аналитика не должна мешать работе тренажёра
+  }
+}
+
 function esc(v) {
   return String(v).replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" })[c]);
 }
@@ -93,6 +111,7 @@ async function run() {
     const results = await db.exec(sql); // массив результатов по стейтментам
     const withRows = [...results].reverse().find((r) => r.fields && r.fields.length);
     renderResult(withRows || results[results.length - 1]);
+    logRun();
   } catch (e) {
     showError(e && e.message ? e.message : String(e));
   } finally {

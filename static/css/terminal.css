@@ -1215,6 +1215,231 @@ pre,
   text-align: left;
 }
 
+/* Геймификация: уровень, достижения, лента активности */
+.progress-layout {
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  gap: 36px;
+  align-items: start;
+  margin-top: 24px;
+}
+.level-card {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 20px;
+  background: var(--surface);
+}
+.level-top {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+.level-num {
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 40px;
+  font-weight: 700;
+  line-height: 1;
+}
+.level-max {
+  color: var(--muted);
+  font-size: 16px;
+  font-weight: 400;
+}
+.level-xp {
+  color: var(--secondary);
+  font-size: 15px;
+}
+.level-card .progress-label {
+  margin-top: 8px;
+  display: block;
+}
+
+.stat-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-top: 16px;
+}
+.stat-tile {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 14px 16px;
+  background: var(--surface);
+}
+.stat-num {
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 24px;
+  font-weight: 600;
+}
+.stat-cap {
+  color: var(--muted);
+  font-size: 11px;
+  margin-top: 4px;
+}
+
+.ach-count {
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 400;
+}
+.ach-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 12px;
+  margin-top: 14px;
+}
+.ach-tile {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 16px 14px;
+  background: var(--surface);
+  text-align: center;
+  opacity: 0.55;
+}
+.ach-tile.earned {
+  opacity: 1;
+  border-color: rgba(163, 230, 53, 0.3);
+}
+.ach-icon {
+  width: 44px;
+  height: 44px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  background: var(--surface-2);
+  color: var(--muted);
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 19px;
+}
+.ach-tile.earned .ach-icon {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+.ach-title {
+  margin-top: 10px;
+  font-size: 14px;
+  font-weight: 500;
+}
+.ach-desc {
+  margin-top: 3px;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--muted);
+}
+.ach-xp {
+  margin-top: 7px;
+  font-size: 12px;
+  color: var(--muted);
+}
+.ach-tile.earned .ach-xp {
+  color: var(--accent);
+}
+.ach-date {
+  margin-top: 2px;
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.feed-day + .feed-day {
+  margin-top: 16px;
+}
+.feed-date {
+  color: var(--muted);
+  font-size: 11px;
+  text-transform: lowercase;
+}
+.feed-list {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+}
+.feed-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  padding: 5px 0;
+  font-size: 13px;
+  line-height: 1.45;
+}
+.feed-dot {
+  width: 7px;
+  height: 7px;
+  margin-top: 5px;
+  border-radius: 50%;
+  flex: 0 0 auto;
+  background: var(--muted);
+}
+.feed-lesson,
+.feed-test {
+  background: var(--accent);
+}
+.feed-submission,
+.feed-sql {
+  background: var(--secondary);
+}
+.feed-achievement {
+  background: var(--text);
+}
+
+.xp-strip {
+  margin-top: 8px;
+  font-size: 13px;
+  color: var(--muted);
+}
+.xp-strip a {
+  color: var(--accent);
+  text-decoration: none;
+}
+.xp-strip a:hover {
+  text-decoration: underline;
+}
+
+/* Последовательное открытие недель */
+.module-head-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 0 0 auto;
+}
+.module-locked {
+  background: var(--bg);
+}
+.module-locked .module-title {
+  color: var(--muted);
+}
+.module-lock-note {
+  margin: 12px 0 0;
+  font-size: 12px;
+  color: var(--muted);
+}
+.locked-card {
+  margin-top: 28px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 32px 24px;
+  background: var(--surface);
+  text-align: center;
+}
+.locked-icon {
+  width: 48px;
+  height: 48px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  background: var(--surface-2);
+  color: var(--muted);
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 22px;
+}
+.locked-card .btn {
+  margin-top: 18px;
+}
+
 /* Базовая адаптивность (полная — на этапе 12) */
 @media (max-width: 860px) {
   .hero {
@@ -1229,9 +1454,13 @@ pre,
     display: none;
   }
   .course-layout,
-  .lesson-layout {
+  .lesson-layout,
+  .progress-layout {
     grid-template-columns: 1fr;
     gap: 24px;
+  }
+  .stat-row {
+    grid-template-columns: repeat(2, 1fr);
   }
   .course-side .side-card {
     position: static;

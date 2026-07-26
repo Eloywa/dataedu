@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}Урок закрыт — DataEdu{% endblock %}
+
+{% block content %}
+<main class="container page" style="max-width: 720px">
+  <a href="{% url 'courses:course_detail' course.slug %}" class="back-link">← {{ course.title }}</a>
+
+  <div class="locked-card">
+    <div class="locked-icon" aria-hidden="true">⌗</div>
+    <h1 class="section-h" style="margin-top: 10px">Урок пока закрыт</h1>
+    <p class="page-sub">
+      Он откроется после завершения
+      {% if prev_module %}недели «{{ prev_module.title }}»{% else %}предыдущей недели{% endif %}.
+    </p>
+    <a class="btn btn-primary" href="{% url 'courses:course_detail' course.slug %}">К программе курса →</a>
+  </div>
+</main>
+{% endblock %}

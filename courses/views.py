@@ -1,8 +1,8 @@
 from django.contrib.auth.decorators import login_required
 from django.db.models import Avg, Count
 from django.shortcuts import get_object_or_404, redirect, render
-from django.utils import timezone
 
+from gamification import services
 from learning.models import Enrollment, LessonProgress
 
 from .models import Course, CourseRating, Lesson, Topic
@@ -92,11 +92,18 @@ def course_detail(request, slug):
             ).values_list("lesson_id", flat=True)
         )
 
+    # Последовательное открытие недель: модуль доступен, когда предыдущий пройден.
+    gating = services.course_gating(request.user, course, request.user.is_authenticated and request.user.is_teacher)
+    prev_title = None
     ordered_lessons = []
     for m in modules:
+        m.gate = gating[m.id]
+        m.prev_title = prev_title
+        prev_title = m.title
         for lesson in m.lessons.all():
             lesson.done = lesson.id in completed
-            ordered_lessons.append(lesson)
+            if m.gate["unlocked"]:
+                ordered_lessons.append(lesson)
 
     next_lesson = next((l for l in ordered_lessons if not l.done), None)
     if next_lesson is None and ordered_lessons:
@@ -158,6 +165,21 @@ def lesson_detail(request, lesson_id):
     lesson = get_object_or_404(Lesson.objects.select_related("module__course"), id=lesson_id)
     course = lesson.module.course
 
+    gating = services.course_gating(request.user, course, request.user.is_authenticated and request.user.is_teacher)
+    gate = gating.get(lesson.module_id)
+    if gate and not gate["unlocked"]:
+        modules = list(course.modules.all())
+        idx = next((i for i, m in enumerate(modules) if m.id == lesson.module_id), 0)
+        return render(
+            request,
+            "lessons/lesson_locked.html",
+            {
+                "course": course,
+                "lesson": lesson,
+                "prev_module": modules[idx - 1] if idx > 0 else None,
+            },
+        )
+
     ordered = list(
         Lesson.objects.filter(module__course=course).order_by("module__order_index", "order_index")
     )
@@ -196,9 +218,6 @@ def lesson_detail(request, lesson_id):
 def complete_lesson(request, lesson_id):
     lesson = get_object_or_404(Lesson, id=lesson_id)
     if request.method == "POST":
-        LessonProgress.objects.update_or_create(
-            user=request.user,
-            lesson=lesson,
-            defaults={"status": "completed", "completed_at": timezone.now()},
-        )
+        # Статус, XP урока, событие и «Первый шаг» — одной операцией (идемпотентно).
+        services.complete_lesson(request.user, lesson)
     return redirect("courses:lesson_detail", lesson_id=lesson_id)

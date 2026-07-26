@@ -7,7 +7,7 @@ from django.utils import timezone
 from django.views.decorators.http import require_POST
 
 from courses.models import Lesson
-from learning.models import LessonProgress
+from gamification import services
 
 from .grading import rows_equal
 from .models import AnswerSubmission, Assignment, Submission, TestAttempt
@@ -72,13 +72,8 @@ def lesson_test(request, lesson_id):
             ]
         )
 
-        if is_passed:
-            LessonProgress.objects.update_or_create(
-                user=request.user,
-                lesson=lesson,
-                defaults={"status": "completed", "completed_at": timezone.now()},
-            )
-        # TODO (этап 9): начисление XP и проверка достижений за прохождение теста.
+        # Событие, XP за первое прохождение, «Знаток тестов», отметка урока.
+        services.finish_test(request.user, attempt, lesson)
 
         return render(
             request,
@@ -138,7 +133,7 @@ def check_assignment(request, assignment_id):
     passed = rows_equal(columns, rows, expected.get("columns", []), expected.get("rows", []))
 
     # Сервер ставит итог независимо от браузера (целостность оценки).
-    Submission.objects.create(
+    submission = Submission.objects.create(
         assignment=assignment,
         user=request.user,
         sql_query=sql,
@@ -148,6 +143,7 @@ def check_assignment(request, assignment_id):
         submitted_at=timezone.now(),
         graded_at=timezone.now(),
     )
+    services.record_submission(request.user, submission)
 
     message = "" if passed else (
         f"Ожидалось строк: {len(expected.get('rows', []))}, у вас: {len(rows)}."

@@ -1,6 +1,9 @@
+from django.http import JsonResponse
 from django.shortcuts import render
+from django.views.decorators.http import require_POST
 
 from courses.models import Lesson
+from gamification import services
 from learning.models import Enrollment, LessonProgress
 
 
@@ -49,3 +52,16 @@ def home(request):
 def trainer(request):
     """SQL-тренажёр: страница-обёртка; вся работа — в браузере (PGlite)."""
     return render(request, "core/trainer.html")
+
+
+@require_POST
+def trainer_log(request):
+    """Отметка об удачном запуске запроса: событие + «Первый запрос».
+
+    SQL сюда не передаётся — запрос исполняется только в браузере; серверу нужен
+    лишь факт запуска (аналитика этапа 11 и достижение).
+    """
+    if not request.user.is_authenticated:
+        return JsonResponse({"ok": False})
+    achievement = services.record_sql_run(request.user)
+    return JsonResponse({"ok": True, "achievement": achievement})

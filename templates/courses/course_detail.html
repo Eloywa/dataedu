@@ -36,23 +36,34 @@
 
       <section class="modules">
         {% for module in modules %}
-          <div class="module">
+          <div class="module {% if not module.gate.unlocked %}module-locked{% endif %}">
             <div class="module-head">
               <h2 class="module-title">{{ module.title }}</h2>
-              {% if module.week_number %}<span class="module-week mono">неделя {{ module.week_number }}</span>{% endif %}
+              <span class="module-head-right">
+                {% if module.gate.is_complete %}<span class="badge badge-success">пройдено</span>
+                {% elif not module.gate.unlocked %}<span class="badge badge-neutral">закрыто</span>{% endif %}
+                {% if module.week_number %}<span class="module-week mono">неделя {{ module.week_number }}</span>{% endif %}
+              </span>
             </div>
             {% if module.description %}<p class="module-desc">{{ module.description }}</p>{% endif %}
-            <ul class="lesson-list">
-              {% for lesson in module.lessons.all %}
-                <li class="lesson-item">
-                  <a href="{% url 'courses:lesson_detail' lesson.id %}" class="lesson-link">
-                    <span class="lesson-check {% if lesson.done %}done{% endif %}">{% if lesson.done %}✓{% else %}○{% endif %}</span>
-                    <span class="lesson-name">{{ lesson.title }}</span>
-                    {% if lesson.est_minutes %}<span class="lesson-time mono">{{ lesson.est_minutes }} мин</span>{% endif %}
-                  </a>
-                </li>
-              {% endfor %}
-            </ul>
+            {% if module.gate.unlocked %}
+              <ul class="lesson-list">
+                {% for lesson in module.lessons.all %}
+                  <li class="lesson-item">
+                    <a href="{% url 'courses:lesson_detail' lesson.id %}" class="lesson-link">
+                      <span class="lesson-check {% if lesson.done %}done{% endif %}">{% if lesson.done %}✓{% else %}○{% endif %}</span>
+                      <span class="lesson-name">{{ lesson.title }}</span>
+                      {% if lesson.est_minutes %}<span class="lesson-time mono">{{ lesson.est_minutes }} мин</span>{% endif %}
+                    </a>
+                  </li>
+                {% endfor %}
+              </ul>
+            {% else %}
+              <p class="module-lock-note mono">
+                ⌗ откроется после завершения
+                {% if module.prev_title %}недели «{{ module.prev_title }}»{% else %}предыдущей недели{% endif %}
+              </p>
+            {% endif %}
           </div>
         {% endfor %}
       </section>

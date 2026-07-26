@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+{% block title %}Мой прогресс — DataEdu{% endblock %}
+
+{% block content %}
+<main class="container page">
+  <h1 class="page-title">Мой прогресс</h1>
+  <p class="page-sub">{{ user.full_name }}{% if user.role %} · {{ user.role.name }}{% endif %}</p>
+
+  <div class="progress-layout">
+    <div class="progress-main">
+      <section class="level-card">
+        <div class="level-top">
+          <div>
+            <div class="mono small-label">уровень</div>
+            <div class="level-num accent-ink">{{ progress.level }}<span class="level-max mono">/{{ max_level }}</span></div>
+          </div>
+          <div class="level-xp mono">{{ progress.xp }} XP</div>
+        </div>
+        <div class="progress-bar"><span style="width: {{ progress.pct }}%"></span></div>
+        <div class="progress-label">
+          {% if progress.is_max %}Максимальный уровень достигнут
+          {% else %}До уровня {{ progress.level|add:1 }} — ещё {{ progress.to_next }} XP{% endif %}
+        </div>
+      </section>
+
+      <section class="stat-row">
+        <div class="stat-tile">
+          <div class="stat-num">{{ stats.lessons }}</div>
+          <div class="stat-cap mono">уроков пройдено</div>
+        </div>
+        <div class="stat-tile">
+          <div class="stat-num">{{ stats.tests }}</div>
+          <div class="stat-cap mono">тестов сдано</div>
+        </div>
+        <div class="stat-tile">
+          <div class="stat-num">{{ stats.assignments }}</div>
+          <div class="stat-cap mono">заданий решено</div>
+        </div>
+        <div class="stat-tile">
+          <div class="stat-num">{{ stats.queries }}</div>
+          <div class="stat-cap mono">запросов в тренажёре</div>
+        </div>
+      </section>
+
+      <section>
+        <h2 class="section-h">Достижения <span class="mono ach-count">{{ earned_count }}/{{ achievements|length }}</span></h2>
+        <div class="ach-grid">
+          {% for a in achievements %}
+            <div class="ach-tile {% if a.earned %}earned{% endif %}">
+              <div class="ach-icon" aria-hidden="true">{{ a.glyph }}</div>
+              <div class="ach-title">{{ a.title }}</div>
+              {% if a.description %}<div class="ach-desc">{{ a.description }}</div>{% endif %}
+              <div class="ach-xp mono">+{{ a.xp_reward }} XP</div>
+              {% if a.earned %}
+                <div class="ach-date mono">{{ a.awarded_at|date:"j M Y" }}</div>
+              {% else %}
+                <div class="ach-date mono">закрыто</div>
+              {% endif %}
+            </div>
+          {% endfor %}
+        </div>
+      </section>
+    </div>
+
+    <aside class="course-side">
+      <div class="side-card">
+        <h3 class="side-title mono"># лента активности</h3>
+        {% for group in activity %}
+          <div class="feed-day">
+            <div class="feed-date mono">{{ group.day }}</div>
+            <ul class="feed-list">
+              {% for item in group.items %}
+                <li class="feed-item">
+                  <span class="feed-dot feed-{{ item.kind }}" aria-hidden="true"></span>
+                  <span class="feed-text">{{ item.text }}</span>
+                </li>
+              {% endfor %}
+            </ul>
+          </div>
+        {% empty %}
+          <p class="page-sub" style="margin: 0">Событий пока нет — начните урок.</p>
+        {% endfor %}
+      </div>
+    </aside>
+  </div>
+</main>
+{% endblock %}
