@@ -1,6 +1,8 @@
 // SQL-тренажёр: PostgreSQL в браузере через PGlite (WebAssembly).
 // Вся работа — на стороне клиента; сервер Django только отдаёт страницу.
-import { PGlite } from "https://cdn.jsdelivr.net/npm/@electric-sql/pglite/dist/index.js";
+// Библиотека вшита в static/vendor/pglite — ни один внешний запрос не уходит:
+// тренажёр работает без интернета, и IP студента не утекает в зарубежный CDN.
+import { PGlite } from "../vendor/pglite/index.js";
 
 // Фиксированный учебный набор — одинаковый для всех. Пересоздаётся при сбросе.
 const SEED = `

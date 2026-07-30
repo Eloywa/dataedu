@@ -1,7 +1,8 @@
 // Автопроверка задания: запрос студента выполняется в браузере (PGlite) на заготовке
 // данных задания; строки-результат уходят на сервер, который независимо ставит вердикт.
 // Эталонный SQL студенту не отдаётся.
-import { PGlite } from "https://cdn.jsdelivr.net/npm/@electric-sql/pglite/dist/index.js";
+// Библиотека вшита в static/vendor/pglite — см. комментарий в trainer.js.
+import { PGlite } from "../vendor/pglite/index.js";
 
 const $ = (id) => document.getElementById(id);
 const root = $("assignment");

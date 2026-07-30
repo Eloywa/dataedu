@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
 from pathlib import Path
+import mimetypes
 import os
 
 from dotenv import load_dotenv
@@ -142,6 +143,12 @@ USE_TZ = True
 STATIC_URL = 'static/'
 
 STATICFILES_DIRS = [BASE_DIR / 'static']
+
+# PGlite грузит движок через WebAssembly.instantiateStreaming, а тот требует
+# строгий Content-Type: application/wasm. На Windows тип берётся из реестра, где
+# для .wasm записи может не быть, — регистрируем явно, чтобы тренажёр поднимался
+# на любой машине.
+mimetypes.add_type("application/wasm", ".wasm", strict=True)
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
