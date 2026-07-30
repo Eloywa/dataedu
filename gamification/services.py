@@ -11,12 +11,16 @@ from .gating import compute_gating
 from .levels import level_for_xp
 from .models import Achievement, UserAchievement
 
-MEANINGFUL = ["lesson_complete", "test_finish", "sql_run", "submission", "achievement"]
+MEANINGFUL = ["lesson_complete", "test_finish", "sql_run", "submission", "achievement", "reflection"]
 
 # Начисление XP. Урок даёт свой lesson.xp_reward; тест и задание — фиксированную
 # величину и только за первый успех (повторные попытки XP не приносят).
 XP_TEST_PASS = 15
 XP_ASSIGNMENT_SOLVED = 20
+# Рефлексия даёт немного: она полезна исследованию, но не должна становиться
+# способом набивать уровень в обход учебной работы. Начисляется один раз на урок —
+# правка своей же оценки XP не приносит.
+XP_REFLECTION = 5
 
 
 def add_xp(user, amount):
@@ -104,6 +108,17 @@ def record_submission(user, submission):
         )
         if not solved_before:
             add_xp(user, XP_ASSIGNMENT_SOLVED)
+
+
+def record_reflection(user, lesson, is_new):
+    """Событие и XP за рефлексию. XP — только за первую по этому уроку.
+
+    `is_new` приходит от вызывающей стороны (результат `update_or_create`), потому
+    что к моменту вызова запись уже сохранена и «первая ли она» по базе уже не видно.
+    """
+    log_activity(user, "reflection", "lesson", lesson.id)
+    if is_new:
+        add_xp(user, XP_REFLECTION)
 
 
 def record_sql_run(user):
@@ -205,6 +220,9 @@ def get_recent_activity(user, limit=20):
             return ("submission", f"Сдано задание «{n}»" if n else "Сдано задание")
         if a.type == "achievement":
             return ("achievement", "Получено достижение")
+        if a.type == "reflection":
+            n = lessons.get(a.entity_id)
+            return ("reflection", f"Рефлексия по уроку «{n}»" if n else "Рефлексия по уроку")
         return (None, None)
 
     groups = []

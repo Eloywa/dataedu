@@ -1632,3 +1632,88 @@ pre,
 .field-hint a:hover {
   text-decoration-thickness: 2px;
 }
+
+/* --- Этап 10: рефлексия по уроку ----------------------------------------- */
+
+.lesson-reflection-block {
+  margin-top: 32px;
+  padding-top: 24px;
+  border-top: 1px solid var(--border);
+}
+.reflection-form {
+  max-width: 560px;
+}
+.rating-group {
+  margin: 0 0 20px;
+  padding: 0;
+  border: none;
+}
+.rating-group legend {
+  padding: 0;
+  margin-bottom: 10px;
+}
+.rating-scale {
+  display: flex;
+  gap: 8px;
+}
+/* Кружок с цифрой: сам radio скрыт, но остаётся в потоке для клавиатуры и
+   скринридеров — :focus-visible подсвечивает подпись. */
+.rating-option {
+  position: relative;
+}
+.rating-option input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+.rating-option span {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border: 1px solid var(--hairline);
+  border-radius: 8px;
+  background: var(--surface);
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 15px;
+  color: var(--muted);
+  transition:
+    border-color 0.15s,
+    background 0.15s,
+    color 0.15s;
+}
+.rating-option input:hover + span {
+  border-color: var(--accent);
+  color: var(--text);
+}
+.rating-option input:checked + span {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--on-accent);
+  font-weight: 600;
+}
+.rating-option input:focus-visible + span {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.reflection-textarea {
+  width: 100%;
+  background: var(--bg);
+  border: 1px solid var(--hairline);
+  border-radius: 7px;
+  color: var(--text);
+  font-family: "Geist", system-ui, sans-serif;
+  font-size: 15px;
+  line-height: 1.5;
+  padding: 10px 12px;
+  resize: vertical;
+}
+.reflection-textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+}

@@ -33,7 +33,83 @@
         </div>
       {% endif %}
 
-      {# Место под рефлексию (этап 10). #}
+      {% if user.is_authenticated and not user.is_teacher %}
+        <div class="lesson-reflection-block" id="reflection">
+          <div class="mono small-label">рефлексия</div>
+          <h2 class="section-h" style="margin-top: 4px">Как прошёл урок?</h2>
+          <p class="page-sub" style="margin-bottom: 18px">
+            Две оценки и, если захочется, пара слов. Это помогает понять, какие темы
+            стоит объяснить иначе.
+          </p>
+
+          {% if reflection_saved %}
+            <div class="form-ok" role="status">
+              Спасибо, ответ сохранён.{% if reflection %} Его можно изменить в любой момент.{% endif %}
+            </div>
+          {% endif %}
+          {% if reflection_invalid %}
+            <div class="form-error" role="alert">
+              Нужно выбрать обе оценки — понятность и трудность.
+            </div>
+          {% endif %}
+
+          <form method="post" action="{% url 'courses:submit_reflection' lesson.id %}" class="reflection-form">
+            {% csrf_token %}
+
+            <fieldset class="rating-group">
+              <legend class="mono small-label">насколько понятно — 1 запутанно, 5 предельно ясно</legend>
+              <div class="rating-scale">
+                {% for n in rating_scale %}
+                  <label class="rating-option">
+                    <input type="radio" name="clarity" value="{{ n }}"
+                           {% if reflection.clarity_rating == n %}checked{% endif %} required />
+                    <span>{{ n }}</span>
+                  </label>
+                {% endfor %}
+              </div>
+            </fieldset>
+
+            <fieldset class="rating-group">
+              <legend class="mono small-label">насколько трудно — 1 легко, 5 очень трудно</legend>
+              <div class="rating-scale">
+                {% for n in rating_scale %}
+                  <label class="rating-option">
+                    <input type="radio" name="difficulty" value="{{ n }}"
+                           {% if reflection.difficulty_rating == n %}checked{% endif %} required />
+                    <span>{{ n }}</span>
+                  </label>
+                {% endfor %}
+              </div>
+            </fieldset>
+
+            <div class="field">
+              <label for="comment">что было непонятно или, наоборот, зашло <span class="field-opt">— необязательно</span></label>
+              <textarea id="comment" name="comment" rows="3" class="reflection-textarea">{{ reflection.comment|default:'' }}</textarea>
+            </div>
+
+            <div class="field field-check">
+              <label for="anonymous" class="check-label">
+                <input id="anonymous" name="anonymous" type="checkbox"
+                       {% if reflection.comment_is_anonymous %}checked{% endif %} />
+                <span>
+                  Показать комментарий преподавателю без моего имени. Оценки понятности
+                  и трудности останутся привязаны к учётной записи — они нужны, чтобы
+                  сопоставить их с тем, как урок шёл на самом деле.
+                </span>
+              </label>
+            </div>
+
+            <button class="btn btn-primary" type="submit">
+              {% if reflection %}Изменить ответ{% else %}Отправить{% endif %}
+            </button>
+            {% if reflection %}
+              <p class="field-hint" style="margin-top: 12px">
+                Отправлено {{ reflection.created_at|date:"d.m.Y" }}{% if reflection.updated_at %}, изменено {{ reflection.updated_at|date:"d.m.Y" }}{% endif %}.
+              </p>
+            {% endif %}
+          </form>
+        </div>
+      {% endif %}
 
       <div class="lesson-foot">
         <div class="lesson-nav">

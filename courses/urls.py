@@ -11,4 +11,5 @@ urlpatterns = [
     path("catalog/<slug:slug>/review/", views.submit_review, name="review"),
     path("lessons/<uuid:lesson_id>/", views.lesson_detail, name="lesson_detail"),
     path("lessons/<uuid:lesson_id>/complete/", views.complete_lesson, name="complete_lesson"),
+    path("lessons/<uuid:lesson_id>/reflection/", views.submit_reflection, name="submit_reflection"),
 ]

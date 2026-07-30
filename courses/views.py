@@ -1,9 +1,12 @@
 from django.contrib.auth.decorators import login_required
 from django.db.models import Avg, Count
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
+from django.utils import timezone
+from django.views.decorators.http import require_POST
 
 from gamification import services
-from learning.models import Enrollment, LessonProgress
+from learning.models import Enrollment, LessonProgress, Reflection
 
 from .models import Course, CourseRating, Lesson, Topic
 from .resources import get_course_resources
@@ -198,6 +201,11 @@ def lesson_detail(request, lesson_id):
     if test and request.user.is_authenticated:
         best_attempt = test.attempts.filter(user=request.user).order_by("-score").first()
 
+    # Рефлексия: своя, если уже заполнена — форма показывается с прежними ответами.
+    reflection = None
+    if request.user.is_authenticated and not request.user.is_teacher:
+        reflection = Reflection.objects.filter(user=request.user, lesson=lesson).first()
+
     return render(
         request,
         "lessons/lesson_detail.html",
@@ -210,6 +218,10 @@ def lesson_detail(request, lesson_id):
             "resources": get_course_resources(course.slug),
             "test": test,
             "best_attempt": best_attempt,
+            "reflection": reflection,
+            "reflection_saved": request.GET.get("reflection") == "saved",
+            "reflection_invalid": request.GET.get("reflection") == "invalid",
+            "rating_scale": [1, 2, 3, 4, 5],
         },
     )
 
@@ -221,3 +233,48 @@ def complete_lesson(request, lesson_id):
         # Статус, XP урока, событие и «Первый шаг» — одной операцией (идемпотентно).
         services.complete_lesson(request.user, lesson)
     return redirect("courses:lesson_detail", lesson_id=lesson_id)
+
+
+def _clamp_rating(raw):
+    """Оценка 1–5 или None. Значение приходит из формы, поэтому не доверяем."""
+    try:
+        value = int(raw)
+    except (TypeError, ValueError):
+        return None
+    return value if 1 <= value <= 5 else None
+
+
+@login_required
+@require_POST
+def submit_reflection(request, lesson_id):
+    """Сохранить рефлексию по уроку (одна на пару «студент — урок», можно менять).
+
+    Преподаватель рефлексию не заполняет: это инструмент обратной связи от студента,
+    и его оценки исказили бы данные исследования.
+    """
+    lesson = get_object_or_404(Lesson, id=lesson_id)
+    if request.user.is_teacher:
+        return redirect("courses:lesson_detail", lesson_id=lesson_id)
+
+    clarity = _clamp_rating(request.POST.get("clarity"))
+    difficulty = _clamp_rating(request.POST.get("difficulty"))
+    if clarity is None or difficulty is None:
+        return redirect(
+            reverse("courses:lesson_detail", args=[lesson_id]) + "?reflection=invalid#reflection"
+        )
+
+    _, created = Reflection.objects.update_or_create(
+        user=request.user,
+        lesson=lesson,
+        defaults={
+            "clarity_rating": clarity,
+            "difficulty_rating": difficulty,
+            "comment": (request.POST.get("comment") or "").strip() or None,
+            "comment_is_anonymous": request.POST.get("anonymous") == "on",
+            "updated_at": timezone.now(),
+        },
+    )
+    services.record_reflection(request.user, lesson, is_new=created)
+    return redirect(
+        reverse("courses:lesson_detail", args=[lesson_id]) + "?reflection=saved#reflection"
+    )
