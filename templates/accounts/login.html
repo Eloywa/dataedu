@@ -5,15 +5,16 @@
 <div class="auth-wrap">
   <div class="auth-card">
     <h1 class="auth-title">Вход в <span class="accent-ink">DataEdu</span></h1>
-    <p class="auth-sub">Войдите по email и паролю.</p>
+    <p class="auth-sub">Войдите по логину и паролю.</p>
 
     {% if error %}<div class="form-error" role="alert">{{ error }}</div>{% endif %}
 
     <form method="post">
       {% csrf_token %}
       <div class="field">
-        <label for="email">email</label>
-        <input id="email" name="email" type="email" autocomplete="email" required />
+        <label for="username">логин</label>
+        <input id="username" name="username" type="text" autocomplete="username"
+               autocapitalize="none" spellcheck="false" required />
       </div>
       <div class="field">
         <label for="password">пароль</label>
@@ -28,7 +29,7 @@
   </div>
 
   <div class="demo-note">
-    Демо-вход: преподаватель <code>petrova@dataedu.ru</code>, студент <code>dmitry@stud.ru</code>.<br />
+    Демо-вход: преподаватель <code>petrova</code>, студент <code>dmitry</code>.<br />
     Пароль всех демо-аккаунтов: <code>dataedu2026</code>.
   </div>
 </div>

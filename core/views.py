@@ -1,7 +1,9 @@
+from django.conf import settings
 from django.http import JsonResponse
 from django.shortcuts import render
 from django.views.decorators.http import require_POST
 
+from accounts import legal
 from courses.models import Lesson
 from gamification import services
 from learning.models import Enrollment, LessonProgress
@@ -65,3 +67,17 @@ def trainer_log(request):
         return JsonResponse({"ok": False})
     achievement = services.record_sql_run(request.user)
     return JsonResponse({"ok": True, "achievement": achievement})
+
+
+def privacy(request):
+    """Политика обработки данных — публикуемый документ (ст. 18.1 ч. 2 152-ФЗ)."""
+    return render(
+        request,
+        "legal/privacy.html",
+        {"version": legal.PRIVACY_VERSION, "retention_days": settings.METRICS_RETENTION_DAYS},
+    )
+
+
+def terms(request):
+    """Пользовательское соглашение."""
+    return render(request, "legal/terms.html", {"version": legal.TERMS_VERSION})

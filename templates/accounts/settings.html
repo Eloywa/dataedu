@@ -4,8 +4,14 @@
 {% block content %}
 <div class="auth-wrap">
   <div class="auth-card">
-    <h1 class="auth-title">Смена пароля</h1>
-    <p class="auth-sub">{{ user.full_name }} · {{ user.email }}</p>
+    <h1 class="auth-title">Настройки</h1>
+    <p class="auth-sub">
+      <span class="mono">{{ user.username }}</span>
+      {% if user.display_name %} · {{ user.display_name }}{% endif %}
+      {% if user.role %} · {{ user.role.name }}{% endif %}
+    </p>
+
+    <h2 class="section-title">Смена пароля</h2>
 
     {% if done %}<div class="form-ok" role="status">Пароль изменён.</div>{% endif %}
     {% if error %}<div class="form-error" role="alert">{{ error }}</div>{% endif %}
@@ -26,6 +32,44 @@
       </div>
       <button class="btn btn-primary btn-block" type="submit">Сохранить</button>
     </form>
+  </div>
+
+  <div class="auth-card">
+    <h2 class="section-title">Мои данные</h2>
+    <p class="field-hint">
+      Вы можете забрать всё, что платформа о вас хранит, или удалить учётную запись.
+      Что именно хранится и зачем — в
+      <a href="{% url 'core:privacy' %}">политике обработки данных</a>.
+    </p>
+
+    <p class="field-hint">
+      События ленты активности удаляются автоматически через {{ retention_days }} дней.
+    </p>
+
+    <a class="btn btn-ghost btn-block" href="{% url 'accounts:export_data' %}">
+      Выгрузить мои данные (JSON)
+    </a>
+
+    {% if consents %}
+      <h3 class="section-title-sm">Принятые документы</h3>
+      <ul class="consent-list mono">
+        {% for c in consents %}
+          <li>
+            {{ c.get_document_display }} — редакция {{ c.version }},
+            принята {{ c.granted_at|date:"d.m.Y" }}
+          </li>
+        {% endfor %}
+      </ul>
+    {% endif %}
+
+    <h3 class="section-title-sm">Удаление учётной записи</h3>
+    <p class="field-hint">
+      Необратимо. Вместе с записью удаляются прогресс, попытки тестов, решения заданий,
+      рефлексии, достижения и лента событий.
+    </p>
+    <a class="btn btn-danger btn-block" href="{% url 'accounts:delete_account' %}">
+      Удалить учётную запись
+    </a>
   </div>
 </div>
 {% endblock %}

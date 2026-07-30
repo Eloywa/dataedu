@@ -26,7 +26,7 @@
         </div>
         <div class="header-actions">
           {% if user.is_authenticated %}
-            <a class="link-muted" href="{% url 'accounts:settings' %}">{{ user.full_name }}{% if user.role %} · {{ user.role.name }}{% endif %}</a>
+            <a class="link-muted" href="{% url 'accounts:settings' %}">{{ user.label }}{% if user.role %} · {{ user.role.name }}{% endif %}</a>
             <form method="post" action="{% url 'accounts:logout' %}" style="margin: 0">
               {% csrf_token %}
               <button class="btn btn-ghost" type="submit">Выйти</button>
@@ -42,7 +42,13 @@
     <main>{% block content %}{% endblock %}</main>
 
     <footer class="site-footer">
-      <div class="container">// DataEdu — учебная платформа по базам данных</div>
+      <div class="container footer-row">
+        <span>// DataEdu — учебная платформа по базам данных</span>
+        <span class="footer-links">
+          <a href="{% url 'core:privacy' %}">Обработка данных</a>
+          <a href="{% url 'core:terms' %}">Соглашение</a>
+        </span>
+      </div>
     </footer>
   </body>
 </html>

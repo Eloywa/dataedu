@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block title %}Удаление учётной записи — DataEdu{% endblock %}
+
+{% block content %}
+<div class="auth-wrap">
+  <div class="auth-card">
+    <h1 class="auth-title">Удаление учётной записи</h1>
+    <p class="auth-sub">Это действие необратимо.</p>
+
+    {% if error %}<div class="form-error" role="alert">{{ error }}</div>{% endif %}
+
+    <div class="legal-callout">
+      <p>Будут удалены безвозвратно:</p>
+      <ul>
+        <li>учётная запись <span class="mono">{{ user.username }}</span>;</li>
+        <li>записи на курсы и прогресс по урокам;</li>
+        <li>попытки тестов и полученные баллы;</li>
+        <li>отправленные решения SQL-заданий;</li>
+        <li>рефлексии и отзывы о курсах;</li>
+        <li>очки опыта, уровень и достижения;</li>
+        <li>лента событий.</li>
+      </ul>
+      <p class="field-hint">
+        Если вы автор курсов, сами курсы останутся доступны студентам — у них просто
+        не будет указан автор.
+      </p>
+      <p class="field-hint">
+        Хотите сохранить копию? Сначала
+        <a href="{% url 'accounts:export_data' %}">выгрузите свои данные</a>.
+      </p>
+    </div>
+
+    <form method="post">
+      {% csrf_token %}
+      <div class="field">
+        <label for="password">подтвердите паролем</label>
+        <input id="password" name="password" type="password" autocomplete="current-password" required />
+      </div>
+      <div class="field">
+        <label for="confirm">введите слово <span class="mono">УДАЛИТЬ</span></label>
+        <input id="confirm" name="confirm" type="text" autocomplete="off" spellcheck="false" required />
+      </div>
+      <button class="btn btn-danger btn-block" type="submit">Удалить навсегда</button>
+    </form>
+
+    <div class="auth-foot">
+      <a href="{% url 'accounts:settings' %}">Отмена — вернуться в настройки</a>
+    </div>
+  </div>
+</div>
+{% endblock %}

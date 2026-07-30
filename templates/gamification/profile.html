@@ -4,7 +4,7 @@
 {% block content %}
 <main class="container page">
   <h1 class="page-title">Мой прогресс</h1>
-  <p class="page-sub">{{ user.full_name }}{% if user.role %} · {{ user.role.name }}{% endif %}</p>
+  <p class="page-sub">{{ user.label }}{% if user.role %} · {{ user.role.name }}{% endif %}</p>
 
   <div class="progress-layout">
     <div class="progress-main">

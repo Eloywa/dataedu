@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block title %}Учётная запись удалена — DataEdu{% endblock %}
+
+{% block content %}
+<div class="auth-wrap">
+  <div class="auth-card">
+    <h1 class="auth-title">Учётная запись удалена</h1>
+    <p class="auth-sub">
+      Все связанные с ней учебные данные удалены из базы. Спасибо за работу с DataEdu.
+    </p>
+    <a class="btn btn-primary btn-block" href="{% url 'core:home' %}">На главную</a>
+  </div>
+</div>
+{% endblock %}

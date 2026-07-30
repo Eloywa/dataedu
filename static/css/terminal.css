@@ -1467,3 +1467,168 @@ pre,
   }
 }
 
+/* --- Этап 9.6: правовой контур ------------------------------------------- */
+/* Каркасные стили: цель — читаемость форм и документов, без отделки.
+   Переделка дизайна запланирована отдельно. */
+
+.footer-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+.footer-links {
+  display: flex;
+  gap: 20px;
+}
+.footer-links a {
+  color: var(--muted);
+  text-decoration: none;
+  border-bottom: 1px solid transparent;
+}
+.footer-links a:hover {
+  color: var(--text);
+  border-bottom-color: var(--hairline);
+}
+
+.field-hint {
+  margin: 6px 0 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--muted);
+}
+.field-opt {
+  color: var(--muted);
+  font-weight: 400;
+}
+
+/* Чекбокс согласия: подпись кликабельна целиком, галочка не сжимается */
+.field-check {
+  margin-top: 22px;
+}
+/* Селектор с .field-check намеренно: иначе `.field label { display: block }`
+   выше по специфичности и галочка не встаёт в одну строку с подписью. */
+.field-check .check-label {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--muted);
+  cursor: pointer;
+}
+.field-check .check-label input[type="checkbox"] {
+  flex: 0 0 auto;
+  width: 16px;
+  height: 16px;
+  margin-top: 1px;
+  accent-color: var(--accent);
+}
+.field-check .check-label a {
+  color: var(--accent);
+}
+
+.section-title {
+  margin: 0 0 18px;
+  font-family: "Space Grotesk", "Manrope", sans-serif;
+  font-size: 17px;
+}
+.auth-card .section-title:not(:first-child) {
+  margin-top: 34px;
+}
+.section-title-sm {
+  margin: 28px 0 10px;
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+}
+
+.consent-list {
+  margin: 0;
+  padding-left: 18px;
+  font-size: 12px;
+  line-height: 1.7;
+  color: var(--muted);
+}
+
+.btn-danger {
+  background: transparent;
+  color: #f87171;
+  border: 1px solid rgba(248, 113, 113, 0.4);
+}
+.btn-danger:hover {
+  background: rgba(248, 113, 113, 0.1);
+  border-color: #f87171;
+}
+
+/* Правовые документы: узкая колонка — длинные строки читать тяжело */
+.legal-page {
+  max-width: 760px;
+  padding-bottom: 40px;
+}
+.legal-page h2 {
+  margin: 34px 0 12px;
+  font-family: "Space Grotesk", "Manrope", sans-serif;
+  font-size: 18px;
+}
+.legal-page p,
+.legal-page li {
+  line-height: 1.65;
+  color: var(--text);
+}
+.legal-page ul {
+  padding-left: 22px;
+}
+.legal-page li {
+  margin-bottom: 8px;
+}
+.legal-page code {
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.9em;
+  color: var(--secondary);
+}
+.legal-callout {
+  margin: 24px 0;
+  padding: 18px 22px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-left: 2px solid var(--accent);
+  border-radius: 4px;
+}
+.legal-callout p:first-child {
+  margin-top: 0;
+}
+.legal-callout p:last-child {
+  margin-bottom: 0;
+}
+.legal-foot {
+  margin-top: 40px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border);
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+/* Настройки состоят из двух карточек — нужен отбив между ними */
+.auth-wrap .auth-card + .auth-card {
+  margin-top: 20px;
+}
+
+/* Ссылки внутри правовых текстов: без этого достаются браузерные синие,
+   почти нечитаемые на тёмном фоне */
+.legal-page a,
+.legal-callout a,
+.field-hint a {
+  color: var(--accent);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.legal-page a:hover,
+.legal-callout a:hover,
+.field-hint a:hover {
+  text-decoration-thickness: 2px;
+}

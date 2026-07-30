@@ -5,19 +5,33 @@
 <div class="auth-wrap">
   <div class="auth-card">
     <h1 class="auth-title">Регистрация</h1>
-    <p class="auth-sub">Создайте аккаунт студента.</p>
+    <p class="auth-sub">Создайте аккаунт студента. Обязательны только логин и пароль.</p>
 
     {% if error %}<div class="form-error" role="alert">{{ error }}</div>{% endif %}
 
     <form method="post">
       {% csrf_token %}
       <div class="field">
-        <label for="full_name">имя и фамилия</label>
-        <input id="full_name" name="full_name" type="text" autocomplete="name" required />
+        <label for="username">логин</label>
+        <input id="username" name="username" type="text" autocomplete="username"
+               autocapitalize="none" spellcheck="false" value="{{ form.username|default:'' }}" required />
+        <p class="field-hint">Латиница, цифры, точка, дефис, подчёркивание.</p>
       </div>
       <div class="field">
-        <label for="email">email</label>
-        <input id="email" name="email" type="email" autocomplete="email" required />
+        <label for="display_name">отображаемое имя <span class="field-opt">— необязательно</span></label>
+        <input id="display_name" name="display_name" type="text" value="{{ form.display_name|default:'' }}" />
+        <p class="field-hint">
+          Как к вам обращаться в интерфейсе. Можно псевдоним — настоящее имя и фамилию
+          указывать не нужно. Если оставить пустым, будет показан логин.
+        </p>
+      </div>
+      <div class="field">
+        <label for="email">email <span class="field-opt">— необязательно</span></label>
+        <input id="email" name="email" type="email" autocomplete="email" value="{{ form.email|default:'' }}" />
+        <p class="field-hint">
+          Платформа не рассылает писем. Поле нужно только на случай, если вы сами
+          захотите иметь способ восстановить доступ.
+        </p>
       </div>
       <div class="field">
         <label for="password">пароль (от 8 символов)</label>
@@ -27,6 +41,18 @@
         <label for="confirm">повторите пароль</label>
         <input id="confirm" name="confirm" type="password" autocomplete="new-password" required />
       </div>
+
+      <div class="field field-check">
+        <label for="consent" class="check-label">
+          <input id="consent" name="consent" type="checkbox" required />
+          <span>
+            Я прочитал(а) и принимаю
+            <a href="{% url 'core:privacy' %}" target="_blank" rel="noopener">политику обработки данных</a>
+            и <a href="{% url 'core:terms' %}" target="_blank" rel="noopener">пользовательское соглашение</a>.
+          </span>
+        </label>
+      </div>
+
       <button class="btn btn-primary btn-block" type="submit">Зарегистрироваться</button>
     </form>
 

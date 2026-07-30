@@ -44,7 +44,7 @@
           <h3 class="course-card-title">{{ course.title }}</h3>
           {% if course.description %}<p class="course-card-desc">{{ course.description }}</p>{% endif %}
           <div class="card-meta-bottom">
-            {% if course.author %}<span>{{ course.author.full_name }}</span>{% endif %}
+            {% if course.author %}<span>{{ course.author.label }}</span>{% endif %}
             <span>{{ course.lesson_count }} уроков</span>
           </div>
           {% if course.is_enrolled and course.prog %}

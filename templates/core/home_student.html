@@ -3,7 +3,7 @@
 
 {% block content %}
 <main class="container page">
-  <h1 class="page-title">С возвращением, <span class="accent-ink">{{ user.full_name }}</span></h1>
+  <h1 class="page-title">С возвращением, <span class="accent-ink">{{ user.label }}</span></h1>
   <div class="xp-strip mono">
     уровень {{ user.level }} · {{ user.xp }} XP ·
     <a href="{% url 'gamification:profile' %}">мой прогресс →</a>

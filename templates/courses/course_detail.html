@@ -13,7 +13,7 @@
         <h1 class="page-title">{{ course.title }}</h1>
         {% if course.description %}<p class="page-sub">{{ course.description }}</p>{% endif %}
         <div class="course-meta">
-          {% if course.author %}<span>Автор: {{ course.author.full_name }}</span>{% endif %}
+          {% if course.author %}<span>Автор: {{ course.author.label }}</span>{% endif %}
           {% if rating_count %}<span class="stars">{{ rating_avg|stars }} {{ rating_avg|floatformat:1 }} ({{ rating_count }})</span>{% endif %}
         </div>
 
@@ -88,7 +88,7 @@
         {% for r in reviews %}
           <div class="review">
             <div class="review-head">
-              <span class="review-author">{{ r.user.full_name }}</span>
+              <span class="review-author">{{ r.user.label }}</span>
               <span class="stars">{{ r.rating|stars }}</span>
             </div>
             {% if r.comment %}<p class="review-comment">{{ r.comment }}</p>{% endif %}

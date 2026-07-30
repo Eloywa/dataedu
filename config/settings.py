@@ -34,6 +34,18 @@ DEBUG = os.environ.get("DEBUG", "1") == "1"
 
 ALLOWED_HOSTS = os.environ.get("ALLOWED_HOSTS", "localhost,127.0.0.1").split(",")
 
+# --- Правовой контур (этап 9.6) ---------------------------------------------
+
+# Свободная регистрация. На апробации выключается (REGISTRATION_OPEN=0), а логины
+# выдаются пачкой командой `create_pilot_accounts`: так в системе оказываются только
+# обезличенные учётные записи, а соответствие «код ↔ студент» остаётся вне системы.
+REGISTRATION_OPEN = os.environ.get("REGISTRATION_OPEN", "1") == "1"
+
+# Срок хранения событий ленты активности (таблица `activities`). Хранить учебную
+# телеметрию бессрочно незачем: для аналитики хватает учебного года, а всё лишнее
+# только увеличивает объём обрабатываемых данных. Чистка — `manage.py purge_metrics`.
+METRICS_RETENTION_DAYS = int(os.environ.get("METRICS_RETENTION_DAYS", "400"))
+
 
 # Application definition
 

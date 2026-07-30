@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}Регистрация закрыта — DataEdu{% endblock %}
+
+{% block content %}
+<div class="auth-wrap">
+  <div class="auth-card">
+    <h1 class="auth-title">Регистрация закрыта</h1>
+    <p class="auth-sub">
+      Сейчас платформа работает в режиме апробации: учётные записи выдаёт преподаватель.
+    </p>
+    <p class="field-hint">
+      Если вы участник исследования — обратитесь к преподавателю за логином и паролем.
+      Логины выдаются в виде кодов участников, поэтому платформа не хранит сведений о
+      том, кто именно стоит за учётной записью. Подробнее — в
+      <a href="{% url 'core:privacy' %}">политике обработки данных</a>.
+    </p>
+    <a class="btn btn-primary btn-block" href="{% url 'accounts:login' %}">Войти</a>
+  </div>
+</div>
+{% endblock %}
