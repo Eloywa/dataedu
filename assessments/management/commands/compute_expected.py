@@ -1,31 +1,26 @@
-"""Предрасчёт эталонного результата SQL-заданий.
+"""Пакетный предрасчёт эталонных результатов SQL-заданий.
 
-Эталонный запрос преподавателя (setup_sql + expected_sql) выполняется в одноразовой
-временной схеме на сервере и сразу откатывается. Исполняется ТОЛЬКО доверенный SQL
-заданий (не студенческий). Результат сохраняется в Assignment.expected_result.
+Сама логика расчёта живёт в `assessments/expected.py` — тем же кодом пользуется кнопка
+«Посчитать эталон» в админке. Команда остаётся для пакетного прогона (например, после
+`seed_practice` или переливки данных).
 """
 
 import psycopg
-from django.conf import settings
 from django.core.management.base import BaseCommand
 
-from assessments.grading import jsonable
+from assessments.expected import ExpectedError, _conn_params, compute_and_save
 from assessments.models import Assignment
-
-
-def _conn_params():
-    db = settings.DATABASES["default"]
-    return dict(
-        host=db["HOST"], port=db["PORT"], user=db["USER"], password=db["PASSWORD"], dbname=db["NAME"]
-    )
-
-
-def _statements(sql):
-    return [s.strip() for s in (sql or "").split(";") if s.strip()]
 
 
 class Command(BaseCommand):
     help = "Посчитать эталонный результат (expected_result) для SQL-заданий с setup_sql."
+
+    def add_arguments(self, parser):
+        parser.add_argument(
+            "--only-missing",
+            action="store_true",
+            help="считать только там, где эталона ещё нет",
+        )
 
     def handle(self, *args, **options):
         qs = (
@@ -35,26 +30,30 @@ class Command(BaseCommand):
             .exclude(setup_sql__isnull=True)
             .exclude(setup_sql="")
         )
-        conn = psycopg.connect(**_conn_params())  # autocommit=False
+        if options["only_missing"]:
+            qs = qs.filter(expected_result__isnull=True)
+
+        if not qs.exists():
+            self.stdout.write("Заданий для расчёта не найдено.")
+            return
+
+        # Одно соединение на весь прогон: каждая задача откатывается отдельно.
+        conn = psycopg.connect(**_conn_params())
         done, failed = 0, 0
-        for a in qs:
-            cur = conn.cursor()
-            try:
-                cur.execute("DROP SCHEMA IF EXISTS tmp_chk CASCADE; CREATE SCHEMA tmp_chk;")
-                cur.execute("SET search_path TO tmp_chk, public;")
-                for stmt in _statements(a.setup_sql):
-                    cur.execute(stmt)
-                cur.execute(a.expected_sql)
-                cols = [d.name for d in cur.description] if cur.description else []
-                rows = [list(r) for r in cur.fetchall()] if cur.description else []
-                a.expected_result = {"columns": cols, "rows": jsonable(rows)}
-                a.save(update_fields=["expected_result"])
-                done += 1
-                self.stdout.write(f"  ✓ {a.title}: {len(rows)} строк, {len(cols)} столбцов")
-            except Exception as e:  # noqa: BLE001 — показываем причину и идём дальше
-                failed += 1
-                self.stdout.write(self.style.WARNING(f"  ✗ {a.title}: {e}"))
-            finally:
-                conn.rollback()  # откат: временная схема и search_path исчезают
-        conn.close()
-        self.stdout.write(self.style.SUCCESS(f"Эталон посчитан: {done}, ошибок: {failed}."))
+        try:
+            for a in qs:
+                try:
+                    result = compute_and_save(a, conn=conn)
+                    done += 1
+                    self.stdout.write(
+                        f"  ✓ {a.title}: {len(result['rows'])} строк, "
+                        f"{len(result['columns'])} столбцов"
+                    )
+                except ExpectedError as e:
+                    failed += 1
+                    self.stdout.write(self.style.WARNING(f"  ✗ {a.title}: {e}"))
+        finally:
+            conn.close()
+
+        style = self.style.SUCCESS if not failed else self.style.WARNING
+        self.stdout.write(style(f"Эталон посчитан: {done}, ошибок: {failed}."))

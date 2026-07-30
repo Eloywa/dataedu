@@ -3,6 +3,7 @@
 // Эталонный SQL студенту не отдаётся.
 // Библиотека вшита в static/vendor/pglite — см. комментарий в trainer.js.
 import { PGlite } from "../vendor/pglite/index.js";
+import { rowsLabel } from "./plural.js";
 
 const $ = (id) => document.getElementById(id);
 const root = $("assignment");
@@ -41,7 +42,7 @@ function renderTable(res) {
   for (const row of res.rows) {
     html += "<tr>" + cols.map((c) => `<td>${esc(fmt(row[c]))}</td>`).join("") + "</tr>";
   }
-  html += `</tbody></table></div><div class="trainer-note">${res.rows.length} строк</div>`;
+  html += `</tbody></table></div><div class="trainer-note">${rowsLabel(res.rows.length)}</div>`;
   out.innerHTML = html;
   return { cols, rows: res.rows.map((r) => cols.map((c) => r[c])) };
 }
@@ -49,10 +50,30 @@ function renderTable(res) {
 function showError(msg) {
   $("output").innerHTML = `<div class="trainer-error mono">${esc(msg)}</div>`;
 }
-function showVerdict(passed, message) {
+// Вердикт с разбором: три проверки (столбцы / число строк / состав строк) и одна
+// подсказка о вероятной причине. Содержимое эталона сервер не присылает — только
+// количества, поэтому подсказка не выдаёт ответ.
+function showVerdict(passed, checks, hint) {
+  let html = `<div class="verdict ${passed ? "ok" : "fail"}">${passed ? "✓ Верно" : "✗ Неверно"}</div>`;
+  if (checks && checks.length) {
+    html += '<ul class="diag-list mono">';
+    for (const c of checks) {
+      html +=
+        `<li class="${c.ok ? "diag-ok" : "diag-fail"}">` +
+        `<span class="diag-mark">${c.ok ? "✓" : "✗"}</span>` +
+        `<span class="diag-label">${esc(c.label)}</span>` +
+        `<span class="diag-detail">${esc(c.detail)}</span></li>`;
+    }
+    html += "</ul>";
+  }
+  if (hint) html += `<div class="diag-hint">${esc(hint)}</div>`;
+  $("verdict").innerHTML = html;
+}
+
+function showVerdictError(message) {
   $("verdict").innerHTML =
-    `<div class="verdict ${passed ? "ok" : "fail"}">${passed ? "✓ Верно" : "✗ Неверно"}` +
-    `${message ? " — " + esc(message) : ""}</div>`;
+    `<div class="verdict fail">✗ Не проверено</div>` +
+    `<div class="diag-hint">${esc(message)}</div>`;
 }
 
 async function check() {
@@ -72,10 +93,15 @@ async function check() {
       body: JSON.stringify({ sql, columns: cols, rows }),
     });
     const data = await resp.json();
-    showVerdict(!!data.passed, data.message);
+    if (!resp.ok) {
+      // Например, у задания не посчитан эталон — это не ошибка студента.
+      showVerdictError(data.message || "Проверка недоступна: " + resp.status);
+    } else {
+      showVerdict(!!data.passed, data.checks, data.hint);
+    }
   } catch (e) {
     showError(e && e.message ? e.message : String(e));
-    showVerdict(false, "Ошибка выполнения запроса");
+    showVerdictError("Запрос не выполнился — исправьте ошибку в SQL и попробуйте снова.");
   } finally {
     $("check").disabled = false;
   }

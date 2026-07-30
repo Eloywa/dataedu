@@ -3,6 +3,7 @@
 // Библиотека вшита в static/vendor/pglite — ни один внешний запрос не уходит:
 // тренажёр работает без интернета, и IP студента не утекает в зарубежный CDN.
 import { PGlite } from "../vendor/pglite/index.js";
+import { rowsLabel } from "./plural.js";
 
 // Фиксированный учебный набор — одинаковый для всех. Пересоздаётся при сбросе.
 const SEED = `
@@ -97,7 +98,7 @@ function renderResult(res) {
     html += "<tr>" + cols.map((c) => `<td>${esc(fmt(row[c]))}</td>`).join("") + "</tr>";
   }
   html += "</tbody></table></div>";
-  html += `<div class="trainer-note">${res.rows.length} ${res.rows.length === 1 ? "строка" : "строк"}</div>`;
+  html += `<div class="trainer-note">${rowsLabel(res.rows.length)}</div>`;
   out.innerHTML = html;
 }
 

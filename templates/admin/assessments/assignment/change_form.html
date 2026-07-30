@@ -1,0 +1,21 @@
+{% extends "admin/change_form.html" %}
+{% load i18n %}
+
+{# Кнопка «Посчитать эталон» рядом со штатными кнопками сохранения: преподавателю
+   не нужно уходить в терминал за manage.py compute_expected. Показываем только на
+   странице существующего объекта — расчёт идёт по сохранённым setup_sql/expected_sql. #}
+{% block submit_buttons_bottom %}
+  {{ block.super }}
+  {% if original and original.type == "sql" %}
+    <div class="submit-row" style="display: flex; align-items: center; gap: 16px">
+      <a class="button" style="background: #3f7d14"
+         href="{% url 'admin:assessments_assignment_compute_expected' original.pk %}">
+        Посчитать эталон
+      </a>
+      <span class="help" style="margin: 0">
+        Выполнит заготовку и эталонный запрос в одноразовой схеме на сервере и сохранит
+        результат. Сначала сохраните изменения в полях выше.
+      </span>
+    </div>
+  {% endif %}
+{% endblock %}

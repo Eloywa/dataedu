@@ -9,7 +9,7 @@ from django.views.decorators.http import require_POST
 from courses.models import Lesson
 from gamification import services
 
-from .grading import rows_equal
+from .grading import diagnose
 from .models import AnswerSubmission, Assignment, Submission, TestAttempt
 
 
@@ -130,7 +130,10 @@ def check_assignment(request, assignment_id):
         return JsonResponse({"passed": False, "message": "Некорректные данные."}, status=400)
 
     expected = assignment.expected_result
-    passed = rows_equal(columns, rows, expected.get("columns", []), expected.get("rows", []))
+    # Диагностика раскладывает итог на столбцы / число строк / состав строк.
+    # `passed` берётся оттуда же, поэтому вердикт и подсказки не могут разойтись.
+    report = diagnose(columns, rows, expected.get("columns", []), expected.get("rows", []))
+    passed = report["passed"]
 
     # Сервер ставит итог независимо от браузера (целостность оценки).
     submission = Submission.objects.create(
@@ -139,13 +142,26 @@ def check_assignment(request, assignment_id):
         sql_query=sql,
         score=assignment.max_score if passed else 0,
         status="graded",
-        feedback="Автопроверка: " + ("верно" if passed else "неверно"),
+        feedback=_feedback_text(report),
         submitted_at=timezone.now(),
         graded_at=timezone.now(),
     )
     services.record_submission(request.user, submission)
 
-    message = "" if passed else (
-        f"Ожидалось строк: {len(expected.get('rows', []))}, у вас: {len(rows)}."
+    return JsonResponse(
+        {"passed": passed, "checks": report["checks"], "hint": report["hint"]}
     )
-    return JsonResponse({"passed": passed, "message": message})
+
+
+def _feedback_text(report):
+    """Текст для `Submission.feedback` — чтобы преподаватель видел ту же картину.
+
+    В отличие от ответа браузеру, здесь всё складывается в одну строку: поле хранит
+    текст, и по нему потом строится выборка для дашборда (этап 11).
+    """
+    if report["passed"]:
+        return "Автопроверка: верно"
+    parts = [f"{c['label']}: {c['detail']}" for c in report["checks"] if not c["ok"]]
+    if not parts:
+        return "Автопроверка: неверно"
+    return "Автопроверка: неверно — " + "; ".join(parts)

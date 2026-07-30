@@ -1717,3 +1717,48 @@ pre,
   outline: none;
   border-color: var(--accent);
 }
+
+/* --- Этап 10.5: диагностика автопроверки --------------------------------- */
+
+.diag-list {
+  list-style: none;
+  margin: 0 0 12px;
+  padding: 0;
+  font-size: 13px;
+}
+.diag-list li {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 5px 0;
+}
+.diag-mark {
+  flex: 0 0 auto;
+  width: 14px;
+}
+.diag-ok .diag-mark {
+  color: var(--success);
+}
+.diag-fail .diag-mark {
+  color: var(--danger);
+}
+.diag-label {
+  flex: 0 0 110px;
+  color: var(--muted);
+}
+.diag-detail {
+  color: var(--text);
+}
+/* Подсказка о вероятной причине — единственная и заметная, янтарём:
+   это не ошибка и не успех, а направление для следующей попытки. */
+.diag-hint {
+  max-width: 620px;
+  padding: 11px 14px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-left: 2px solid var(--secondary);
+  border-radius: 4px;
+  font-size: 13.5px;
+  line-height: 1.55;
+  color: var(--text);
+}
