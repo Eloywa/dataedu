@@ -90,15 +90,34 @@ def lesson_test(request, lesson_id):
 
 @login_required
 def practice(request):
-    assignments = list(
-        Assignment.objects.filter(type="sql").select_related("course").order_by("course__title", "title")
-    )
+    """Список заданий: с автопроверкой отдельно от тех, что смотрит преподаватель.
+
+    Условие автопроверки — не только `type="sql"`, но и наличие посчитанного эталона.
+    Раньше в список попадало любое SQL-задание, и если у него не был посчитан эталон,
+    студент получал editor, кнопка в котором отвечала ошибкой. Теперь такие задания
+    сразу показываются как «проверяет преподаватель» — платформа не предлагает того,
+    чего не умеет.
+    """
     solved = set(
         Submission.objects.filter(user=request.user, score__gte=1).values_list("assignment_id", flat=True)
     )
-    for a in assignments:
+    submitted = set(
+        Submission.objects.filter(user=request.user).values_list("assignment_id", flat=True)
+    )
+
+    auto, manual = [], []
+    for a in (
+        Assignment.objects.select_related("course").order_by("course__title", "title")
+    ):
         a.is_solved = a.id in solved
-    return render(request, "assessments/practice_list.html", {"assignments": assignments})
+        a.is_submitted = a.id in submitted
+        (auto if a.is_autocheckable else manual).append(a)
+
+    return render(
+        request,
+        "assessments/practice_list.html",
+        {"assignments": auto, "manual_assignments": manual},
+    )
 
 
 @login_required
@@ -107,10 +126,15 @@ def assignment_detail(request, assignment_id):
     solved = Submission.objects.filter(
         user=request.user, assignment=assignment, score__gte=1
     ).exists()
+    last = (
+        Submission.objects.filter(user=request.user, assignment=assignment)
+        .order_by("-submitted_at")
+        .first()
+    )
     return render(
         request,
         "assessments/assignment_detail.html",
-        {"assignment": assignment, "solved": solved},
+        {"assignment": assignment, "solved": solved, "last_submission": last},
     )
 
 
@@ -118,8 +142,14 @@ def assignment_detail(request, assignment_id):
 @require_POST
 def check_assignment(request, assignment_id):
     assignment = get_object_or_404(Assignment, id=assignment_id)
-    if not assignment.expected_result:
-        return JsonResponse({"passed": False, "message": "Эталон для задания не настроен."}, status=400)
+    if not assignment.is_autocheckable:
+        return JsonResponse(
+            {
+                "passed": False,
+                "message": "Это задание проверяет преподаватель — автопроверки у него нет.",
+            },
+            status=400,
+        )
 
     try:
         payload = json.loads(request.body)

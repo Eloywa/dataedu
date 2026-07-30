@@ -24,5 +24,25 @@
       <p class="page-sub">Заданий пока нет.</p>
     {% endfor %}
   </div>
+
+  {% if manual_assignments %}
+    <h2 class="section-h" style="margin-top: 46px">Проверяет преподаватель</h2>
+    <p class="page-sub">
+      Автопроверки здесь нет: сравнение результата подходит для запросов
+      <code>SELECT</code>, а создание таблиц и файловые работы смотрит преподаватель.
+    </p>
+    <div class="practice-grid">
+      {% for a in manual_assignments %}
+        <a href="{% url 'assessments:assignment_detail' a.id %}" class="practice-card">
+          <div class="practice-card-top">
+            <span class="badge badge-{{ a.level|level_tone }}">{{ a.level|level_label }}</span>
+            {% if a.is_submitted %}<span class="badge badge-neutral">отправлено</span>{% endif %}
+          </div>
+          <h3 class="practice-card-title">{{ a.title }}</h3>
+          <div class="practice-card-course mono">{{ a.course.title }}</div>
+        </a>
+      {% endfor %}
+    </div>
+  {% endif %}
 </main>
 {% endblock %}

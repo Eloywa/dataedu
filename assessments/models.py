@@ -20,12 +20,29 @@ class Test(models.Model):
 
 
 class Question(models.Model):
+    """Вопрос теста.
+
+    Поле `topic` добавлено на этапе 11: без связи «вопрос → тема» карта освоения по
+    темам построить нельзя — таблица `topics` была, но связывалась только с курсом
+    целиком, а курс покрывает много тем сразу. Поле необязательное: у вопроса без
+    темы просто нет вклада в карту, и в отчёте видно, сколько таких.
+    """
+
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     test = models.ForeignKey(Test, on_delete=models.CASCADE, related_name="questions")
     text = models.TextField()
     type = models.CharField(max_length=50)
     points = models.IntegerField()
     order_index = models.IntegerField()
+    topic = models.ForeignKey(
+        "courses.Topic",
+        on_delete=models.SET_NULL,
+        related_name="questions",
+        blank=True,
+        null=True,
+        verbose_name="тема",
+        help_text="Для карты освоения по темам. Без темы вопрос в карту не попадает.",
+    )
 
     class Meta:
         db_table = "questions"
@@ -102,6 +119,16 @@ class Assignment(models.Model):
 
     def __str__(self):
         return self.title
+
+    @property
+    def is_autocheckable(self):
+        """Можно ли проверить задание автоматически.
+
+        Недостаточно `type == "sql"`: нужен ещё посчитанный эталон. DDL-задания
+        (`type = "ddl"`) сравнением результата не проверяются — запрос студента не
+        возвращает строк; файловые — тем более. Такие идут на проверку преподавателя.
+        """
+        return self.type == "sql" and bool(self.expected_result)
 
 
 class Submission(models.Model):

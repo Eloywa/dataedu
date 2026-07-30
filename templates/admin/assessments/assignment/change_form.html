@@ -1,9 +1,11 @@
 {% extends "admin/change_form.html" %}
 {% load i18n %}
 
-{# Кнопка «Посчитать эталон» рядом со штатными кнопками сохранения: преподавателю
-   не нужно уходить в терминал за manage.py compute_expected. Показываем только на
-   странице существующего объекта — расчёт идёт по сохранённым setup_sql/expected_sql. #}
+{% comment %}
+Кнопка «Посчитать эталон» рядом со штатными кнопками сохранения: преподавателю не
+нужно уходить в терминал за manage.py compute_expected. Показываем только на странице
+существующего объекта — расчёт идёт по сохранённым setup_sql/expected_sql.
+{% endcomment %}
 {% block submit_buttons_bottom %}
   {{ block.super }}
   {% if original and original.type == "sql" %}

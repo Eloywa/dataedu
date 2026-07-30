@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+{% block title %}Панель преподавателя — DataEdu{% endblock %}
+
+{% block content %}
+<main class="container page">
+  <h1 class="page-title accent-ink">Панель преподавателя</h1>
+  <p class="page-sub">
+    Кто отстаёт и почему. Индекс риска складывается из отставания по программе (40%),
+    низких баллов (30%) и давнего отсутствия (30%).
+  </p>
+
+  {% include "teaching/_nav.html" with active="dashboard" %}
+
+  <div class="stat-row">
+    <div class="stat-tile">
+      <div class="stat-num">{{ summary.total }}</div>
+      <div class="stat-cap mono">записей на курсы</div>
+    </div>
+    <div class="stat-tile">
+      <div class="stat-num" style="color: var(--danger)">{{ summary.high }}</div>
+      <div class="stat-cap mono">высокий риск</div>
+    </div>
+    <div class="stat-tile">
+      <div class="stat-num" style="color: var(--secondary)">{{ summary.medium }}</div>
+      <div class="stat-cap mono">средний риск</div>
+    </div>
+    <div class="stat-tile">
+      <div class="stat-num">{{ summary.avg_completion }}%</div>
+      <div class="stat-cap mono">средний прогресс</div>
+    </div>
+  </div>
+
+  <div class="report-actions">
+    <a class="btn btn-ghost" href="{% url 'teaching:export_students' %}{% if selected %}?course={{ selected.slug }}{% endif %}">
+      Выгрузить CSV
+    </a>
+  </div>
+
+  {% if rows %}
+    <div class="table-wrap">
+      <table class="report-table">
+        <thead>
+          <tr>
+            <th>Студент</th>
+            <th>Курс</th>
+            <th>Прогресс</th>
+            <th>Средний балл</th>
+            <th>Без активности</th>
+            <th>Риск</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for r in rows %}
+            <tr>
+              <td>
+                <span class="mono">{{ r.user.username }}</span>
+                {% if r.user.display_name %}<div class="cell-sub">{{ r.user.display_name }}</div>{% endif %}
+              </td>
+              <td class="cell-sub">{{ r.course.title }}</td>
+              <td>
+                {{ r.completion }}%
+                <div class="cell-sub mono">{{ r.lessons_done }} / {{ r.lessons_total }}</div>
+              </td>
+              <td>{% if r.avg_score is None %}<span class="cell-sub">нет попыток</span>{% else %}{{ r.avg_score }}{% endif %}</td>
+              <td>
+                {% if r.days_inactive is None %}
+                  <span class="cell-sub">не заходил</span>
+                {% else %}
+                  {{ r.days_inactive }} дн.
+                {% endif %}
+              </td>
+              <td>
+                <span class="badge badge-{{ r.zone.tone }}">{{ r.risk }} · {{ r.zone.label }}</span>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <p class="page-sub">Пока никто не записан на ваши курсы.</p>
+  {% endif %}
+
+  <h2 class="section-h" style="margin-top: 46px">Ожидают вашей проверки</h2>
+  {% if manual_queue %}
+    <p class="page-sub">
+      DDL и файловые работы автопроверке не поддаются — их оценивает преподаватель.
+    </p>
+    <div class="table-wrap">
+      <table class="report-table">
+        <thead>
+          <tr><th>Студент</th><th>Задание</th><th>Отправлено</th></tr>
+        </thead>
+        <tbody>
+          {% for s in manual_queue %}
+            <tr>
+              <td class="mono">{{ s.user.username }}</td>
+              <td>{{ s.assignment.title }}</td>
+              <td class="cell-sub">{{ s.submitted_at|date:"d.m.Y H:i" }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <p class="page-sub">Непроверенных работ нет.</p>
+  {% endif %}
+</main>
+{% endblock %}

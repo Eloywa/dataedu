@@ -13,23 +13,53 @@
   </div>
   {% if assignment.description %}<p class="page-sub" style="margin-top: 12px">{{ assignment.description }}</p>{% endif %}
 
-  <div
-    id="assignment"
-    class="trainer"
-    data-check-url="{% url 'assessments:check' assignment.id %}"
-    data-csrf="{{ csrf_token }}"
-  >
-    <textarea id="sql" class="trainer-input mono" rows="6" spellcheck="false" placeholder="Ваш SQL-запрос…"></textarea>
-    <div class="trainer-actions">
-      <button id="check" class="btn btn-primary" disabled>Проверить</button>
-      <button id="resetdb" class="btn btn-ghost" disabled>Сбросить ввод</button>
-      <span id="status" class="trainer-status mono">Загрузка PGlite…</span>
+  {% if assignment.is_autocheckable %}
+    <div
+      id="assignment"
+      class="trainer"
+      data-check-url="{% url 'assessments:check' assignment.id %}"
+      data-csrf="{{ csrf_token }}"
+    >
+      <textarea id="sql" class="trainer-input mono" rows="6" spellcheck="false" placeholder="Ваш SQL-запрос…"></textarea>
+      <div class="trainer-actions">
+        <button id="check" class="btn btn-primary" disabled>Проверить</button>
+        <button id="resetdb" class="btn btn-ghost" disabled>Сбросить ввод</button>
+        <span id="status" class="trainer-status mono">Загрузка PGlite…</span>
+      </div>
+      <div id="verdict"></div>
+      <div id="output" class="trainer-output"></div>
     </div>
-    <div id="verdict"></div>
-    <div id="output" class="trainer-output"></div>
-  </div>
+  {% else %}
+    {% comment %}
+    Без эталона автопроверять нечем, а редактор с нерабочей кнопкой хуже, чем
+    честное объяснение. Задание уходит преподавателю.
+    {% endcomment %}
+    <div class="legal-callout" style="margin-top: 24px">
+      <p><b>Это задание проверяет преподаватель.</b></p>
+      <p class="field-hint">
+        Автоматическая проверка сравнивает результат запроса с эталонным, поэтому
+        подходит для <code>SELECT</code>. Создание таблиц и работы с файлом
+        оценивает преподаватель — потренироваться можно в
+        <a href="{% url 'core:trainer' %}">SQL-тренажёре</a>: там своя база и разрешено
+        всё, включая <code>CREATE</code> и <code>INSERT</code>.
+      </p>
+      {% if last_submission %}
+        <p class="field-hint">
+          Ваша работа отправлена {{ last_submission.submitted_at|date:"d.m.Y" }}.
+          {% if last_submission.status == "graded" %}
+            Оценка: <b>{{ last_submission.score }}</b>.
+            {% if last_submission.feedback %}{{ last_submission.feedback }}{% endif %}
+          {% else %}
+            Ожидает проверки.
+          {% endif %}
+        </p>
+      {% endif %}
+    </div>
+  {% endif %}
 </main>
 
-{{ assignment.setup_sql|json_script:"setup-sql" }}
-<script type="module" src="{% static 'js/assignment.js' %}"></script>
+{% if assignment.is_autocheckable %}
+  {{ assignment.setup_sql|json_script:"setup-sql" }}
+  <script type="module" src="{% static 'js/assignment.js' %}"></script>
+{% endif %}
 {% endblock %}

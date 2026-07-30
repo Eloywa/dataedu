@@ -1,0 +1,28 @@
+{% comment %}
+Переключение отчётов и фильтр по курсу. Фильтр переносится между отчётами строкой
+запроса, чтобы преподаватель не выбирал курс заново.
+
+Синтаксис {% comment %}, а не {# … #}: второй работает только в одну строку, и
+многострочный комментарий выводится на страницу как текст.
+{% endcomment %}
+<div class="report-bar">
+  <div class="report-tabs mono">
+    <a href="{% url 'teaching:dashboard' %}{% if selected %}?course={{ selected.slug }}{% endif %}"
+       class="{% if active == 'dashboard' %}is-active{% endif %}">зоны риска</a>
+    <a href="{% url 'teaching:analytics' %}{% if selected %}?course={{ selected.slug }}{% endif %}"
+       class="{% if active == 'analytics' %}is-active{% endif %}">аналитика</a>
+  </div>
+
+  <form method="get" class="report-filter">
+    <label for="course" class="mono">курс</label>
+    <select id="course" name="course" onchange="this.form.submit()">
+      <option value="">все курсы</option>
+      {% for c in courses %}
+        <option value="{{ c.slug }}" {% if selected and selected.pk == c.pk %}selected{% endif %}>
+          {{ c.title }}
+        </option>
+      {% endfor %}
+    </select>
+    <noscript><button class="btn btn-ghost" type="submit">Показать</button></noscript>
+  </form>
+</div>

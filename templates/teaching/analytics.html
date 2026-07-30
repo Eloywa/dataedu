@@ -1,0 +1,207 @@
+{% extends "base.html" %}
+{% block title %}Аналитика — DataEdu{% endblock %}
+
+{% block content %}
+<main class="container page">
+  <h1 class="page-title accent-ink">Аналитика</h1>
+  <p class="page-sub">
+    Где студентам действительно трудно — и совпадает ли это с тем, где им
+    <em>кажется</em> трудно.
+  </p>
+
+  {% include "teaching/_nav.html" with active="analytics" %}
+
+  {# --- Ядро: сопоставление объективной и субъективной трудности --- #}
+  <h2 class="section-h">Объективная и субъективная трудность</h2>
+  <div class="legal-callout">
+    <p>
+      <b>Объективная трудность</b> считается по данным: средний балл теста (45%),
+      сколько попыток уходит на прохождение (30%), доля неверных решений заданий (25%).
+      <b>Субъективная</b> — средняя оценка трудности из рефлексии студентов, приведённая
+      к той же шкале 0–100.
+    </p>
+    <p>
+      Интересны не сами величины, а <b>расхождение</b>. Если объективно труднее, чем
+      кажется, студенты уходят с ложной уверенностью — такой урок стоит закрепить.
+      Если наоборот, они справляются, но не чувствуют этого, и полезнее показать им
+      их собственный прогресс, чем объяснять заново.
+    </p>
+  </div>
+
+  <div class="stat-row">
+    <div class="stat-tile">
+      <div class="stat-num" style="color: var(--danger)">{{ div_summary.underestimate }}</div>
+      <div class="stat-cap mono">недооценивают трудность</div>
+    </div>
+    <div class="stat-tile">
+      <div class="stat-num" style="color: var(--secondary)">{{ div_summary.overestimate }}</div>
+      <div class="stat-cap mono">переоценивают трудность</div>
+    </div>
+    <div class="stat-tile">
+      <div class="stat-num" style="color: var(--accent)">{{ div_summary.match }}</div>
+      <div class="stat-cap mono">оценка совпадает</div>
+    </div>
+  </div>
+
+  <div class="report-actions">
+    <a class="btn btn-ghost" href="{% url 'teaching:export_difficulty' %}{% if selected %}?course={{ selected.slug }}{% endif %}">
+      Выгрузить CSV
+    </a>
+  </div>
+
+  {% if difficulty %}
+    <div class="table-wrap">
+      <table class="report-table">
+        <thead>
+          <tr>
+            <th>Урок</th>
+            <th>Рефлексий</th>
+            <th>Субъективно</th>
+            <th>Объективно</th>
+            <th>Расхождение</th>
+            <th>Из чего сложилось</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for r in difficulty %}
+            <tr>
+              <td>
+                {{ r.lesson.title }}
+                <div class="cell-sub">{{ r.course.title }}{% if r.week %} · неделя {{ r.week }}{% endif %}</div>
+              </td>
+              <td>
+                {{ r.n_reflections }}
+                {% if r.n_reflections < 5 %}
+                  <div class="cell-sub" title="Мало ответов — вывод предварительный">мало данных</div>
+                {% endif %}
+              </td>
+              <td><span class="meter-val">{{ r.subjective }}</span></td>
+              <td><span class="meter-val">{{ r.objective }}</span></td>
+              <td>
+                {% if r.divergence %}
+                  <span class="badge badge-{{ r.divergence.tone }}">
+                    {% if r.divergence.delta > 0 %}+{% endif %}{{ r.divergence.delta }} · {{ r.divergence.label }}
+                  </span>
+                {% else %}
+                  <span class="cell-sub">нет данных</span>
+                {% endif %}
+              </td>
+              <td class="cell-sub mono">
+                балл {% if r.avg_score is None %}—{% else %}{{ r.avg_score }}{% endif %} ·
+                попыток {% if r.avg_attempts is None %}—{% else %}{{ r.avg_attempts }}{% endif %} ·
+                неверных {% if r.failed_share is None %}—{% else %}{{ r.failed_share }}%{% endif %}
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    {% comment %}
+    Пояснение — один раз легендой, а не строкой под каждым уроком: категорий всего
+    две, и повторять один и тот же текст четыре раза значит утопить в нём таблицу.
+    {% endcomment %}
+    <dl class="report-legend">
+      <dt><span class="badge badge-danger">недооценивают</span></dt>
+      <dd>
+        Объективно урок труднее, чем кажется студентам: они уверены, что разобрались,
+        а данные говорят иначе. Стоит добавить практики и вернуться к теме позже.
+      </dd>
+      <dt><span class="badge badge-warning">переоценивают</span></dt>
+      <dd>
+        Урок кажется труднее, чем показывают результаты: студенты справляются, но не
+        чувствуют уверенности. Полезнее не переобъяснять, а показать им их прогресс.
+      </dd>
+      <dt><span class="badge badge-success">совпадает</span></dt>
+      <dd>Расхождение в пределах 15 пунктов — ощущения совпадают с данными.</dd>
+    </dl>
+  {% else %}
+    <p class="page-sub">
+      Пока не с чем сравнивать: нужны уроки, по которым студенты и оставили рефлексию,
+      и проходили тест или задание.
+    </p>
+  {% endif %}
+
+  {# --- Карта освоения по темам --- #}
+  <h2 class="section-h" style="margin-top: 46px">Освоение по темам</h2>
+  <p class="page-sub">
+    Доля верных ответов на вопросы каждой темы.
+    {% if topic_stats.untagged %}
+      Тема указана у {{ topic_stats.tagged }} из {{ topic_stats.total }} вопросов —
+      остальные в карту не попадают.
+    {% endif %}
+  </p>
+  {% if topics %}
+    <div class="table-wrap">
+      <table class="report-table">
+        <thead>
+          <tr><th>Тема</th><th>Вопросов</th><th>Ответов</th><th>Верных</th><th>Освоение</th></tr>
+        </thead>
+        <tbody>
+          {% for t in topics %}
+            <tr>
+              <td>{{ t.topic_name }}</td>
+              <td>{{ t.questions }}</td>
+              <td>{{ t.responses }}</td>
+              <td>
+                <div class="bar-wrap"><div class="bar-fill" style="width: {{ t.pct_correct }}%"></div></div>
+                <span class="mono">{{ t.pct_correct }}%</span>
+              </td>
+              <td><span class="badge badge-{{ t.zone.tone }}">{{ t.zone.label }}</span></td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <p class="page-sub">
+      Ни у одного вопроса не указана тема. Проставьте её в админке
+      (Questions → тема), и карта построится.
+    </p>
+  {% endif %}
+
+  {# --- Самые трудные вопросы --- #}
+  <h2 class="section-h" style="margin-top: 46px">Самые трудные вопросы</h2>
+  {% if items %}
+    <div class="table-wrap">
+      <table class="report-table">
+        <thead>
+          <tr><th>Вопрос</th><th>Тема</th><th>Ответов</th><th>Верных</th></tr>
+        </thead>
+        <tbody>
+          {% for i in items %}
+            <tr>
+              <td>
+                {{ i.question.text|truncatechars:110 }}
+                <div class="cell-sub">{% if i.lesson %}{{ i.lesson.title }}{% endif %}</div>
+              </td>
+              <td class="cell-sub">{% if i.topic %}{{ i.topic.name }}{% else %}—{% endif %}</td>
+              <td>{{ i.responses }}</td>
+              <td>
+                <span class="badge badge-{{ i.zone.tone }}">{{ i.pct_correct }}%</span>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <p class="page-sub">Ответов на вопросы пока нет.</p>
+  {% endif %}
+
+  {# --- Активность --- #}
+  <h2 class="section-h" style="margin-top: 46px">Активность</h2>
+  {% if activity %}
+    <div class="stat-row">
+      {% for a in activity %}
+        <div class="stat-tile">
+          <div class="stat-num">{{ a.n }}</div>
+          <div class="stat-cap mono">{{ a.label|lower }}</div>
+        </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <p class="page-sub">Событий пока нет.</p>
+  {% endif %}
+</main>
+{% endblock %}

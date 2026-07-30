@@ -64,7 +64,9 @@ class TestAdmin(OwnedAdmin):
 @admin.register(Question)
 class QuestionAdmin(OwnedAdmin):
     owner_path = "test__lesson__module__course__author"
-    list_display = ("text", "test", "points")
+    list_display = ("text", "test", "topic", "points")
+    list_filter = ("topic",)
+    list_editable = ("topic",)  # тему удобно проставлять пачкой прямо в списке
     inlines = [AnswerOptionInline]
 
 
