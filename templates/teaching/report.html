@@ -1,0 +1,143 @@
+{% extends "base.html" %}
+{% block title %}Ведомость — DataEdu{% endblock %}
+
+{% comment %}
+Печатная форма. Всё, что относится к работе с сайтом (шапка, фильтры, кнопки),
+помечено `no-print` и в печать не идёт; сам документ верстается в `.doc`, которому
+`@media print` возвращает белый фон и чёрный текст.
+{% endcomment %}
+
+{% block content %}
+<main class="container page">
+  <h1 class="page-title accent-ink no-print">Ведомость по группе</h1>
+  <p class="page-sub no-print">
+    Итог складывается из результатов тестов (50%), пройденных уроков (30%) и зачтённых
+    заданий (20%). Непройденный тест и несданное задание считаются нулём.
+  </p>
+
+  {% include "teaching/_nav.html" with active="report" %}
+
+  {% if not selected %}
+    <p class="page-sub">Выберите курс — ведомость составляется по дисциплине.</p>
+  {% else %}
+    <div class="report-actions no-print">
+      <button class="btn btn-accent" type="button" onclick="window.print()">Печать</button>
+      <a class="btn btn-ghost" href="{% url 'teaching:export_vedomost' %}?course={{ selected.slug }}{% if group %}&group={{ group.pk }}{% endif %}">
+        CSV для ведомости
+      </a>
+      <a class="btn btn-ghost" href="{% url 'teaching:export_moodle' %}?course={{ selected.slug }}{% if group %}&group={{ group.pk }}{% endif %}">
+        CSV для Moodle
+      </a>
+    </div>
+
+    {% if summary.pending %}
+      <p class="doc-note no-print">
+        Работ на проверке: {{ summary.pending }}. Они учтены нулём, поэтому отметки
+        предварительные — сначала стоит разобрать очередь на панели.
+      </p>
+    {% endif %}
+
+    <section class="doc">
+      <header class="doc-head">
+        <h2 class="doc-title">Ведомость успеваемости</h2>
+        <dl class="doc-meta">
+          <dt>Дисциплина</dt><dd>{{ selected.title }}</dd>
+          <dt>Группа</dt><dd>{% if group %}{{ group.name }}{% else %}все записанные на курс{% endif %}</dd>
+          <dt>Преподаватель</dt><dd>{{ teacher.label }}</dd>
+          <dt>Период</dt>
+          <dd>
+            {% if summary.period_from %}с {{ summary.period_from|date:"d.m.Y" }} {% endif %}по {{ today|date:"d.m.Y" }}
+          </dd>
+          <dt>Сформировано</dt><dd>{{ today|date:"d.m.Y H:i" }}</dd>
+        </dl>
+      </header>
+
+      {% if rows %}
+        <div class="table-wrap">
+          <table class="report-table doc-table">
+            <thead>
+              <tr>
+                {% comment %}
+                «п/п», а не «№»: в подключённой подрезке IBM Plex Mono нет глифа
+                номера, и в шапке вместо него появляется мусор.
+                {% endcomment %}
+                <th>п/п</th>
+                <th>Код участника</th>
+                <th>Уроки</th>
+                <th>Тесты</th>
+                <th>Задания</th>
+                <th>Итог</th>
+                <th>Отметка</th>
+                <th>Зачёт</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for r in rows %}
+                <tr>
+                  <td class="mono">{{ forloop.counter }}</td>
+                  <td>
+                    <span class="mono">{{ r.user.username }}</span>
+                    {% if r.user.display_name %}<div class="cell-sub">{{ r.user.display_name }}</div>{% endif %}
+                  </td>
+                  <td class="mono">{{ r.lessons_done }} / {{ r.lessons_total }}</td>
+                  <td>
+                    {% if r.tests_pct is None %}
+                      <span class="cell-sub">нет тестов</span>
+                    {% else %}
+                      <span class="mono">{{ r.tests_pct }}%</span>
+                      <div class="cell-sub mono">сдано {{ r.tests_taken }} / {{ r.tests_total }}</div>
+                    {% endif %}
+                  </td>
+                  <td>
+                    <span class="mono">{{ r.assignments_done }} / {{ r.assignments_total }}</span>
+                    {% if r.pending %}<div class="cell-sub">на проверке: {{ r.pending }}</div>{% endif %}
+                  </td>
+                  <td class="meter-val">{% if r.score is None %}—{% else %}{{ r.score }}{% endif %}</td>
+                  <td>
+                    {% if r.grade.mark %}
+                      <span class="badge badge-{{ r.grade.tone }}">{{ r.grade.mark }} · {{ r.grade.label }}</span>
+                    {% else %}
+                      <span class="cell-sub">нет данных</span>
+                    {% endif %}
+                  </td>
+                  <td><span class="badge badge-{{ r.verdict.tone }}">{{ r.verdict.label }}</span></td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+
+        <div class="doc-summary">
+          <p>
+            Всего в ведомости: <b>{{ summary.total }}</b>.
+            Отлично — {{ summary.excellent }}, хорошо — {{ summary.good }},
+            удовлетворительно — {{ summary.satisfactory }}, неудовлетворительно — {{ summary.unsatisfactory }}.
+            Зачтено: {{ summary.passed }} из {{ summary.total }}.
+            {% if summary.avg_score is not None %}Средний итог по группе: {{ summary.avg_score }}.{% endif %}
+          </p>
+        </div>
+
+        <div class="doc-sign">
+          <div class="doc-sign-line">
+            <span class="doc-sign-cap">Преподаватель</span>
+            <span class="doc-sign-rule"></span>
+            <span class="doc-sign-cap">{{ teacher.label }}</span>
+          </div>
+          <div class="doc-sign-line">
+            <span class="doc-sign-cap">Дата</span>
+            <span class="doc-sign-rule"></span>
+          </div>
+        </div>
+      {% else %}
+        <p class="page-sub">
+          {% if group %}
+            Никто из группы «{{ group.name }}» не записан на этот курс.
+          {% else %}
+            На этот курс пока никто не записан.
+          {% endif %}
+        </p>
+      {% endif %}
+    </section>
+  {% endif %}
+</main>
+{% endblock %}

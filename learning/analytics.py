@@ -169,3 +169,74 @@ def mastery_zone(pct_correct):
     if pct_correct >= 60:
         return {"label": "частично", "tone": "warning"}
     return {"label": "провал", "tone": "danger"}
+
+
+# --- 3. Итоговая оценка для ведомости (этап 11.5) ----------------------------
+#
+# Здесь считается не «насколько трудно», а «что студент сдал». Разница принципиальная,
+# и из неё следует правило, обратное правилу объективной трудности:
+#
+#   * у трудности отсутствие данных значит «об этом уроке ничего не известно», поэтому
+#     составляющая исключается с перевесом остальных;
+#   * в ведомости отсутствие работы значит «работа не сдана», то есть **ноль**.
+#
+# Исключается составляющая только тогда, когда сдавать было нечего: в курсе нет ни
+# одного теста, ни одного задания или ни одного урока. Требование, которое не
+# предъявлялось, не может быть провалено.
+
+GRADE_W_TESTS = 0.5  # результаты тестов
+GRADE_W_LESSONS = 0.3  # пройденные уроки
+GRADE_W_ASSIGNMENTS = 0.2  # зачтённые задания
+
+# Границы пятибалльной шкалы. Взяты из распространённой вузовской практики
+# (85/70/55) — сознательно не изобретаются заново, чтобы оценка была узнаваемой.
+GRADE_5_MIN = 85
+GRADE_4_MIN = 70
+GRADE_3_MIN = 55
+
+# Зачёт совпадает с нижней границей «удовлетворительно»: две шкалы не должны
+# расходиться в вердикте — «неудовлетворительно», но «зачтено» выглядело бы ошибкой.
+PASS_MIN = GRADE_3_MIN
+
+
+def final_score(tests_share, lessons_share, assignments_share):
+    """Итоговый индекс освоения курса, 0–100.
+
+    Все три аргумента — доли 0–1 (`None`, если такой работы в курсе не предусмотрено).
+    Возвращает `None`, только если в курсе нет вообще ничего оцениваемого.
+    """
+    parts = []
+    if tests_share is not None:
+        parts.append((GRADE_W_TESTS, tests_share))
+    if lessons_share is not None:
+        parts.append((GRADE_W_LESSONS, lessons_share))
+    if assignments_share is not None:
+        parts.append((GRADE_W_ASSIGNMENTS, assignments_share))
+
+    if not parts:
+        return None
+    total_weight = sum(w for w, _ in parts)
+    value = sum(w * min(max(v, 0.0), 1.0) for w, v in parts) / total_weight
+    return round(value * 100)
+
+
+def grade_5(score):
+    """Пятибалльная отметка по итоговому индексу."""
+    if score is None:
+        return {"mark": None, "label": "нет данных", "tone": "muted"}
+    if score >= GRADE_5_MIN:
+        return {"mark": 5, "label": "отлично", "tone": "success"}
+    if score >= GRADE_4_MIN:
+        return {"mark": 4, "label": "хорошо", "tone": "success"}
+    if score >= GRADE_3_MIN:
+        return {"mark": 3, "label": "удовлетворительно", "tone": "warning"}
+    return {"mark": 2, "label": "неудовлетворительно", "tone": "danger"}
+
+
+def pass_fail(score):
+    """Вердикт для зачётной дисциплины."""
+    if score is None:
+        return {"passed": None, "label": "нет данных", "tone": "muted"}
+    if score >= PASS_MIN:
+        return {"passed": True, "label": "зачтено", "tone": "success"}
+    return {"passed": False, "label": "не зачтено", "tone": "danger"}

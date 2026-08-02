@@ -1921,3 +1921,189 @@ pre,
     margin-bottom: 12px;
   }
 }
+
+/* --- Этап 11.5: ведомость и печатная форма -------------------------------- */
+
+.btn-accent {
+  background: var(--accent);
+  color: var(--on-accent);
+  border: 1px solid var(--accent);
+  font-size: 14px;
+  padding: 8px 18px;
+}
+.btn-accent:hover {
+  filter: brightness(1.08);
+}
+.report-actions .btn + .btn,
+.report-actions .btn + a {
+  margin-left: 10px;
+}
+
+.doc-note {
+  max-width: 760px;
+  margin: 0 0 22px;
+  padding: 12px 16px;
+  border-left: 2px solid var(--warning);
+  background: var(--warning-soft);
+  font-size: 13.5px;
+  line-height: 1.55;
+}
+
+/* Документ. На экране — обычная карточка; в печати с него снимается вся
+   «терминальность», см. блок @media print ниже. */
+.doc {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 30px 32px 34px;
+  background: var(--surface);
+}
+.doc-head {
+  margin-bottom: 26px;
+}
+.doc-title {
+  font-family: "Space Grotesk", "Manrope", sans-serif;
+  font-size: 22px;
+  margin: 0 0 18px;
+}
+.doc-meta {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 6px 20px;
+  margin: 0;
+  font-size: 14px;
+}
+.doc-meta dt {
+  color: var(--muted);
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+  align-self: center;
+}
+.doc-meta dd {
+  margin: 0;
+}
+.doc-summary {
+  margin-top: 22px;
+  font-size: 14px;
+  line-height: 1.7;
+  max-width: 760px;
+}
+.doc-sign {
+  margin-top: 34px;
+  display: grid;
+  gap: 18px;
+  max-width: 520px;
+}
+.doc-sign-line {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+}
+.doc-sign-cap {
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 12px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+.doc-sign-rule {
+  flex: 1;
+  border-bottom: 1px solid var(--hairline);
+}
+
+@media (max-width: 620px) {
+  .doc {
+    padding: 20px 16px 24px;
+  }
+  .doc-meta {
+    grid-template-columns: 1fr;
+    gap: 2px 0;
+  }
+  .doc-meta dd {
+    margin-bottom: 10px;
+  }
+}
+
+/* Печать ведомости.
+   PDF генерирует сам браузер (Ctrl+P): библиотека вроде WeasyPrint тянет системные
+   зависимости и ломает простоту установки, ради которой делался этап 9.5.
+   Тёмная тема на бумаге нечитаема и расходует тонер, поэтому на печати токены
+   переопределяются на светлые — правило одно, а перекрашивается всё сразу. */
+@media print {
+  :root {
+    --bg: #fff;
+    --surface: #fff;
+    --surface-2: #fff;
+    --text: #000;
+    --muted: #444;
+    --border: #999;
+    --hairline: #666;
+  }
+  @page {
+    size: A4 portrait;
+    margin: 18mm 14mm;
+  }
+  body {
+    background: #fff;
+    color: #000;
+  }
+  .no-print,
+  .site-header,
+  .site-footer {
+    display: none !important;
+  }
+  .container,
+  .page {
+    max-width: none;
+    width: auto;
+    margin: 0;
+    padding: 0;
+  }
+  .doc {
+    border: none;
+    border-radius: 0;
+    padding: 0;
+  }
+  /* Таблица на экране прокручивается внутри себя; на бумаге прокрутки нет,
+     и скрытая часть просто пропала бы. */
+  .table-wrap {
+    overflow: visible;
+    border: none;
+    border-radius: 0;
+  }
+  .report-table {
+    border: 1px solid #999;
+    font-size: 11pt;
+  }
+  .report-table th,
+  .report-table td {
+    padding: 6px 8px;
+    border-bottom: 1px solid #999;
+  }
+  .report-table th {
+    color: #000;
+    background: #eee;
+  }
+  /* Шапка повторяется на каждой странице, строка не разрывается пополам. */
+  .report-table thead {
+    display: table-header-group;
+  }
+  .report-table tr {
+    break-inside: avoid;
+  }
+  /* Цветные плашки на монохромном принтере сливаются в серые пятна:
+     на бумаге отметка читается текстом в рамке. */
+  .badge {
+    background: none !important;
+    color: #000 !important;
+    border: 1px solid #666;
+  }
+  .cell-sub {
+    color: #444;
+  }
+  a {
+    text-decoration: none;
+    color: #000;
+  }
+}

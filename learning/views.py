@@ -23,6 +23,34 @@ def _selected_course(request, teacher):
     return get_object_or_404(reports.visible_courses(teacher), slug=slug)
 
 
+def _selected_group(request, teacher):
+    """Группа из `?group=<id>` — только из числа своих.
+
+    Фильтрация идёт по `visible_groups`, а не по всем группам: иначе чужую группу
+    можно было бы подставить в строку запроса и увидеть её состав.
+    """
+    gid = request.GET.get("group")
+    if not gid:
+        return None
+    return get_object_or_404(reports.visible_groups(teacher), pk=gid)
+
+
+def _report_context(request, teacher):
+    """Общее для страницы ведомости и обеих выгрузок: курс, группа, строки.
+
+    Если курс не выбран, а он у преподавателя единственный — берём его: выбирать
+    из одного варианта незачем.
+    """
+    course = _selected_course(request, teacher)
+    if course is None:
+        courses = list(reports.visible_courses(teacher))
+        course = courses[0] if len(courses) == 1 else None
+
+    group = _selected_group(request, teacher)
+    rows = reports.gradebook_rows(course, group) if course is not None else []
+    return course, group, rows
+
+
 @teacher_required
 def dashboard(request):
     """Зоны риска: кто отстаёт и почему."""
@@ -70,6 +98,33 @@ def analytics(request):
             "activity": reports.activity_breakdown(teacher),
             "courses": reports.visible_courses(teacher),
             "selected": course,
+        },
+    )
+
+
+@teacher_required
+def report(request):
+    """Ведомость по группе — печатная форма (§17.11.5).
+
+    Верстается как документ, а не как страница: печать идёт штатным Ctrl+P браузера
+    (`@media print` в `terminal.css`). Библиотека генерации PDF сюда не заводится
+    сознательно — она тянет системные зависимости и ломает простоту установки,
+    ради которой делался этап 9.5.
+    """
+    teacher = request.user
+    course, group, rows = _report_context(request, teacher)
+    return render(
+        request,
+        "teaching/report.html",
+        {
+            "rows": rows,
+            "summary": reports.gradebook_summary(rows),
+            "courses": reports.visible_courses(teacher),
+            "groups": reports.visible_groups(teacher),
+            "selected": course,
+            "group": group,
+            "teacher": teacher,
+            "today": timezone.now(),
         },
     )
 
@@ -152,3 +207,80 @@ def export_difficulty(request):
             for r in rows
         ],
     )
+
+
+@teacher_required
+def export_vedomost(request):
+    """Ведомость в CSV — для учебной части: та же таблица, что на печатной форме."""
+    teacher = request.user
+    course, group, rows = _report_context(request, teacher)
+    return _csv_response(
+        "dataedu-vedomost",
+        [
+            "№", "Код участника", "Имя", "Уроков пройдено", "Уроков всего",
+            "Тестов сдано", "Тестов всего", "Результат тестов, %",
+            "Заданий зачтено", "Заданий всего", "На проверке",
+            "Итог (0-100)", "Отметка", "Зачёт",
+        ],
+        [
+            [
+                i,
+                r["user"].username,
+                r["user"].display_name,
+                r["lessons_done"],
+                r["lessons_total"],
+                r["tests_taken"],
+                r["tests_total"],
+                "" if r["tests_pct"] is None else r["tests_pct"],
+                r["assignments_done"],
+                r["assignments_total"],
+                r["pending"],
+                "" if r["score"] is None else r["score"],
+                r["grade"]["mark"] or "",
+                r["verdict"]["label"],
+            ]
+            for i, r in enumerate(rows, start=1)
+        ],
+    )
+
+
+@teacher_required
+def export_moodle(request):
+    """Выгрузка под импорт в журнал оценок Moodle.
+
+    Формат намеренно отличается от остальных выгрузок платформы:
+
+    - **без BOM.** Excel без него читает UTF-8 как cp1251, но мастер импорта Moodle
+      приклеивает BOM к имени первого столбца, и `username` перестаёт опознаваться;
+    - **разделитель `,`.** Значение по умолчанию в мастере импорта Moodle;
+    - **латинские заголовки.** Столбцы сопоставляются вручную в мастере, и латиница
+      снимает вопрос кодировки на этом шаге.
+
+    Сопоставление студентов идёт по логину: у обезличенных учётных записей апробации
+    email пуст (§17.14), поэтому «Определять пользователя по» нужно ставить в
+    «Имя пользователя», а логины в Moodle и DataEdu должны совпадать.
+    """
+    teacher = request.user
+    course, group, rows = _report_context(request, teacher)
+
+    response = HttpResponse(content_type="text/csv; charset=utf-8")
+    stamp = timezone.now().strftime("%Y-%m-%d")
+    response["Content-Disposition"] = f'attachment; filename="dataedu-moodle-{stamp}.csv"'
+    writer = csv.writer(response, delimiter=",", quoting=csv.QUOTE_MINIMAL)
+    writer.writerow(["username", "email", "grade", "feedback"])
+    for r in rows:
+        writer.writerow(
+            [
+                r["user"].username,
+                r["user"].email or "",
+                "" if r["score"] is None else r["score"],
+                "Уроки {}/{}, тесты {}%, задания {}/{}".format(
+                    r["lessons_done"],
+                    r["lessons_total"],
+                    0 if r["tests_pct"] is None else r["tests_pct"],
+                    r["assignments_done"],
+                    r["assignments_total"],
+                ),
+            ]
+        )
+    return response

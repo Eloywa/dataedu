@@ -18,6 +18,56 @@ class Enrollment(models.Model):
         unique_together = (("user", "course"),)
 
 
+class StudyGroup(models.Model):
+    """Учебная группа: «ИСТ-21», «МО-22» и т. п.
+
+    Записи на курс (`Enrollment`) для ведомости недостаточно: один курс могут слушать
+    сразу две группы, а ведомость сдаётся по одной. Группа задаёт **состав**, курс —
+    **дисциплину**; отчёт строится на их пересечении.
+
+    Название группы обезличенных данных не образует: это номер потока, а не сведения
+    о человеке. Соответствие «код участника ↔ студент» по-прежнему остаётся вне
+    платформы (см. §17.14), поэтому группа ничего к объёму обрабатываемого не добавляет.
+
+    Владелец нужен для той же изоляции авторства, что и у курсов (§17.9): преподаватель
+    видит и правит только свои группы. Группа без владельца (`teacher = NULL`, остаётся
+    после удаления учётной записи) видна только суперпользователю.
+    """
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    name = models.CharField("название", max_length=100, help_text="Номер группы, например «ИСТ-21».")
+    teacher = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        related_name="owned_groups",
+        blank=True,
+        null=True,
+        verbose_name="преподаватель",
+    )
+    students = models.ManyToManyField(
+        settings.AUTH_USER_MODEL,
+        related_name="study_groups",
+        blank=True,
+        db_table="study_group_students",
+        verbose_name="студенты",
+        help_text="Кто входит в группу. В ведомость попадут те из них, кто записан на выбранный курс.",
+    )
+    note = models.TextField("заметка", blank=True, help_text="Для себя: семестр, поток, что угодно.")
+    created_at = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        db_table = "study_groups"
+        verbose_name = "учебная группа"
+        verbose_name_plural = "учебные группы"
+        ordering = ["name"]
+        constraints = [
+            models.UniqueConstraint(fields=["teacher", "name"], name="uniq_group_name_per_teacher")
+        ]
+
+    def __str__(self):
+        return self.name
+
+
 class LessonProgress(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="lesson_progress")
