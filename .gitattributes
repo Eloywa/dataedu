@@ -1,0 +1,15 @@
+# Языковая статистика GitHub (Linguist) считает байты, а не файлы. Вендорный
+# бандл PGlite — это ~550 КБ минифицированного JS, вдвое больше всего кода
+# проекта на Python. Без этой пометки репозиторий определяется как
+# JavaScript-проект. Шрифты помечены заодно: они тоже не наш код.
+static/vendor/** linguist-vendored
+
+# Шаблоны Django распознаются как обычный HTML: тегов {% %} Linguist не видит.
+templates/**/*.html linguist-language=HTML+Django
+
+# Единый перевод строки в репозитории независимо от настроек core.autocrlf.
+*.py   text eol=lf
+*.html text eol=lf
+*.css  text eol=lf
+*.js   text eol=lf
+*.md   text eol=lf
