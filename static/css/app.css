@@ -2007,6 +2007,79 @@ select {
   line-height: 1.55;
 }
 
+/* Схема, история и план запроса — добавления к тренажёру. */
+
+.schema-body {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 22px;
+}
+.schema-table {
+  font-family: var(--font-mono);
+  font-size: 13px;
+}
+.schema-cols {
+  color: var(--muted);
+}
+.schema-empty {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.trainer-timing {
+  color: var(--accent);
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+/* План запроса. Отступы значимы — по ним читается вложенность узлов, поэтому
+   `pre-wrap`, а не обычный перенос. */
+.trainer-plan {
+  padding: 16px;
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  font-size: 13px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  tab-size: 2;
+}
+
+.trainer-history summary {
+  color: var(--muted);
+  font-size: 14px;
+  cursor: pointer;
+}
+.trainer-history summary:hover {
+  color: var(--text-strong);
+}
+.history-list {
+  margin: 10px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.history-item {
+  display: block;
+  width: 100%;
+  padding: 7px 10px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--text);
+  font-size: 13px;
+  text-align: left;
+  /* Длинный запрос сжимается в одну строку: история — это список, а не архив
+     текстов, и десять развёрнутых запросов вытеснили бы собой вывод. */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.history-item:hover {
+  background: var(--surface-2);
+}
+
 /* Список заданий */
 .practice-grid {
   display: grid;

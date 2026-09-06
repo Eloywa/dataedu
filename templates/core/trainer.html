@@ -4,11 +4,11 @@
 
 {% block content %}
 <main class="container page" style="max-width: 900px">
-  <h1 class="page-title accent-ink">SQL-тренажёр</h1>
+  <h1 class="page-title">SQL-тренажёр</h1>
   <p class="page-sub">
     Песочница PostgreSQL прямо в браузере (PGlite). База у каждого своя — можно
     <code>SELECT</code>, <code>INSERT</code>, <code>UPDATE</code>, <code>CREATE</code>;
-    что-то сломалось — нажми «Сбросить базу».
+    что-то сломалось — нажмите «Сбросить базу».
   </p>
 
   <div
@@ -16,21 +16,43 @@
     id="trainer"
     {% if user.is_authenticated %}data-log-url="{% url 'core:trainer_log' %}" data-csrf="{{ csrf_token }}"{% endif %}
 >
-    <div class="trainer-schema mono">
-      <span class="schema-title">Доступные таблицы</span>
-      <div><b>students</b>(id, full_name, group_id, xp)</div>
-      <div><b>groups</b>(id, name, curator)</div>
+    {% comment %}
+    Схема заполняется скриптом из information_schema, а не вписана в шаблон:
+    раньше здесь был список из двух таблиц, и созданная студентом третья в нём
+    не появлялась — панель врала ровно тогда, когда становилась нужна.
+    {% endcomment %}
+    <div class="trainer-schema" id="schema">
+      <span class="schema-title">Таблицы в базе</span>
+      <div class="schema-body">загрузка…</div>
     </div>
 
     <label class="visually-hidden" for="sql">SQL-запрос</label>
     <textarea id="sql" class="trainer-input mono" rows="6" spellcheck="false"
+              autocapitalize="off" autocorrect="off" autocomplete="off"
               placeholder="SELECT * FROM students ORDER BY xp DESC;"></textarea>
 
     <div class="trainer-actions">
       <button id="run" class="btn btn-primary" disabled>Выполнить</button>
+      {% comment %}
+      «Показать план» — тот же запрос через EXPLAIN ANALYZE. Курс «Индексы и
+      производительность» про это и написан, а потрогать план было негде.
+      {% endcomment %}
+      <button id="explain" class="btn btn-ghost" disabled
+              title="EXPLAIN ANALYZE: как база собирается выполнять запрос">
+        Показать план
+      </button>
       <button id="reset" class="btn btn-ghost" disabled>Сбросить базу</button>
       <span id="status" class="trainer-status mono">Загрузка PGlite…</span>
     </div>
+
+    {% comment %}
+    История запросов. Нужна не для красоты: без неё повторить предыдущий запрос
+    можно только набрав его заново, а в тренажёре запросы правят по одной строке.
+    {% endcomment %}
+    <details class="trainer-history" id="history" hidden>
+      <summary>История запросов</summary>
+      <ol class="history-list" id="history-list"></ol>
+    </details>
 
     <div id="output" class="trainer-output"></div>
   </div>
