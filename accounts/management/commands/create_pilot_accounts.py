@@ -11,7 +11,6 @@
 """
 
 import secrets
-import string
 
 from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
@@ -32,7 +31,9 @@ class Command(BaseCommand):
     help = "Создать обезличенные учётные записи участников апробации (p-01, p-02, …)"
 
     def add_arguments(self, parser):
-        parser.add_argument("--count", type=int, default=25, help="сколько аккаунтов (по умолчанию 25)")
+        parser.add_argument(
+            "--count", type=int, default=25, help="сколько аккаунтов (по умолчанию 25)"
+        )
         parser.add_argument("--prefix", default="p", help="префикс логина (по умолчанию p)")
         parser.add_argument("--start", type=int, default=1, help="с какого номера начинать")
         parser.add_argument(
@@ -50,7 +51,9 @@ class Command(BaseCommand):
         if count < 1:
             raise CommandError("--count должен быть положительным")
         if not all(ch.isalnum() or ch in "._-" for ch in prefix):
-            raise CommandError("префикс может содержать только латиницу, цифры, точку, дефис, подчёркивание")
+            raise CommandError(
+                "префикс может содержать только латиницу, цифры, точку, дефис, подчёркивание"
+            )
 
         role = Role.objects.filter(code="student").first()
         if role is None:

@@ -20,7 +20,9 @@
       data-check-url="{% url 'assessments:check' assignment.id %}"
       data-csrf="{{ csrf_token }}"
     >
-      <textarea id="sql" class="trainer-input mono" rows="6" spellcheck="false" placeholder="Ваш SQL-запрос…"></textarea>
+      <label class="visually-hidden" for="sql">Ваш SQL-запрос</label>
+      <textarea id="sql" class="trainer-input mono" rows="6" spellcheck="false"
+                placeholder="Ваш SQL-запрос…"></textarea>
       <div class="trainer-actions">
         <button id="check" class="btn btn-primary" disabled>Проверить</button>
         <button id="resetdb" class="btn btn-ghost" disabled>Сбросить ввод</button>

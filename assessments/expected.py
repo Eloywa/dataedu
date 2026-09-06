@@ -23,7 +23,11 @@ from .grading import jsonable
 def _conn_params():
     db = settings.DATABASES["default"]
     return dict(
-        host=db["HOST"], port=db["PORT"], user=db["USER"], password=db["PASSWORD"], dbname=db["NAME"]
+        host=db["HOST"],
+        port=db["PORT"],
+        user=db["USER"],
+        password=db["PASSWORD"],
+        dbname=db["NAME"],
     )
 
 
@@ -59,8 +63,7 @@ def compute_expected(assignment, conn=None):
             cur.execute(assignment.expected_sql)
             if cur.description is None:
                 raise ExpectedError(
-                    "Эталонный запрос не вернул таблицу — для задания с автопроверкой "
-                    "нужен SELECT."
+                    "Эталонный запрос не вернул таблицу — для задания с автопроверкой нужен SELECT."
                 )
             cols = [d.name for d in cur.description]
             rows = [list(r) for r in cur.fetchall()]

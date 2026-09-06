@@ -4,22 +4,62 @@ from django.conf import settings
 from django.db import models
 from django.utils import timezone
 
+ENROLLMENT_STATUS_CHOICES = [
+    ("active", "Учится"),
+    ("completed", "Завершил"),
+    ("dropped", "Бросил"),
+]
+
+PROGRESS_STATUS_CHOICES = [
+    ("not_started", "Не начат"),
+    ("in_progress", "В процессе"),
+    ("completed", "Завершён"),
+]
+
+# Типы событий ленты. Совпадают с ключами в gamification.services — там же они
+# и порождаются; расхождение сделало бы часть событий безымянными в отчётах.
+ACTIVITY_TYPE_CHOICES = [
+    ("login", "Вход"),
+    ("lesson_view", "Просмотр урока"),
+    ("lesson_complete", "Завершение урока"),
+    ("test_start", "Начало теста"),
+    ("test_finish", "Завершение теста"),
+    ("sql_run", "Запрос в тренажёре"),
+    ("submission", "Сдача задания"),
+    ("achievement", "Достижение"),
+    ("reflection", "Рефлексия"),
+]
+
 
 class Enrollment(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="enrollments")
-    course = models.ForeignKey("courses.Course", on_delete=models.CASCADE, related_name="enrollments")
-    status = models.CharField(max_length=50)
-    enrolled_at = models.DateTimeField(default=timezone.now)
-    completed_at = models.DateTimeField(blank=True, null=True)
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="enrollments",
+        verbose_name="студент",
+    )
+    course = models.ForeignKey(
+        "courses.Course", on_delete=models.CASCADE, related_name="enrollments", verbose_name="курс"
+    )
+    status = models.CharField(
+        verbose_name="статус", max_length=50, choices=ENROLLMENT_STATUS_CHOICES
+    )
+    enrolled_at = models.DateTimeField(verbose_name="записан", default=timezone.now)
+    completed_at = models.DateTimeField(verbose_name="завершён", blank=True, null=True)
 
     class Meta:
+        verbose_name = "запись на курс"
+        verbose_name_plural = "записи на курсы"
         db_table = "enrollments"
         unique_together = (("user", "course"),)
         indexes = [
             # Отчёты всегда начинаются с «кто записан на этот курс».
             models.Index(fields=["course", "user"], name="idx_enrollment_course_user"),
         ]
+
+    def __str__(self):
+        return f"{self.user_id} → {self.course_id}"
 
 
 class StudyGroup(models.Model):
@@ -39,7 +79,9 @@ class StudyGroup(models.Model):
     """
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    name = models.CharField("название", max_length=100, help_text="Номер группы, например «ИСТ-21».")
+    name = models.CharField(
+        "название", max_length=100, help_text="Номер группы, например «ИСТ-21»."
+    )
     teacher = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,
@@ -56,7 +98,9 @@ class StudyGroup(models.Model):
         verbose_name="студенты",
         help_text="Кто входит в группу. В ведомость попадут те из них, кто записан на выбранный курс.",
     )
-    note = models.TextField("заметка", blank=True, help_text="Для себя: семестр, поток, что угодно.")
+    note = models.TextField(
+        "заметка", blank=True, help_text="Для себя: семестр, поток, что угодно."
+    )
     created_at = models.DateTimeField(default=timezone.now)
 
     class Meta:
@@ -74,15 +118,24 @@ class StudyGroup(models.Model):
 
 class LessonProgress(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="lesson_progress")
-    lesson = models.ForeignKey("courses.Lesson", on_delete=models.CASCADE, related_name="progress")
-    status = models.CharField(max_length=50)
-    time_spent_sec = models.IntegerField(default=0)
-    visits = models.IntegerField(default=0)
-    started_at = models.DateTimeField(blank=True, null=True)
-    completed_at = models.DateTimeField(blank=True, null=True)
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="lesson_progress",
+        verbose_name="студент",
+    )
+    lesson = models.ForeignKey(
+        "courses.Lesson", on_delete=models.CASCADE, related_name="progress", verbose_name="урок"
+    )
+    status = models.CharField(verbose_name="статус", max_length=50, choices=PROGRESS_STATUS_CHOICES)
+    time_spent_sec = models.IntegerField(verbose_name="время, сек", default=0)
+    visits = models.IntegerField(verbose_name="заходов", default=0)
+    started_at = models.DateTimeField(verbose_name="начат", blank=True, null=True)
+    completed_at = models.DateTimeField(verbose_name="завершён", blank=True, null=True)
 
     class Meta:
+        verbose_name = "прогресс по уроку"
+        verbose_name_plural = "прогресс по урокам"
         db_table = "lesson_progress"
         unique_together = (("user", "lesson"),)
         indexes = [
@@ -91,6 +144,9 @@ class LessonProgress(models.Model):
             models.Index(fields=["user", "status"], name="idx_progress_user_status"),
             models.Index(fields=["lesson", "status"], name="idx_progress_lesson_status"),
         ]
+
+    def __str__(self):
+        return f"{self.user_id} · {self.lesson_id} ({self.status})"
 
 
 class Reflection(models.Model):
@@ -107,35 +163,54 @@ class Reflection(models.Model):
     """
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="reflections")
-    lesson = models.ForeignKey("courses.Lesson", on_delete=models.CASCADE, related_name="reflections")
-    clarity_rating = models.SmallIntegerField(blank=True, null=True)
-    difficulty_rating = models.SmallIntegerField(blank=True, null=True)
-    comment = models.TextField(blank=True, null=True)
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="reflections",
+        verbose_name="студент",
+    )
+    lesson = models.ForeignKey(
+        "courses.Lesson", on_delete=models.CASCADE, related_name="reflections", verbose_name="урок"
+    )
+    clarity_rating = models.SmallIntegerField(verbose_name="понятность", blank=True, null=True)
+    difficulty_rating = models.SmallIntegerField(verbose_name="трудность", blank=True, null=True)
+    comment = models.TextField(verbose_name="комментарий", blank=True, null=True)
     comment_is_anonymous = models.BooleanField(
         "комментарий анонимно",
         default=False,
         help_text="Преподаватель увидит текст комментария без указания автора. "
         "На оценки понятности и трудности не влияет — они всегда привязаны к студенту.",
     )
-    created_at = models.DateTimeField(default=timezone.now)
-    updated_at = models.DateTimeField(blank=True, null=True)
+    created_at = models.DateTimeField(verbose_name="оставлена", default=timezone.now)
+    updated_at = models.DateTimeField(verbose_name="изменена", blank=True, null=True)
 
     class Meta:
+        verbose_name = "рефлексия"
+        verbose_name_plural = "рефлексии"
         db_table = "reflections"
         unique_together = (("user", "lesson"),)
+
+    def __str__(self):
+        return f"{self.user_id} · {self.lesson_id}"
 
 
 class Activity(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="activities")
-    type = models.CharField(max_length=50)
-    entity_type = models.CharField(max_length=50, blank=True, null=True)
-    entity_id = models.UUIDField(blank=True, null=True)
-    metadata = models.JSONField(blank=True, null=True)
-    created_at = models.DateTimeField(default=timezone.now)
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="activities",
+        verbose_name="пользователь",
+    )
+    type = models.CharField(verbose_name="тип", max_length=50, choices=ACTIVITY_TYPE_CHOICES)
+    entity_type = models.CharField(verbose_name="объект", max_length=50, blank=True, null=True)
+    entity_id = models.UUIDField(verbose_name="идентификатор объекта", blank=True, null=True)
+    metadata = models.JSONField(verbose_name="подробности", blank=True, null=True)
+    created_at = models.DateTimeField(verbose_name="когда", default=timezone.now)
 
     class Meta:
+        verbose_name = "событие"
+        verbose_name_plural = "события"
         db_table = "activities"
         indexes = [
             # Лента профиля и «дней без активности» на панели: и то и другое —
@@ -144,3 +219,6 @@ class Activity(models.Model):
             # Чистка по сроку хранения (`purge_metrics`) идёт по одному времени.
             models.Index(fields=["created_at"], name="idx_activity_created"),
         ]
+
+    def __str__(self):
+        return f"{self.type} · {self.user_id}"

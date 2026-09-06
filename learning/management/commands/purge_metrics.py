@@ -48,7 +48,9 @@ class Command(BaseCommand):
             return
 
         if options["dry_run"]:
-            self.stdout.write(self.style.WARNING(f"Будет удалено событий: {count} (пробный запуск)."))
+            self.stdout.write(
+                self.style.WARNING(f"Будет удалено событий: {count} (пробный запуск).")
+            )
             return
 
         stale.delete()

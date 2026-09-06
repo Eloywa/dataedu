@@ -120,9 +120,7 @@ class FinishTestTests(TestCase):
         attempt = f.attempt(self.user, self.test, score=80, passed=True)
         services.finish_test(self.user, attempt, self.lesson)
         self.assertTrue(
-            UserAchievement.objects.filter(
-                user=self.user, achievement__code="test_master"
-            ).exists()
+            UserAchievement.objects.filter(user=self.user, achievement__code="test_master").exists()
         )
 
 
@@ -136,9 +134,7 @@ class StreakTests(TestCase):
 
         services.check_login_streak(user)
         self.assertTrue(
-            UserAchievement.objects.filter(
-                user=user, achievement__code="no_miss_week"
-            ).exists()
+            UserAchievement.objects.filter(user=user, achievement__code="no_miss_week").exists()
         )
 
     def test_a_gap_breaks_the_streak(self):

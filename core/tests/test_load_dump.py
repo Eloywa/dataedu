@@ -89,9 +89,7 @@ class LoadDumpTests(TestCase):
         import tempfile
         from pathlib import Path
 
-        handle = tempfile.NamedTemporaryFile(
-            "w", suffix=".sql", delete=False, encoding="utf-8"
-        )
+        handle = tempfile.NamedTemporaryFile("w", suffix=".sql", delete=False, encoding="utf-8")
         handle.write(text)
         handle.close()
         return Path(handle.name)

@@ -61,9 +61,7 @@ def thread(user, peer, course, limit=THREAD_LIMIT):
     """
     qs = (
         Message.objects.filter(course=course)
-        .filter(
-            Q(sender=user, recipient=peer) | Q(sender=peer, recipient=user)
-        )
+        .filter(Q(sender=user, recipient=peer) | Q(sender=peer, recipient=user))
         .order_by("-created_at")[:limit]
     )
     return list(reversed(list(qs)))

@@ -19,10 +19,8 @@ JAZZMIN_SETTINGS = {
     "welcome_sign": "Администрирование DataEdu",
     "copyright": "DataEdu",
     "search_model": ["courses.Course", "accounts.User"],
-
     # Ноль внешних запросов: шрифты берутся системные, ничего не тянется с CDN.
     "use_google_fonts_cdn": False,
-
     "show_ui_builder": False,
     "changeform_format": "horizontal_tabs",
     # Курс и урок правятся вместе с вложенными элементами, поэтому у них —
@@ -31,17 +29,14 @@ JAZZMIN_SETTINGS = {
         "courses.course": "single",
         "courses.lesson": "single",
     },
-
     "topmenu_links": [
         {"name": "На сайт", "url": "/", "new_window": False},
         {"name": "Панель преподавателя", "url": "/teacher/", "new_window": False},
         {"name": "Проверка работ", "url": "/teacher/submissions/", "new_window": False},
     ],
-
     "usermenu_links": [
         {"name": "Настройки учётной записи", "url": "/settings/"},
     ],
-
     # Порядок разделов повторяет путь материала: сначала люди, потом курсы,
     # потом проверка знаний, потом наблюдение за обучением.
     "order_with_respect_to": [
@@ -53,7 +48,6 @@ JAZZMIN_SETTINGS = {
         "messaging",
         "auth",
     ],
-
     "icons": {
         "accounts": "fas fa-users-cog",
         "accounts.User": "fas fa-user",
@@ -82,7 +76,6 @@ JAZZMIN_SETTINGS = {
     },
     "default_icon_parents": "fas fa-chevron-circle-right",
     "default_icon_children": "fas fa-circle",
-
     "related_modal_active": True,
 }
 

@@ -79,10 +79,16 @@ class LandmarkTests(MarkupBase):
         Раньше `base.html` оборачивал содержимое в <main>, а каждый шаблон страницы
         открывал свой — то есть нарушение было на всех страницах сразу.
         """
-        for role, names in (("гость", None), ("студент", self.student), ("преподаватель", self.teacher)):
+        for role, names in (
+            ("гость", None),
+            ("студент", self.student),
+            ("преподаватель", self.teacher),
+        ):
             for name, html in self.pages(GUEST_PAGES if names is None else STUDENT_PAGES, names):
                 self.assertEqual(
-                    len(re.findall(r"<main\b", html)), 1, f"{role} · {name}: главных областей не одна"
+                    len(re.findall(r"<main\b", html)),
+                    1,
+                    f"{role} · {name}: главных областей не одна",
                 )
 
     def test_skip_link_is_first_and_targets_content(self):
@@ -92,7 +98,9 @@ class LandmarkTests(MarkupBase):
 
     def test_page_has_single_h1(self):
         for name, html in self.pages(STUDENT_PAGES, self.student):
-            self.assertEqual(len(re.findall(r"<h1\b", html)), 1, f"{name}: заголовков первого уровня не один")
+            self.assertEqual(
+                len(re.findall(r"<h1\b", html)), 1, f"{name}: заголовков первого уровня не один"
+            )
 
     def test_heading_levels_do_not_skip(self):
         """Пропуск ступени (h1 → h3) ломает навигацию по заголовкам."""

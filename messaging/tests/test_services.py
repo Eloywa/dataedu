@@ -74,9 +74,7 @@ class SendTests(TestCase):
         self.assertIsNotNone(message)
 
     def test_forbidden_pair_writes_nothing(self):
-        message, error = services.send_message(
-            self.student, f.student(), self.course, "привет"
-        )
+        message, error = services.send_message(self.student, f.student(), self.course, "привет")
         self.assertIsNone(message)
         self.assertEqual(Message.objects.count(), 0)
 

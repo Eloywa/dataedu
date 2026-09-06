@@ -48,7 +48,23 @@ class UserChangeForm(forms.ModelForm):
 
     class Meta:
         model = User
-        fields = "__all__"
+        # Поля перечислены явно: с `__all__` любое новое поле модели автоматически
+        # оказывалось бы в форме админки — включая служебные, которые править руками
+        # не следует.
+        fields = (
+            "username",
+            "email",
+            "display_name",
+            "role",
+            "avatar_url",
+            "xp",
+            "level",
+            "is_active",
+            "is_staff",
+            "is_superuser",
+            "groups",
+            "user_permissions",
+        )
 
     def save(self, commit=True):
         user = super().save(commit=False)
@@ -84,7 +100,10 @@ class UserAdmin(admin.ModelAdmin):
             },
         ),
         ("Прогресс", {"fields": ("xp", "level")}),
-        ("Доступ", {"fields": ("is_active", "is_staff", "is_superuser", "groups", "user_permissions")}),
+        (
+            "Доступ",
+            {"fields": ("is_active", "is_staff", "is_superuser", "groups", "user_permissions")},
+        ),
         ("Служебное", {"fields": ("id", "created_at", "last_seen_at"), "classes": ("collapse",)}),
     )
     add_fieldsets = (

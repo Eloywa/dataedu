@@ -65,6 +65,9 @@ METRICS_RETENTION_DAYS = int(os.environ.get("METRICS_RETENTION_DAYS", "400"))
 # знает про `accounts`, и так далее. Правило направления связей — в ARCHITECTURE.md.
 
 INSTALLED_APPS = [
+    # Оформление админки. Обязан идти перед django.contrib.admin: подменяет её
+    # шаблоны, а Django берёт первый найденный.
+    "jazzmin",
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -194,6 +197,9 @@ mimetypes.add_type("application/wasm", ".wasm", strict=True)
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
+# Оформление админки вынесено отдельно — настроек там много, и к остальному
+# они отношения не имеют.
+from .admin_ui import JAZZMIN_SETTINGS, JAZZMIN_UI_TWEAKS  # noqa: E402,F401
 
 # --- Постраничный вывод ------------------------------------------------------
 #

@@ -17,7 +17,7 @@
           <span class="badge badge-{{ a.level|level_tone }}">{{ a.level|level_label }}</span>
           {% if a.is_solved %}<span class="badge badge-success">решено</span>{% endif %}
         </div>
-        <h3 class="practice-card-title">{{ a.title }}</h3>
+        <h2 class="practice-card-title">{{ a.title }}</h2>
         <div class="practice-card-course mono">{{ a.course.title }}</div>
       </a>
     {% empty %}
@@ -38,7 +38,7 @@
             <span class="badge badge-{{ a.level|level_tone }}">{{ a.level|level_label }}</span>
             {% if a.is_submitted %}<span class="badge badge-neutral">отправлено</span>{% endif %}
           </div>
-          <h3 class="practice-card-title">{{ a.title }}</h3>
+          <h2 class="practice-card-title">{{ a.title }}</h2>
           <div class="practice-card-course mono">{{ a.course.title }}</div>
         </a>
       {% endfor %}

@@ -122,9 +122,7 @@ class AssignmentAdmin(OwnedAdmin):
             return format_html('<span style="color:#b45309">не посчитан</span>')
         rows = len(obj.expected_result.get("rows", []))
         cols = len(obj.expected_result.get("columns", []))
-        return format_html(
-            '<span style="color:#3f7d14">{}</span>', rows_cols_summary(rows, cols)
-        )
+        return format_html('<span style="color:#3f7d14">{}</span>', rows_cols_summary(rows, cols))
 
     @admin.display(description="Посчитанный эталон")
     def expected_preview(self, obj):
@@ -168,9 +166,7 @@ class AssignmentAdmin(OwnedAdmin):
 
     def save_model(self, request, obj, form, change):
         """Сохранить и, если изменились исходники эталона, обнулить его."""
-        stale = change and (
-            "setup_sql" in form.changed_data or "expected_sql" in form.changed_data
-        )
+        stale = change and ("setup_sql" in form.changed_data or "expected_sql" in form.changed_data)
         if stale and obj.expected_result:
             obj.expected_result = None
             self.message_user(
@@ -208,9 +204,7 @@ class AssignmentAdmin(OwnedAdmin):
             )
         except ExpectedError as e:
             self.message_user(request, f"Не удалось посчитать эталон. {e}", messages.ERROR)
-        return redirect(
-            reverse("admin:assessments_assignment_change", args=[object_id])
-        )
+        return redirect(reverse("admin:assessments_assignment_change", args=[object_id]))
 
     @admin.action(description="Посчитать эталон для выбранных заданий")
     def recompute_expected(self, request, queryset):

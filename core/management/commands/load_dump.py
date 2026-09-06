@@ -198,7 +198,7 @@ class Command(BaseCommand):
             if name not in tables:
                 return [], []
             columns, rows = tables[name]
-            return columns, [dict(zip(columns, row)) for row in rows]
+            return columns, [dict(zip(columns, row, strict=False)) for row in rows]
 
         # --- Роли и пользователи ------------------------------------------
         _, roles = rows_of("roles")

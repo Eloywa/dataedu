@@ -131,8 +131,12 @@ class PracticeListTests(TestCase):
         from assessments.models import Assignment
 
         task = Assignment.objects.create(
-            course=self.course, title="SQL без эталона", level="basic",
-            type="sql", expected_result=None, max_score=10,
+            course=self.course,
+            title="SQL без эталона",
+            level="basic",
+            type="sql",
+            expected_result=None,
+            max_score=10,
         )
         self.client.force_login(self.student)
         response = self.client.get(self.url)

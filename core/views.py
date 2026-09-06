@@ -25,12 +25,16 @@ def home(request):
         )
 
     # Студент: найти курс «в процессе» и следующий незавершённый урок
-    enrollments = Enrollment.objects.filter(user=user).select_related("course").order_by("-enrolled_at")
+    enrollments = (
+        Enrollment.objects.filter(user=user).select_related("course").order_by("-enrolled_at")
+    )
     current = None
     for e in enrollments:
         course = e.course
         lessons = list(
-            Lesson.objects.filter(module__course=course).order_by("module__order_index", "order_index")
+            Lesson.objects.filter(module__course=course).order_by(
+                "module__order_index", "order_index"
+            )
         )
         if not lessons:
             continue
@@ -39,7 +43,7 @@ def home(request):
                 user=user, lesson__module__course=course, status="completed"
             ).values_list("lesson_id", flat=True)
         )
-        nxt = next((l for l in lessons if l.id not in completed), None)
+        nxt = next((item for item in lessons if item.id not in completed), None)
         if nxt is not None:
             done, total = len(completed), len(lessons)
             current = {

@@ -40,7 +40,7 @@ if not SECRET_KEY:
 if SECRET_KEY.startswith("django-insecure-") or len(SECRET_KEY) < 32:
     raise RuntimeError(
         "SECRET_KEY выглядит отладочным или слишком коротким. Сгенерируйте новый: "
-        "python -c \"import secrets; print(secrets.token_urlsafe(64))\""
+        'python -c "import secrets; print(secrets.token_urlsafe(64))"'
     )
 
 if not os.environ.get("DB_PASSWORD") and not os.environ.get("DB_HOST"):

@@ -30,6 +30,15 @@ python manage.py runserver
 
 Откройте http://127.0.0.1:8000.
 
+> **Окружение обязательно активировать.** Без `activate` команда `python` возьмёт
+> системный интерпретатор — а если на машине стоит Anaconda, то и её Django (там
+> обычно 4.2), и проект упадёт на `AttributeError: module 'django.db.models' has no
+> attribute 'CompositePrimaryKey'`: составные ключи появились только в Django 5.2.
+> Признак активированного окружения — `(.venv)` в начале строки приглашения.
+> Проверить: `python -c "import django; print(django.get_version())"` должно дать
+> `5.2.x`. Альтернатива активации — вызывать интерпретатор по пути:
+> `.venv/Scripts/python.exe manage.py runserver`.
+
 **Демо-вход:** преподаватель `petrova`, студент `dmitry`, администратор `admin`.
 Пароль всех демо-аккаунтов — `dataedu2026`.
 
@@ -92,7 +101,9 @@ gunicorn config.wsgi:application --workers 4
 
 ```bash
 python manage.py check           # системные проверки
-python manage.py test            # 331 тест
+python manage.py test            # 343 теста
+ruff check .                     # разбор кода
+ruff format --check .            # форматирование
 ```
 
 Тесты идут на SQLite в памяти. Прогнать их на боевом движке:
@@ -100,6 +111,17 @@ python manage.py test            # 331 тест
 ```bash
 DB_ENGINE=postgres python manage.py test
 ```
+
+---
+
+## Админка
+
+Оформление — [django-jazzmin](https://github.com/farridav/django-jazzmin): боковое
+меню, поиск по разделам, тёмная тема. Настройки собраны в
+`config/settings/admin_ui.py`; ни один `ModelAdmin` под неё не переписывался.
+
+Шрифты с CDN у Jazzmin **выключены** (`use_google_fonts_cdn: False`) — см. раздел
+ниже. На это есть тест: `core.tests.test_accessibility.AutonomyTests`.
 
 ---
 

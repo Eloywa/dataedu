@@ -10,9 +10,7 @@ from assessments.grading import diagnose, jsonable, normalize_rows, rows_equal
 class RowsEqualTests(SimpleTestCase):
     def test_row_order_does_not_matter(self):
         """Без ORDER BY порядок строк не определён — требовать его нельзя."""
-        self.assertTrue(
-            rows_equal(["a"], [[1], [2]], ["a"], [[2], [1]])
-        )
+        self.assertTrue(rows_equal(["a"], [[1], [2]], ["a"], [[2], [1]]))
 
     def test_duplicates_matter(self):
         """Мультимножество, а не множество: лишний дубль — это другой результат."""

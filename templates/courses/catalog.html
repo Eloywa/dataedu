@@ -41,7 +41,7 @@
             <span class="badge badge-{{ course.level|level_tone }}">{{ course.level|level_label }}</span>
             <span class="stars" title="{{ course.rating_avg|default:0|floatformat:1 }}">{{ course.rating_avg|stars }}</span>
           </div>
-          <h3 class="course-card-title">{{ course.title }}</h3>
+          <h2 class="course-card-title">{{ course.title }}</h2>
           {% if course.description %}<p class="course-card-desc">{{ course.description }}</p>{% endif %}
           <div class="card-meta-bottom">
             {% if course.author %}<span>{{ course.author.label }}</span>{% endif %}

@@ -78,7 +78,13 @@ def lesson_test(request, lesson_id):
         return render(
             request,
             "assessments/test_result.html",
-            {"lesson": lesson, "test": test, "score": score, "is_passed": is_passed, "results": results},
+            {
+                "lesson": lesson,
+                "test": test,
+                "score": score,
+                "is_passed": is_passed,
+                "results": results,
+            },
         )
 
     return render(
@@ -99,16 +105,16 @@ def practice(request):
     чего не умеет.
     """
     solved = set(
-        Submission.objects.filter(user=request.user, score__gte=1).values_list("assignment_id", flat=True)
+        Submission.objects.filter(user=request.user, score__gte=1).values_list(
+            "assignment_id", flat=True
+        )
     )
     submitted = set(
         Submission.objects.filter(user=request.user).values_list("assignment_id", flat=True)
     )
 
     auto, manual = [], []
-    for a in (
-        Assignment.objects.select_related("course").order_by("course__title", "title")
-    ):
+    for a in Assignment.objects.select_related("course").order_by("course__title", "title"):
         a.is_solved = a.id in solved
         a.is_submitted = a.id in submitted
         (auto if a.is_autocheckable else manual).append(a)
@@ -178,9 +184,7 @@ def check_assignment(request, assignment_id):
     )
     services.record_submission(request.user, submission)
 
-    return JsonResponse(
-        {"passed": passed, "checks": report["checks"], "hint": report["hint"]}
-    )
+    return JsonResponse({"passed": passed, "checks": report["checks"], "hint": report["hint"]})
 
 
 def _feedback_text(report):

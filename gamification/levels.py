@@ -17,7 +17,15 @@ def level_progress(xp):
     nxt = LEVEL_THRESHOLDS[level] if level < len(LEVEL_THRESHOLDS) else None
 
     if nxt is None:
-        return {"level": level, "xp": xp, "into": xp - current, "span": 0, "pct": 100, "to_next": 0, "is_max": True}
+        return {
+            "level": level,
+            "xp": xp,
+            "into": xp - current,
+            "span": 0,
+            "pct": 100,
+            "to_next": 0,
+            "is_max": True,
+        }
 
     span = nxt - current
     into = xp - current

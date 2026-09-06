@@ -29,9 +29,7 @@ class RiskTests(SimpleTestCase):
 
     def test_missing_data_counts_as_worst(self):
         """`None` — это не «ноль риска», а «оснований считать, что всё хорошо, нет»."""
-        self.assertEqual(
-            compute_risk(0, None, None), compute_risk(0, 0, 999)
-        )
+        self.assertEqual(compute_risk(0, None, None), compute_risk(0, 0, 999))
 
     def test_risk_falls_as_progress_grows(self):
         values = [compute_risk(pct, 70, 3) for pct in range(0, 101, 10)]

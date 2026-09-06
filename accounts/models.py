@@ -6,7 +6,6 @@ from django.core.validators import RegexValidator
 from django.db import models
 from django.utils import timezone
 
-
 # Допустимый вид логина — **единственный** источник правды: на него ссылается и
 # валидатор модели, и проверка в форме регистрации. Разъезжались они не гипотетически:
 # в форме стояла проверка `ch.isalnum()`, а она в Python истинна и для кириллицы, и
@@ -24,11 +23,13 @@ class Role(models.Model):
     """Роль пользователя: admin / teacher / student."""
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    code = models.CharField(unique=True, max_length=30)
-    name = models.CharField(max_length=100)
-    description = models.TextField(blank=True, null=True)
+    code = models.CharField(verbose_name="код", unique=True, max_length=30)
+    name = models.CharField(verbose_name="название", max_length=100)
+    description = models.TextField(verbose_name="описание", blank=True, null=True)
 
     class Meta:
+        verbose_name = "роль"
+        verbose_name_plural = "роли"
         db_table = "roles"
 
     def __str__(self):
@@ -102,15 +103,22 @@ class User(AbstractBaseUser, PermissionsMixin):
         help_text="Как обращаться к пользователю в интерфейсе. Может быть псевдонимом; "
         "настоящее ФИО указывать не требуется. Если пусто — показывается логин.",
     )
-    role = models.ForeignKey(Role, on_delete=models.PROTECT, related_name="users", blank=True, null=True)
-    avatar_url = models.TextField(blank=True, null=True)
-    xp = models.IntegerField(default=0)
-    level = models.IntegerField(default=1)
-    is_active = models.BooleanField(default=True)
-    is_staff = models.BooleanField(default=False)
-    last_seen_at = models.DateTimeField(blank=True, null=True)
-    created_at = models.DateTimeField(default=timezone.now)
-    updated_at = models.DateTimeField(default=timezone.now)
+    role = models.ForeignKey(
+        Role,
+        on_delete=models.PROTECT,
+        related_name="users",
+        blank=True,
+        null=True,
+        verbose_name="роль",
+    )
+    avatar_url = models.TextField(verbose_name="аватар", blank=True, null=True)
+    xp = models.IntegerField(verbose_name="XP", default=0)
+    level = models.IntegerField(verbose_name="уровень", default=1)
+    is_active = models.BooleanField(verbose_name="активен", default=True)
+    is_staff = models.BooleanField(verbose_name="доступ в админку", default=False)
+    last_seen_at = models.DateTimeField(verbose_name="последний вход", blank=True, null=True)
+    created_at = models.DateTimeField(verbose_name="создан", default=timezone.now)
+    updated_at = models.DateTimeField(verbose_name="изменён", default=timezone.now)
 
     USERNAME_FIELD = "username"
     REQUIRED_FIELDS = []
@@ -118,6 +126,8 @@ class User(AbstractBaseUser, PermissionsMixin):
     objects = UserManager()
 
     class Meta:
+        verbose_name = "пользователь"
+        verbose_name_plural = "пользователи"
         db_table = "users"
 
     def __str__(self):
@@ -156,9 +166,7 @@ class Consent(models.Model):
     ]
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    user = models.ForeignKey(
-        "accounts.User", on_delete=models.CASCADE, related_name="consents"
-    )
+    user = models.ForeignKey("accounts.User", on_delete=models.CASCADE, related_name="consents")
     document = models.CharField("документ", max_length=30, choices=DOC_CHOICES)
     version = models.CharField("версия документа", max_length=20)
     granted_at = models.DateTimeField("дано", default=timezone.now)

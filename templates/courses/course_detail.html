@@ -76,14 +76,31 @@
         {% if enrolled %}
           <form method="post" action="{% url 'courses:review' course.slug %}" class="review-form">
             {% csrf_token %}
-            <label class="mono small-label">Ваша оценка</label>
-            <div class="rating-input">
-              {% for n in "54321" %}
-                <input type="radio" id="star{{ n }}" name="rating" value="{{ n }}" {% if my_rating and my_rating.rating|stringformat:'s' == n %}checked{% endif %} />
-                <label for="star{{ n }}" title="{{ n }}">★</label>
-              {% endfor %}
-            </div>
-            <textarea name="comment" rows="2" class="review-text" placeholder="Комментарий (по желанию)">{% if my_rating %}{{ my_rating.comment|default:'' }}{% endif %}</textarea>
+            {% comment %}
+            Группа переключателей обёрнута в fieldset с legend: раньше «Ваша оценка»
+            был просто <label> без `for` — он ни с чем не связан, и скринридер читал
+            пять безымянных звёзд подряд, не сообщая, к чему они относятся.
+
+            Порядок 5→1 нужен CSS: подсветка идёт через соседний селектор, а он
+            смотрит только вперёд. Номер звезды вынесен в подпись скрытым текстом —
+            иначе название варианта состоит из одного символа «★».
+            {% endcomment %}
+            <fieldset class="rating-group">
+              <legend class="mono small-label">Ваша оценка</legend>
+              <div class="rating-input">
+                {% for n in "54321" %}
+                  <input type="radio" id="star{{ n }}" name="rating" value="{{ n }}"
+                         {% if my_rating and my_rating.rating|stringformat:'s' == n %}checked{% endif %} />
+                  <label for="star{{ n }}">
+                    <span aria-hidden="true">★</span>
+                    <span class="visually-hidden">{{ n }} из 5</span>
+                  </label>
+                {% endfor %}
+              </div>
+            </fieldset>
+            <label class="visually-hidden" for="review-comment">Комментарий к отзыву</label>
+            <textarea id="review-comment" name="comment" rows="2" class="review-text"
+                      placeholder="Комментарий (по желанию)">{% if my_rating %}{{ my_rating.comment|default:'' }}{% endif %}</textarea>
             <button class="btn btn-ghost" type="submit">{% if my_rating %}Обновить отзыв{% else %}Оставить отзыв{% endif %}</button>
           </form>
         {% endif %}

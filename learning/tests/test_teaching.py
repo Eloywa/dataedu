@@ -268,9 +268,7 @@ class StudentCardTests(TestCase):
 
     def test_anonymous_comment_is_not_attributed(self):
         """Карточка сама указывает на автора — анонимный комментарий здесь нельзя."""
-        f.reflection(
-            self.student, self.lessons[0], comment="слишком быстро", anonymous=True
-        )
+        f.reflection(self.student, self.lessons[0], comment="слишком быстро", anonymous=True)
         self.client.force_login(self.teacher)
         response = self.client.get(self.url)
         self.assertNotContains(response, "слишком быстро")

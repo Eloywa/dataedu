@@ -11,7 +11,14 @@ from .gating import compute_gating
 from .levels import level_for_xp
 from .models import Achievement, UserAchievement
 
-MEANINGFUL = ["lesson_complete", "test_finish", "sql_run", "submission", "achievement", "reflection"]
+MEANINGFUL = [
+    "lesson_complete",
+    "test_finish",
+    "sql_run",
+    "submission",
+    "achievement",
+    "reflection",
+]
 
 # Начисление XP. Урок даёт свой lesson.xp_reward; тест и задание — фиксированную
 # величину и только за первый успех (повторные попытки XP не приносят).
@@ -33,7 +40,11 @@ def add_xp(user, amount):
 
 def log_activity(user, type_, entity_type=None, entity_id=None):
     Activity.objects.create(
-        user=user, type=type_, entity_type=entity_type, entity_id=entity_id, created_at=timezone.now()
+        user=user,
+        type=type_,
+        entity_type=entity_type,
+        entity_id=entity_id,
+        created_at=timezone.now(),
     )
 
 
@@ -186,7 +197,20 @@ def _day_label(d):
         return "Сегодня"
     if diff == 1:
         return "Вчера"
-    months = ["января", "февраля", "марта", "апреля", "мая", "июня", "июля", "августа", "сентября", "октября", "ноября", "декабря"]
+    months = [
+        "января",
+        "февраля",
+        "марта",
+        "апреля",
+        "мая",
+        "июня",
+        "июля",
+        "августа",
+        "сентября",
+        "октября",
+        "ноября",
+        "декабря",
+    ]
     return f"{d.day} {months[d.month - 1]}"
 
 
@@ -276,4 +300,7 @@ def course_gating(user, course, is_teacher):
         completed = sum(1 for lid in lesson_ids if lid in completed_ids)
         counts.append((total, completed))
     flags = compute_gating(counts, bypass=is_teacher)
-    return {m.id: {**flags[i], "total": counts[i][0], "completed": counts[i][1]} for i, m in enumerate(modules)}
+    return {
+        m.id: {**flags[i], "total": counts[i][0], "completed": counts[i][1]}
+        for i, m in enumerate(modules)
+    }

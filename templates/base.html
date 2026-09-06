@@ -9,6 +9,13 @@
     <link rel="stylesheet" href="{% static 'css/terminal.css' %}" />
   </head>
   <body>
+    {% comment %}
+    Ссылка «к содержимому»: первое, на что попадает Tab. Без неё пользователь
+    клавиатуры на каждой странице заново проходит всю шапку, прежде чем добраться
+    до текста. Видимой она становится только при фокусе (см. .skip-link).
+    {% endcomment %}
+    <a class="skip-link" href="#content">К содержимому</a>
+
     <header class="site-header">
       <div class="container">
         <div class="header-left">
@@ -40,7 +47,13 @@
               <a href="{% url 'teaching:analytics' %}">Аналитика</a>
               <a href="{% url 'teaching:submissions' %}">Работы</a>
             {% endif %}
+            {% comment %}
+            На узком экране имя пользователя из шапки убирается — оно занимает три
+            строки и выталкивает кнопку выхода за край. Ссылка на настройки, которую
+            имя и открывало, переезжает сюда, в сворачиваемое меню.
+            {% endcomment %}
             {% if user.is_authenticated %}
+              <a class="nav-settings" href="{% url 'accounts:settings' %}">Настройки</a>
               <a class="nav-messages" href="{% url 'messaging:inbox' %}">
                 Сообщения<span class="unread-badge" id="unread-badge"
                                 data-unread-url="{% url 'messaging:unread_json' %}"
@@ -64,7 +77,12 @@
       </div>
     </header>
 
-    <main>{% block content %}{% endblock %}</main>
+    {% comment %}
+    Здесь именно <div>, а не <main>: свой <main> открывает каждый шаблон страницы,
+    и обёртка давала бы вложенные главные области — невалидно и сбивает навигацию
+    по ориентирам. Якорь `#content` ведёт сюда со ссылки «к содержимому».
+    {% endcomment %}
+    <div id="content">{% block content %}{% endblock %}</div>
 
     <footer class="site-footer">
       <div class="container footer-row">

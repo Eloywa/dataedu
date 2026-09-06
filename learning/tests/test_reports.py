@@ -204,8 +204,12 @@ class ManualQueueTests(TestCase):
         f.assignment(self.course, auto=True)
         f.assignment(self.course, auto=False)
         Assignment.objects.create(
-            course=self.course, title="SQL без эталона", level="basic",
-            type="sql", expected_result=None, max_score=10,
+            course=self.course,
+            title="SQL без эталона",
+            level="basic",
+            type="sql",
+            expected_result=None,
+            max_score=10,
         )
 
         by_orm = set(Assignment.objects.manual().values_list("id", flat=True))

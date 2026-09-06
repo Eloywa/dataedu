@@ -2,13 +2,19 @@ import markdown as md
 from django import template
 from django.utils.safestring import mark_safe
 
+from assessments.models import Assignment
 from courses.cover import cover_for
+from courses.models import Course
 
 register = template.Library()
 
-LEVEL_LABEL = {"basic": "Начальный", "medium": "Средний", "advanced": "Продвинутый"}
+# Подписи берутся из `choices` моделей, а не повторяются здесь: раньше один и тот же
+# список уровней жил в двух местах и мог разъехаться после правки любого из них.
+LEVEL_LABEL = dict(Course._meta.get_field("level").choices)
+TASK_TYPE_LABEL = dict(Assignment._meta.get_field("type").choices)
+
+# Тон плашки — чисто оформительское, к данным отношения не имеет, поэтому остаётся тут.
 LEVEL_TONE = {"basic": "success", "medium": "warning", "advanced": "danger"}
-TASK_TYPE_LABEL = {"sql": "SQL", "ddl": "DDL", "file": "файл", "text": "текст"}
 
 
 @register.inclusion_tag("courses/_cover.html")

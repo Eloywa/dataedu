@@ -243,9 +243,7 @@ def group(teacher_obj, name=None, students=()):
 
 
 def rate(user, course_obj, rating=5, comment=None):
-    return CourseRating.objects.create(
-        user=user, course=course_obj, rating=rating, comment=comment
-    )
+    return CourseRating.objects.create(user=user, course=course_obj, rating=rating, comment=comment)
 
 
 def message(sender, recipient, course_obj, body="Вопрос", read=False, when=None):

@@ -74,3 +74,4 @@ def register_unicode_string_functions(sender, connection, **kwargs):
 class CoreConfig(AppConfig):
     default_auto_field = "django.db.models.BigAutoField"
     name = "core"
+    verbose_name = "Платформа"

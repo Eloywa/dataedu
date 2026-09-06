@@ -129,8 +129,13 @@ class TeacherHomeTests(TestCase):
     def test_links_to_every_teacher_section(self):
         self.client.force_login(self.teacher)
         response = self.client.get(self.url)
-        for name in ("teaching:dashboard", "teaching:analytics", "teaching:report",
-                     "teaching:submissions", "messaging:inbox"):
+        for name in (
+            "teaching:dashboard",
+            "teaching:analytics",
+            "teaching:report",
+            "teaching:submissions",
+            "messaging:inbox",
+        ):
             self.assertContains(response, reverse(name))
 
     def test_shows_pending_queue_size(self):

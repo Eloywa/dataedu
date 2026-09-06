@@ -126,9 +126,7 @@ class CatalogTests(TestCase):
 class CourseDetailTests(TestCase):
     def setUp(self):
         self.teacher = f.teacher()
-        self.course, self.lessons = f.course_with_lessons(
-            author=self.teacher, modules=2, lessons=2
-        )
+        self.course, self.lessons = f.course_with_lessons(author=self.teacher, modules=2, lessons=2)
         self.student = f.student()
         self.url = reverse("courses:course_detail", args=[self.course.slug])
 
@@ -223,25 +221,19 @@ class ReviewTests(TestCase):
 class LessonTests(TestCase):
     def setUp(self):
         self.teacher = f.teacher()
-        self.course, self.lessons = f.course_with_lessons(
-            author=self.teacher, modules=2, lessons=1
-        )
+        self.course, self.lessons = f.course_with_lessons(author=self.teacher, modules=2, lessons=1)
         self.student = f.student()
         f.enroll(self.student, self.course)
 
     def test_lesson_renders_theory(self):
         self.client.force_login(self.student)
-        response = self.client.get(
-            reverse("courses:lesson_detail", args=[self.lessons[0].pk])
-        )
+        response = self.client.get(reverse("courses:lesson_detail", args=[self.lessons[0].pk]))
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, self.lessons[0].title)
 
     def test_locked_lesson_shows_the_lock_page(self):
         self.client.force_login(self.student)
-        response = self.client.get(
-            reverse("courses:lesson_detail", args=[self.lessons[1].pk])
-        )
+        response = self.client.get(reverse("courses:lesson_detail", args=[self.lessons[1].pk]))
         self.assertTemplateUsed(response, "lessons/lesson_locked.html")
 
     def test_completing_a_lesson_records_progress(self):
@@ -254,9 +246,7 @@ class LessonTests(TestCase):
 
     def test_navigation_between_lessons(self):
         self.client.force_login(self.teacher)
-        response = self.client.get(
-            reverse("courses:lesson_detail", args=[self.lessons[0].pk])
-        )
+        response = self.client.get(reverse("courses:lesson_detail", args=[self.lessons[0].pk]))
         self.assertIsNone(response.context["prev_lesson"])
         self.assertEqual(response.context["next_lesson"], self.lessons[1])
 

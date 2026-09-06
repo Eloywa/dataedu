@@ -16,9 +16,7 @@ class LoginTests(TestCase):
         self.url = reverse("accounts:login")
 
     def test_login_by_username(self):
-        response = self.client.post(
-            self.url, {"username": "ivanov", "password": f.PASSWORD}
-        )
+        response = self.client.post(self.url, {"username": "ivanov", "password": f.PASSWORD})
         self.assertEqual(response.status_code, 302)
         self.assertEqual(int(self.client.session["_auth_user_id"] is not None), 1)
 

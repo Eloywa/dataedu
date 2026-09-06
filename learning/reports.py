@@ -278,9 +278,7 @@ def item_analysis_rows(teacher, limit=25):
 def topic_mastery_rows(teacher):
     """Карта освоения по темам: доля верных ответов на вопросы каждой темы."""
     course_ids = list(visible_courses(teacher).values_list("id", flat=True))
-    base = AnswerSubmission.objects.filter(
-        question__test__lesson__module__course_id__in=course_ids
-    )
+    base = AnswerSubmission.objects.filter(question__test__lesson__module__course_id__in=course_ids)
 
     rows = []
     agg = (
@@ -359,8 +357,7 @@ def gradebook_rows(course, group=None):
     max_total = sum(assignments.values())
 
     users = {
-        e.user_id: e.user
-        for e in Enrollment.objects.filter(course=course).select_related("user")
+        e.user_id: e.user for e in Enrollment.objects.filter(course=course).select_related("user")
     }
     if group is not None:
         in_group = set(group.students.values_list("id", flat=True))
@@ -372,7 +369,9 @@ def gradebook_rows(course, group=None):
     # Дальше — по одному запросу на составляющую вместо запроса на студента:
     # в группе три десятка человек, и построчные обращения к БД дали бы сотни запросов.
     done_lessons = dict(
-        LessonProgress.objects.filter(user_id__in=user_ids, lesson_id__in=lesson_ids, status="completed")
+        LessonProgress.objects.filter(
+            user_id__in=user_ids, lesson_id__in=lesson_ids, status="completed"
+        )
         .values_list("user_id")
         .annotate(n=Count("id"))
     )
@@ -393,7 +392,9 @@ def gradebook_rows(course, group=None):
         .annotate(best=Max("score"))
     ):
         if row["best"] is not None:
-            best_assignment.setdefault(row["user_id"], {})[row["assignment_id"]] = float(row["best"])
+            best_assignment.setdefault(row["user_id"], {})[row["assignment_id"]] = float(
+                row["best"]
+            )
 
     # Работы, отправленные, но ещё не проверенные. Они уходят в итог нулём, поэтому
     # отметка при непустой очереди предварительная — преподаватель должен это видеть.
@@ -405,7 +406,9 @@ def gradebook_rows(course, group=None):
     )
 
     started = dict(
-        Enrollment.objects.filter(course=course, user_id__in=user_ids).values_list("user_id", "enrolled_at")
+        Enrollment.objects.filter(course=course, user_id__in=user_ids).values_list(
+            "user_id", "enrolled_at"
+        )
     )
 
     rows = []
@@ -473,9 +476,7 @@ def manual_queue(teacher, limit=20):
     Python. Длина ограничена: на панели это врезка «есть что разобрать», а не сама
     очередь — полная живёт на странице проверки работ.
     """
-    manual = Assignment.objects.manual().filter(
-        course_id__in=visible_courses(teacher).values("id")
-    )
+    manual = Assignment.objects.manual().filter(course_id__in=visible_courses(teacher).values("id"))
     return list(
         Submission.objects.filter(assignment__in=manual)
         .exclude(status="graded")

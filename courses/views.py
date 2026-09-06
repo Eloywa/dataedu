@@ -87,7 +87,11 @@ def catalog(request):
         if c.is_enrolled:
             done = progress_by_course.get(c.id, 0)
             total = c.lesson_count or 0
-            c.prog = {"done": done, "total": total, "pct": round(done * 100 / total) if total else 0}
+            c.prog = {
+                "done": done,
+                "total": total,
+                "pct": round(done * 100 / total) if total else 0,
+            }
         else:
             c.prog = None
 
@@ -123,7 +127,9 @@ def course_detail(request, slug):
         )
 
     # Последовательное открытие недель: модуль доступен, когда предыдущий пройден.
-    gating = services.course_gating(request.user, course, request.user.is_authenticated and request.user.is_teacher)
+    gating = services.course_gating(
+        request.user, course, request.user.is_authenticated and request.user.is_teacher
+    )
     prev_title = None
     ordered_lessons = []
     for m in modules:
@@ -135,7 +141,7 @@ def course_detail(request, slug):
             if m.gate["unlocked"]:
                 ordered_lessons.append(lesson)
 
-    next_lesson = next((l for l in ordered_lessons if not l.done), None)
+    next_lesson = next((item for item in ordered_lessons if not item.done), None)
     if next_lesson is None and ordered_lessons:
         next_lesson = ordered_lessons[0]
 
@@ -192,7 +198,7 @@ def certificate_code(user_id, course_id):
     """
     digest = hmac.new(
         settings.SECRET_KEY.encode("utf-8"),
-        f"{user_id}:{course_id}".encode("utf-8"),
+        f"{user_id}:{course_id}".encode(),
         hashlib.sha256,
     ).hexdigest()
     return "DE-" + digest[:8].upper()
@@ -206,7 +212,9 @@ def certificate(request, slug):
     генерации PDF сюда не заводится по той же причине, что и в ведомости (этап 11.5) —
     системные зависимости ломают простоту установки.
     """
-    course = get_object_or_404(Course.objects.filter(is_published=True).select_related("author"), slug=slug)
+    course = get_object_or_404(
+        Course.objects.filter(is_published=True).select_related("author"), slug=slug
+    )
     enrolled = Enrollment.objects.filter(user=request.user, course=course).exists()
     progress = _progress(request.user, course)
 
@@ -273,7 +281,9 @@ def lesson_detail(request, lesson_id):
     lesson = get_object_or_404(Lesson.objects.select_related("module__course"), id=lesson_id)
     course = lesson.module.course
 
-    gating = services.course_gating(request.user, course, request.user.is_authenticated and request.user.is_teacher)
+    gating = services.course_gating(
+        request.user, course, request.user.is_authenticated and request.user.is_teacher
+    )
     gate = gating.get(lesson.module_id)
     if gate and not gate["unlocked"]:
         modules = list(course.modules.all())
@@ -291,7 +301,7 @@ def lesson_detail(request, lesson_id):
     ordered = list(
         Lesson.objects.filter(module__course=course).order_by("module__order_index", "order_index")
     )
-    idx = next((i for i, l in enumerate(ordered) if l.id == lesson.id), 0)
+    idx = next((i for i, item in enumerate(ordered) if item.id == lesson.id), 0)
     prev_lesson = ordered[idx - 1] if idx > 0 else None
     next_lesson = ordered[idx + 1] if idx < len(ordered) - 1 else None
 

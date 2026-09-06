@@ -6,10 +6,9 @@
 """
 
 import psycopg
-from psycopg.rows import dict_row
-
 from django.conf import settings
 from django.core.management.base import BaseCommand
+from psycopg.rows import dict_row
 
 from accounts.models import Role, User
 from assessments.models import (

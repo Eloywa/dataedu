@@ -677,6 +677,7 @@ pre,
 }
 .course-actions {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 16px;
   margin-top: 18px;
@@ -814,19 +815,39 @@ pre,
   justify-content: flex-end;
   gap: 2px;
 }
+/* Переключатель прячется прозрачностью, а не `display: none`.
+   С `display: none` элемент выпадает и из порядка обхода клавиатурой, и из дерева
+   доступности: оценку курса нельзя было поставить без мыши вообще. */
 .rating-input input {
-  display: none;
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
 }
 .rating-input label {
   color: var(--surface-2);
   font-size: 22px;
+  line-height: 1;
+  /* Палец попадает в цель: звезда рисуется 22px, но кликабельная область — 44px,
+     минимум по рекомендациям для сенсорных экранов. */
+  min-width: 44px;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   cursor: pointer;
+  border-radius: 8px;
   transition: color 0.1s;
 }
 .rating-input input:checked ~ label,
 .rating-input label:hover,
 .rating-input label:hover ~ label {
   color: var(--secondary);
+}
+/* Подсветка идёт на подпись, потому что сам переключатель невидим. */
+.rating-input input:focus-visible + label {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 .review-text {
   background: var(--bg);
@@ -938,6 +959,7 @@ pre,
 }
 .trainer-actions {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 14px;
 }
@@ -1793,6 +1815,7 @@ pre,
 }
 .report-tabs {
   display: flex;
+  flex-wrap: wrap;
   gap: 22px;
   font-size: 13.5px;
 }
@@ -1811,6 +1834,7 @@ pre,
 }
 .report-filter {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 10px;
   font-size: 12px;
@@ -2446,7 +2470,9 @@ pre,
 @media (max-width: 860px) {
   /* Меню сворачивается только когда есть чем управлять — см. js-nav выше. */
   .nav-toggle {
-    display: block;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
   }
   html.js-nav .nav {
     display: none;
@@ -2557,6 +2583,181 @@ pre,
 .pager-state {
   color: var(--muted);
   font-size: 13px;
+}
+
+/* --- Этап 13: доступность ------------------------------------------------- */
+
+/* Ссылка «к содержимому». Лежит первой в документе и всплывает только под фокусом:
+   пользователю мыши она не нужна, пользователю клавиатуры экономит проход через
+   всю шапку на каждой странице. */
+.skip-link {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 100;
+  padding: 10px 18px;
+  border-radius: 0 0 8px 0;
+  background: var(--accent);
+  color: var(--on-accent);
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+  transform: translateY(-120%);
+}
+.skip-link:focus {
+  transform: translateY(0);
+}
+
+/* Единое кольцо фокуса.
+   Раньше видимый фокус был только у трёх-четырёх элементов, а несколько правил
+   вида `outline: none` вместе с подсветкой рамки его прямо снимали. Для того, кто
+   ходит по странице клавиатурой, это означает потерю места на странице.
+
+   `:focus-visible`, а не `:focus`: браузер сам решает, показывать ли кольцо, и не
+   рисует его после обычного щелчка мышью. */
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+summary:focus-visible,
+[tabindex]:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Поля ввода подсвечивают рамку — кольцо для них избыточно, но `outline: none`
+   без замены оставляет их без индикации вовсе. Возвращаем и то и другое. */
+.field input:focus-visible,
+.toolbar-search:focus-visible,
+.review-text:focus-visible,
+.trainer-input:focus-visible,
+.reflection-textarea:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+  border-color: var(--accent);
+}
+
+/* Минимальный размер цели для пальца — только там, где пальцем и попадают.
+   Ссылки внутри абзацев не трогаем: растягивание строки ломает вёрстку текста.
+
+   `display` здесь не задаётся сознательно. В первой редакции правило ставило
+   `display: inline-flex` и на `.nav-toggle` — а у той кнопки видимостью управляет
+   медиазапрос (`display: none` на широком экране). Правило стояло ниже и с той же
+   специфичностью, поэтому перебивало его: кнопка меню появлялась на десктопе, где
+   меню и так раскрыто, и клик по ней визуально ничего не делал. */
+@media (max-width: 860px) {
+  .btn,
+  .nav a,
+  .pager-link,
+  .header-actions .btn {
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+  /* Кнопке меню задаём только размер: показывать или прятать — дело медиазапроса. */
+  .nav-toggle {
+    min-width: 44px;
+    min-height: 44px;
+  }
+}
+
+/* Ссылка, скрытая от мыши, но нужная скринридеру, — при фокусе становится видимой.
+   Отдельно от .visually-hidden: та прячет навсегда. */
+.visually-hidden-focusable:not(:focus):not(:focus-within) {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* Шапка на узком экране.
+   Имя вида «Петрова Ольга Ивановна · Преподаватель» переносилось на три строки и
+   выталкивало кнопку выхода за правый край — страница получала горизонтальную
+   прокрутку на всех без исключения экранах. */
+.nav-settings {
+  display: none;
+}
+
+@media (max-width: 620px) {
+  .site-header .container {
+    padding-top: 14px;
+    padding-bottom: 14px;
+    gap: 10px;
+  }
+  .header-actions {
+    gap: 10px;
+  }
+  .header-actions .link-muted {
+    display: none;
+  }
+  .nav-settings {
+    display: inline-flex;
+  }
+  .brand .name {
+    font-size: 18px;
+  }
+}
+
+/* Узкие экраны (от 320px).
+
+   Две причины горизонтальной прокрутки, встречающиеся тут снова и снова:
+
+   1. Ряд из кнопок или фильтров без `flex-wrap` — он не переносится и раздвигает
+      страницу шире окна. Лечится там же, где ряд объявлен (см. flex-wrap выше).
+   2. Элемент грида или флекса с обрезаемым текстом. По умолчанию у него
+      `min-width: auto`, то есть он не может стать уже своего содержимого — и
+      `text-overflow: ellipsis` не срабатывает, вместо многоточия строка распирает
+      колонку. Помогает явный `min-width: 0`. */
+.inbox,
+.inbox-list,
+.inbox-thread,
+.inbox-item,
+.sub-head,
+.plain-list li {
+  min-width: 0;
+}
+.inbox-item-top,
+.inbox-peer {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+@media (max-width: 520px) {
+  .container {
+    padding: 0 14px;
+  }
+  /* Кнопки на всю ширину: на такой ширине два элемента в ряд читаются хуже,
+     чем два ряда по одному. */
+  .course-actions .btn,
+  .trainer-actions .btn,
+  .defend-form .btn,
+  .sub-form .btn {
+    flex: 1 1 100%;
+  }
+  .sub-form input[type="text"],
+  .sub-form input[type="number"] {
+    flex: 1 1 100%;
+    width: 100%;
+  }
+  .report-tabs {
+    gap: 14px;
+  }
+  .cert-actions {
+    flex-wrap: wrap;
+  }
+  /* Плитки статистики в один столбец: два числа в ряд на 320px уже не читаются. */
+  .stat-row {
+    grid-template-columns: 1fr;
+  }
 }
 
 /* Печать ведомости.

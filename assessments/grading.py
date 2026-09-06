@@ -37,7 +37,9 @@ def jsonable(rows):
     """Привести значения строк к JSON-совместимым (Decimal/датавремя → строка)."""
     out = []
     for row in rows:
-        out.append([v if v is None or isinstance(v, (int, float, str, bool)) else str(v) for v in row])
+        out.append(
+            [v if v is None or isinstance(v, (int, float, str, bool)) else str(v) for v in row]
+        )
     return out
 
 
@@ -81,7 +83,9 @@ def diagnose(student_cols, student_rows, expected_cols, expected_rows):
         {
             "label": "число строк",
             "ok": count_ok,
-            "detail": f"{n_student}" if count_ok else f"ожидалось {n_expected}, получено {n_student}",
+            "detail": f"{n_student}"
+            if count_ok
+            else f"ожидалось {n_expected}, получено {n_student}",
         },
     ]
 
