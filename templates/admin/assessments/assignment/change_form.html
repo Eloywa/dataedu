@@ -1,23 +1,87 @@
 {% extends "admin/change_form.html" %}
-{% load i18n %}
+{% load i18n static %}
 
 {% comment %}
-Кнопка «Посчитать эталон» рядом со штатными кнопками сохранения: преподавателю не
-нужно уходить в терминал за manage.py compute_expected. Показываем только на странице
-существующего объекта — расчёт идёт по сохранённым setup_sql/expected_sql.
+Расчёт эталона прямо на странице задания — преподавателю не нужно уходить в
+терминал за `manage.py compute_expected`.
+
+Способов два, и они не дублируют друг друга:
+
+* **В браузере** (основной). Заготовка и эталонный запрос выполняются в PGlite —
+  том же движке, в котором работает студент, поэтому эталон не может разойтись с
+  тем, что студент увидит. Считает по содержимому полей формы, то есть работает
+  и до сохранения. Не зависит от того, какая база у самого Django.
+* **На сервере** (запасной). Одноразовая схема в PostgreSQL с откатом. Требует,
+  чтобы Django работал именно на PostgreSQL; в профиле разработки с файловой
+  базой этот путь недоступен и честно об этом сообщает.
 {% endcomment %}
+
 {% block submit_buttons_bottom %}
   {{ block.super }}
+
   {% if original and original.type == "sql" %}
-    <div class="submit-row" style="display: flex; align-items: center; gap: 16px">
-      <a class="button" style="background: #3f7d14"
-         href="{% url 'admin:assessments_assignment_compute_expected' original.pk %}">
-        Посчитать эталон
-      </a>
-      <span class="help" style="margin: 0">
-        Выполнит заготовку и эталонный запрос в одноразовой схеме на сервере и сохранит
-        результат. Сначала сохраните изменения в полях выше.
-      </span>
+    <div class="expected-tool" id="expected-tool"
+         data-save-url="{% url 'admin:assessments_assignment_save_expected' original.pk %}"
+         data-csrf="{{ csrf_token }}">
+      <h2>Эталон</h2>
+      <p class="help">
+        Считается по тому, что сейчас в полях «Заготовка данных» и «Эталонный запрос»,
+        — сохранять перед расчётом не обязательно. Запрос выполняется в браузере, в
+        том же PostgreSQL, что и у студента.
+      </p>
+
+      <p>
+        <button type="button" class="default" id="expected-run">Посчитать эталон</button>
+        <a class="button" href="{% url 'admin:assessments_assignment_compute_expected' original.pk %}">
+          Посчитать на сервере
+        </a>
+      </p>
+
+      <div id="expected-out"></div>
     </div>
+
+    <script type="module" src="{% static 'js/expected.js' %}"></script>
   {% endif %}
+{% endblock %}
+
+{% block extrahead %}
+  {{ block.super }}
+  <style>
+    .expected-tool {
+      margin: 20px 0;
+      padding: 16px 20px;
+      border: 1px solid var(--hairline-color, #ccc);
+      border-radius: 8px;
+      background: var(--darkened-bg, #f8f8f8);
+    }
+    .expected-tool h2 {
+      margin: 0 0 6px;
+      font-size: 15px;
+    }
+    .expected-msg {
+      margin: 12px 0;
+      padding: 10px 14px;
+      border-radius: 6px;
+      background: var(--darkened-bg, #eee);
+    }
+    .expected-msg.ok {
+      background: #e4f4e8;
+      color: #146c2e;
+    }
+    .expected-msg.err {
+      background: #fdeceb;
+      color: #b3261e;
+    }
+    .expected-table {
+      border-collapse: collapse;
+      margin-top: 8px;
+      font-size: 13px;
+    }
+    .expected-table th,
+    .expected-table td {
+      padding: 5px 12px;
+      border: 1px solid var(--hairline-color, #ddd);
+      text-align: left;
+    }
+  </style>
 {% endblock %}

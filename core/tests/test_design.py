@@ -15,6 +15,7 @@ from django.test import SimpleTestCase
 
 CSS = Path(settings.BASE_DIR) / "static" / "css" / "app.css"
 TEMPLATES = Path(settings.BASE_DIR) / "templates"
+SCRIPTS = Path(settings.BASE_DIR) / "static" / "js"
 
 VAR_USE = re.compile(r"var\(\s*(--[\w-]+)")
 VAR_DECL = re.compile(r"^\s*(--[\w-]+)\s*:", re.M)
@@ -24,9 +25,39 @@ def declared_tokens():
     return set(VAR_DECL.findall(CSS.read_text(encoding="utf-8")))
 
 
+def site_templates():
+    """Шаблоны самой платформы — без админки.
+
+    Админка оформлена Django и Jazzmin: у неё своя система стилей и свои
+    переменные (`--darkened-bg`, `--hairline-color`). Требовать, чтобы они были
+    объявлены в нашей таблице, — значит проверять чужой дизайн.
+    """
+    for path in TEMPLATES.rglob("*.html"):
+        if "admin" not in path.parts:
+            yield path
+
+
 def files_using_tokens():
     yield CSS
-    yield from TEMPLATES.rglob("*.html")
+    yield from site_templates()
+
+
+def site_scripts():
+    """Скрипты, подключённые со страниц платформы.
+
+    Скрипт, который используется только в админке, оформляется её средствами, и
+    искать его классы в `app.css` бессмысленно. Список собирается из разметки, а
+    не ведётся руками: иначе он разойдётся с действительностью при первом же
+    новом файле.
+    """
+    referenced = set()
+    for path in site_templates():
+        text = path.read_text(encoding="utf-8")
+        for name in re.findall(r"js/([\w.-]+\.js)", text):
+            referenced.add(name)
+    for script in SCRIPTS.glob("*.js"):
+        if script.name in referenced:
+            yield script
 
 
 class TokenTests(SimpleTestCase):
@@ -56,9 +87,7 @@ class TokenTests(SimpleTestCase):
         # одинаковы в обеих и переопределять их не нужно — список ведётся здесь,
         # чтобы новый нецветовой токен пришлось внести осознанно.
         skip = ("--radius", "--font", "--header", "--chevron")
-        light_colours = {
-            t for t in VAR_DECL.findall(light.group(1)) if not t.startswith(skip)
-        }
+        light_colours = {t for t in VAR_DECL.findall(light.group(1)) if not t.startswith(skip)}
         dark_colours = set(VAR_DECL.findall(dark.group(1)))
         self.assertEqual(
             light_colours - dark_colours, set(), "в тёмной теме не переопределены токены"
@@ -86,6 +115,29 @@ class TokenTests(SimpleTestCase):
         )
 
 
+class RuntimeClassTests(SimpleTestCase):
+    """Классы, которые скрипты создают во время работы, тоже должны быть в стилях.
+
+    Их не видно при просмотре шаблонов: разметку результата запроса, ошибки и
+    вердикта автопроверки собирает JavaScript. Именно поэтому при переписывании
+    таблицы стилей одиннадцать классов тренажёра остались без правил — вывод
+    рисовался голой таблицей, и заметить это можно было только выполнив запрос.
+    """
+
+    CLASS_ATTR = re.compile(r'class="([a-z][a-z0-9 _-]*)"')
+
+    def test_classes_from_scripts_are_styled(self):
+        css = CSS.read_text(encoding="utf-8")
+        missing = {}
+        for script in site_scripts():
+            text = script.read_text(encoding="utf-8")
+            for group in self.CLASS_ATTR.findall(text):
+                for name in group.split():
+                    if f".{name}" not in css:
+                        missing.setdefault(name, []).append(script.name)
+        self.assertEqual(missing, {}, f"классы без стилей: {missing}")
+
+
 class StylesheetTests(SimpleTestCase):
     def test_old_stylesheet_is_gone(self):
         self.assertFalse(
@@ -94,7 +146,7 @@ class StylesheetTests(SimpleTestCase):
         )
 
     def test_templates_reference_only_the_current_stylesheet(self):
-        for path in TEMPLATES.rglob("*.html"):
+        for path in site_templates():
             text = path.read_text(encoding="utf-8")
             self.assertNotIn("terminal.css", text, f"{path.name} ссылается на старые стили")
 

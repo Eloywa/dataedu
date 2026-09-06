@@ -443,19 +443,13 @@ summary:focus-visible,
 .brand:hover {
   text-decoration: none;
 }
-/* Значок вместо прежнего «~/»: тот читался как приглашение командной строки. */
+/* Значок платформы. Раньше здесь была буква в синем квадрате — заглушка на время,
+   пока не было настоящего знака. */
 .brand .sigil {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-  border-radius: 7px;
-  background: var(--accent);
-  color: var(--on-accent);
-  font-family: var(--font-display);
-  font-size: 15px;
-  font-weight: 700;
+  display: block;
+  width: 30px;
+  height: 30px;
+  flex: none;
 }
 /* Логотип остаётся гротеском: короткое слово в антикве рядом с квадратным
    значком читается как заголовок статьи, а не как марка. */
@@ -1881,6 +1875,136 @@ select {
 .trainer-output th {
   color: var(--muted);
   font-weight: 600;
+}
+
+/* Вывод тренажёра и вердикт автопроверки.
+   Эти классы создаёт JavaScript во время работы, поэтому при переписывании стилей
+   они не попали в инвентарь классов, собранный по шаблонам, — таблица результата,
+   ошибка и разбор проверки остались без оформления. Тест ниже сторожит этот случай:
+   он сверяет классы из скриптов с объявленными в стилях. */
+
+.trainer-table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+}
+.trainer-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--font-mono);
+  font-size: 13.5px;
+}
+.trainer-table th {
+  padding: 9px 14px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface-2);
+  color: var(--muted);
+  font-weight: 600;
+  text-align: left;
+  white-space: nowrap;
+}
+.trainer-table td {
+  padding: 8px 14px;
+  border-bottom: 1px solid var(--hairline);
+  white-space: nowrap;
+}
+.trainer-table tbody tr:last-child td {
+  border-bottom: none;
+}
+.trainer-table tbody tr:hover {
+  background: var(--surface-2);
+}
+
+.trainer-note {
+  margin-top: 10px;
+  color: var(--muted);
+  font-size: 13px;
+}
+.trainer-error {
+  padding: 12px 14px;
+  border: 1px solid var(--danger);
+  border-left-width: 3px;
+  border-radius: var(--radius-sm);
+  background: var(--danger-soft);
+  color: var(--danger);
+  font-family: var(--font-mono);
+  font-size: 13.5px;
+  line-height: 1.55;
+  white-space: pre-wrap;
+}
+.trainer-status.ok {
+  color: var(--success);
+}
+.trainer-status.err {
+  color: var(--danger);
+}
+
+/* Вердикт автопроверки */
+.verdict {
+  display: inline-flex;
+  align-items: center;
+  padding: 7px 16px;
+  border-radius: 999px;
+  font-size: 15px;
+  font-weight: 600;
+}
+.verdict.ok {
+  background: var(--success-soft);
+  color: var(--success);
+}
+.verdict.fail {
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+
+/* Разбор: три проверки — столбцы, число строк, состав строк. */
+.diag-list {
+  margin: 14px 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: 14px;
+}
+.diag-list li {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 7px 0;
+  border-bottom: 1px solid var(--hairline);
+}
+.diag-list li:last-child {
+  border-bottom: none;
+}
+.diag-mark {
+  flex: none;
+  width: 1.2em;
+  font-weight: 700;
+}
+.diag-ok .diag-mark {
+  color: var(--success);
+}
+.diag-fail .diag-mark {
+  color: var(--danger);
+}
+.diag-label {
+  flex: none;
+  min-width: 9em;
+  color: var(--text);
+}
+.diag-detail {
+  color: var(--muted);
+  font-family: var(--font-mono);
+  font-size: 13px;
+}
+.diag-hint {
+  margin-top: 12px;
+  padding: 12px 14px;
+  border-left: 3px solid var(--accent);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  background: var(--accent-soft);
+  color: var(--text);
+  font-size: 14px;
+  line-height: 1.55;
 }
 
 /* Список заданий */

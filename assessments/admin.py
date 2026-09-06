@@ -1,8 +1,12 @@
+import json
+
 from django.contrib import admin, messages
-from django.http import Http404
+from django.http import Http404, JsonResponse
 from django.shortcuts import redirect
 from django.urls import path, reverse
+from django.utils.decorators import method_decorator
 from django.utils.html import format_html, format_html_join
+from django.views.decorators.http import require_POST
 
 from core.admin_utils import OwnedAdmin
 
@@ -186,8 +190,51 @@ class AssignmentAdmin(OwnedAdmin):
                 self.admin_site.admin_view(self.compute_expected_view),
                 name="assessments_assignment_compute_expected",
             ),
+            path(
+                "<uuid:object_id>/save-expected/",
+                self.admin_site.admin_view(self.save_expected_view),
+                name="assessments_assignment_save_expected",
+            ),
             *super().get_urls(),
         ]
+
+    @method_decorator(require_POST)
+    def save_expected_view(self, request, object_id):
+        """Принять эталон, посчитанный в браузере преподавателя (static/js/expected.js).
+
+        Доверие здесь то же, что и у остальной админки: эталон задаёт преподаватель,
+        и он же его считает. Проверяется только право менять именно это задание —
+        `get_object` учитывает изоляцию авторства, поэтому чужому заданию эталон
+        подставить нельзя.
+
+        Форма результата проверяется явно: сюда приходит JSON, а не форма Django,
+        и на кривой вход нужно ответить понятной ошибкой, а не пятисоткой.
+        """
+        obj = self.get_object(request, object_id)
+        if obj is None or not self.has_change_permission(request, obj):
+            raise Http404
+
+        try:
+            payload = json.loads(request.body)
+            columns = payload["columns"]
+            rows = payload["rows"]
+        except (ValueError, TypeError, KeyError):
+            return JsonResponse({"ok": False, "error": "Некорректные данные."}, status=400)
+
+        if not isinstance(columns, list) or not isinstance(rows, list):
+            return JsonResponse({"ok": False, "error": "Ожидались списки."}, status=400)
+        if not columns:
+            return JsonResponse(
+                {"ok": False, "error": "Эталон без столбцов — нужен SELECT."}, status=400
+            )
+        if any(not isinstance(r, list) or len(r) != len(columns) for r in rows):
+            return JsonResponse(
+                {"ok": False, "error": "Строки не совпадают по числу столбцов."}, status=400
+            )
+
+        obj.expected_result = {"columns": columns, "rows": rows}
+        obj.save(update_fields=["expected_result"])
+        return JsonResponse({"ok": True, "summary": rows_cols_summary(len(rows), len(columns))})
 
     def compute_expected_view(self, request, object_id):
         obj = self.get_object(request, object_id)

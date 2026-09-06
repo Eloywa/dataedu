@@ -22,6 +22,17 @@ from .grading import jsonable
 
 def _conn_params():
     db = settings.DATABASES["default"]
+    # Серверный расчёт исполняет SQL в PostgreSQL. Если Django работает на другой
+    # базе (в профиле разработки это SQLite), подключаться некуда — и падать
+    # ошибкой сокета неправильно: человек решит, что не запущен сервер БД, хотя
+    # его тут и не должно быть.
+    if "postgresql" not in db.get("ENGINE", ""):
+        raise ExpectedError(
+            "Серверный расчёт работает только на PostgreSQL, а Django сейчас "
+            "подключён к другой базе. Посчитайте эталон кнопкой в браузере — она "
+            "выполняет запрос в том же движке, что и студент, и от базы Django "
+            "не зависит."
+        )
     return dict(
         host=db["HOST"],
         port=db["PORT"],

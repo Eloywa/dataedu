@@ -25,6 +25,8 @@
       })();
     </script>
 
+    <link rel="icon" href="{% static 'img/logo.png' %}" type="image/png" />
+    <link rel="apple-touch-icon" href="{% static 'img/logo.png' %}" />
     <link rel="stylesheet" href="{% static 'vendor/fonts/fonts.css' %}" />
     <link rel="stylesheet" href="{% static 'css/app.css' %}" />
   </head>
@@ -40,7 +42,13 @@
       <div class="container">
         <div class="header-left">
           <a class="brand" href="{% url 'core:home' %}">
-            <span class="sigil" aria-hidden="true">D</span><span class="name">DataEdu</span>
+            {% comment %}
+            Значок — картинка, а не буква в квадрате. `alt` пустой намеренно:
+            рядом стоит слово «DataEdu», и озвучивать значок отдельно означало бы
+            прочитать название дважды.
+            {% endcomment %}
+            <img class="sigil" src="{% static 'img/logo.png' %}" alt="" width="30" height="30" />
+            <span class="name">DataEdu</span>
           </a>
 
           {% comment %}
