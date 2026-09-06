@@ -52,8 +52,10 @@ class TokenTests(SimpleTestCase):
         self.assertIsNotNone(light, "не найден блок :root")
         self.assertIsNotNone(dark, "не найден блок тёмной темы")
 
-        # Цвета — всё, кроме размеров, шрифтов и радиусов: их тема не меняет.
-        skip = ("--radius", "--font", "--header")
+        # От темы зависит только цвет. Размеры, шрифты, радиусы и векторные формы
+        # одинаковы в обеих и переопределять их не нужно — список ведётся здесь,
+        # чтобы новый нецветовой токен пришлось внести осознанно.
+        skip = ("--radius", "--font", "--header", "--chevron")
         light_colours = {
             t for t in VAR_DECL.findall(light.group(1)) if not t.startswith(skip)
         }

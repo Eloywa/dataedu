@@ -68,6 +68,10 @@
   --font-mono: "IBM Plex Mono", ui-monospace, "SF Mono", Consolas, monospace;
 
   --header-h: 64px;
+
+  /* Стрелка выпадающего списка. Внутри чёрная — цвет задаётся отдельно, потому
+     что фигура используется маской. */
+  --chevron: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23000' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 6l4 4 4-4'/%3E%3C/svg%3E");
 }
 
 /* Тёмная тема — нейтральная, а не «терминальная»: те же роли цветов, другой
@@ -162,8 +166,19 @@ body {
   padding: 0;
 }
 
+/* Подвал прижат к низу окна на коротких страницах — лендинге, «сертификат пока
+   недоступен», «учётная запись удалена». Без этого он всплывал сразу под текстом,
+   а под ним оставалась полоса пустого фона: страница выглядела оборванной.
+
+   Колонка на всю высоту плюс растянутая середина — вместо `position: fixed`:
+   прибитый подвал перекрывал бы содержимое на длинных страницах. */
 body {
+  display: flex;
+  flex-direction: column;
   min-height: 100vh;
+  /* На телефонах адресная строка съедает часть 100vh, и подвал уезжает под сгиб.
+     `dvh` учитывает её; строка ниже для браузеров, которые единицу не знают. */
+  min-height: 100dvh;
   background: var(--bg);
   color: var(--text);
   font-family: var(--font-sans);
@@ -171,6 +186,13 @@ body {
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
+}
+
+/* Середина забирает всё свободное место. `min-height: 0` нужен, чтобы длинные
+   страницы могли сжиматься: у элемента флекса по умолчанию он `auto`. */
+#content {
+  flex: 1 0 auto;
+  min-height: 0;
 }
 
 h1,
@@ -758,6 +780,160 @@ textarea:focus-visible {
   gap: 12px;
   align-items: center;
   margin-top: 20px;
+}
+
+/* --- Выпадающие списки ---------------------------------------------------- */
+/*
+   Раскрытый список нативного `<select>` рисует не браузер, а операционная
+   система: CSS до него не достаёт, и поэтому меню оставалось системным — синяя
+   подсветка, системный шрифт, прямые углы — посреди оформленной страницы.
+
+   Обойти это можно двумя способами. Написать свой компонент на JS — и вместе с
+   ним взять на себя всё, что нативный `<select>` делает бесплатно: обход
+   стрелками, Home/End, поиск по первым буквам, объявление скринридером,
+   родной барабан выбора на телефоне. Либо воспользоваться `appearance:
+   base-select`: браузер отдаёт разметку меню под стили, оставляя себе всё
+   поведение.
+
+   Выбран второй путь. Там, где он не поддерживается, список остаётся системным —
+   некрасиво, но полностью работоспособно; ухудшение постепенное, а не поломка.
+*/
+
+/* Закрытое поле оформляется везде: системную стрелку убираем, свою рисуем фоном.
+   Две картинки вместо одной — потому что в data-URI нельзя подставить переменную
+   темы, а стрелка обязана менять цвет вместе с текстом. */
+select {
+  appearance: none;
+  padding-right: 38px;
+  background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%235a6675' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 6l4 4 4-4'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 16px;
+  cursor: pointer;
+}
+[data-theme="dark"] select {
+  background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%239aa5b4' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 6l4 4 4-4'/%3E%3C/svg%3E");
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) select {
+    background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%239aa5b4' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 6l4 4 4-4'/%3E%3C/svg%3E");
+  }
+}
+
+/* Дальше — только для движков, которые отдают меню под стили. */
+@supports (appearance: base-select) {
+  select,
+  ::picker(select) {
+    appearance: base-select;
+  }
+
+  /* В этом режиме поле рисуется заново, поэтому вид задаём целиком.
+     Фоновая стрелка больше не нужна — есть настоящий элемент ::picker-icon,
+     который умеет наследовать цвет и поворачиваться при раскрытии. */
+  select {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 10px 12px;
+    background-image: none;
+    text-align: left;
+  }
+  /* Своя стрелка вместо системного треугольника. Рисуется маской, а не картинкой:
+     маска использует только альфа-канал, поэтому цвет берётся из `background-color`
+     и следует за темой — иначе пришлось бы держать по картинке на каждую тему,
+     как в запасном варианте выше. */
+  select::picker-icon {
+    content: "";
+    flex: none;
+    width: 16px;
+    height: 16px;
+    background-color: var(--muted);
+    mask: var(--chevron) center / 16px 16px no-repeat;
+    -webkit-mask: var(--chevron) center / 16px 16px no-repeat;
+    transition: transform 0.15s;
+  }
+  select:open::picker-icon {
+    transform: rotate(180deg);
+  }
+  select:open {
+    border-color: var(--accent);
+  }
+
+  /* Само меню. `position-area` привязывает его к полю снизу; без этого браузер
+     ставит меню поверх поля, накрывая выбранное значение. */
+  ::picker(select) {
+    position-area: bottom span-right;
+    margin-top: 6px;
+    max-height: 320px;
+    padding: 6px;
+    overflow-y: auto;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--surface);
+    box-shadow: var(--shadow-2);
+    /* Появление снизу вверх — короткое, чтобы не мешать быстрым кликам. */
+    opacity: 0;
+    translate: 0 -4px;
+    transition:
+      opacity 0.12s,
+      translate 0.12s,
+      overlay 0.12s allow-discrete,
+      display 0.12s allow-discrete;
+  }
+  ::picker(select):popover-open {
+    opacity: 1;
+    translate: 0 0;
+  }
+  @starting-style {
+    ::picker(select):popover-open {
+      opacity: 0;
+      translate: 0 -4px;
+    }
+  }
+
+  option {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 10px;
+    border-radius: var(--radius-sm);
+    background: transparent;
+    color: var(--text);
+    font-size: 14.5px;
+    cursor: pointer;
+  }
+  option:hover,
+  option:focus {
+    background: var(--surface-2);
+    outline: none;
+  }
+  option:checked {
+    background: var(--accent-soft);
+    color: var(--accent);
+    font-weight: 600;
+  }
+  /* Галочка у выбранного пункта: браузер добавляет её сам, но по умолчанию она
+     занимает место у всех пунктов и сдвигает текст. Прячем у невыбранных. */
+  option::checkmark {
+    order: 1;
+    margin-left: auto;
+    color: var(--accent);
+  }
+  option:not(:checked)::checkmark {
+    display: none;
+  }
+
+  /* Список тем в каталоге длиннее остальных — у него появляется прокрутка,
+     и она должна выглядеть частью меню, а не системной полосой. */
+  ::picker(select)::-webkit-scrollbar {
+    width: 10px;
+  }
+  ::picker(select)::-webkit-scrollbar-thumb {
+    border: 3px solid var(--surface);
+    border-radius: 999px;
+    background: var(--surface-3);
+  }
 }
 
 /* Плашки состояния */
