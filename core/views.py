@@ -4,7 +4,8 @@ from django.shortcuts import render
 from django.views.decorators.http import require_POST
 
 from accounts import legal
-from courses.models import Lesson
+from assessments.models import Test
+from courses.models import Course, Lesson
 from gamification import services
 from learning import reports
 from learning.models import Enrollment, LessonProgress
@@ -13,7 +14,20 @@ from learning.models import Enrollment, LessonProgress
 def home(request):
     user = request.user
     if not user.is_authenticated:
-        return render(request, "core/home.html")
+        # Цифры на лендинге берутся из базы, а не вписываются в шаблон руками:
+        # прежние «9 недель · 18 уроков» разошлись с содержимым и обещали меньше,
+        # чем платформа на самом деле даёт.
+        return render(
+            request,
+            "core/home.html",
+            {
+                "course_count": Course.objects.filter(is_published=True).count(),
+                "lesson_count": Lesson.objects.filter(module__course__is_published=True).count(),
+                "test_count": Test.objects.filter(
+                    lesson__module__course__is_published=True
+                ).count(),
+            },
+        )
 
     if user.is_teacher:
         # Число непроверенных работ — единственная цифра, ради которой стоит идти

@@ -9,7 +9,7 @@
   <div class="course-meta">
     <span class="badge badge-{{ assignment.level|level_tone }}">{{ assignment.level|level_label }}</span>
     {% if solved %}<span class="badge badge-success">решено</span>{% endif %}
-    <span class="mono" style="color: var(--muted)">{{ assignment.course.title }}</span>
+    <span style="color: var(--muted)">{{ assignment.course.title }}</span>
   </div>
   {% if assignment.description %}<p class="page-sub" style="margin-top: 12px">{{ assignment.description }}</p>{% endif %}
 
@@ -19,7 +19,7 @@
       class="trainer"
       data-check-url="{% url 'assessments:check' assignment.id %}"
       data-csrf="{{ csrf_token }}"
-    >
+>
       <label class="visually-hidden" for="sql">Ваш SQL-запрос</label>
       <textarea id="sql" class="trainer-input mono" rows="6" spellcheck="false"
                 placeholder="Ваш SQL-запрос…"></textarea>

@@ -6,7 +6,7 @@
 многострочный комментарий выводится на страницу как текст.
 {% endcomment %}
 <div class="report-bar no-print">
-  <div class="report-tabs mono">
+  <div class="report-tabs">
     <a href="{% url 'teaching:dashboard' %}{% if selected %}?course={{ selected.slug }}{% endif %}"
        class="{% if active == 'dashboard' %}is-active{% endif %}">зоны риска</a>
     <a href="{% url 'teaching:analytics' %}{% if selected %}?course={{ selected.slug }}{% endif %}"
@@ -23,7 +23,7 @@
 
   {% if courses %}
   <form method="get" class="report-filter">
-    <label for="course" class="mono">курс</label>
+    <label for="course">курс</label>
     <select id="course" name="course" onchange="this.form.submit()">
       <option value="">{% if active == 'report' %}не выбран{% else %}все курсы{% endif %}</option>
       {% for c in courses %}
@@ -38,7 +38,7 @@
     На остальных отчётах группа смысла не имеет — там смотрят на курс целиком.
     {% endcomment %}
     {% if groups %}
-      <label for="group" class="mono">группа</label>
+      <label for="group">группа</label>
       <select id="group" name="group" onchange="this.form.submit()">
         <option value="">все записанные</option>
         {% for g in groups %}

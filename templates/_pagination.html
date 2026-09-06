@@ -14,7 +14,7 @@
       <span class="pager-link is-off">← назад</span>
     {% endif %}
 
-    <span class="pager-state mono">{{ page.number }} / {{ page.paginator.num_pages }}</span>
+    <span class="pager-state">{{ page.number }} / {{ page.paginator.num_pages }}</span>
 
     {% if page.has_next %}
       <a class="pager-link" href="{% querystring page=page.next_page_number %}" rel="next">вперёд →</a>

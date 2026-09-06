@@ -6,7 +6,13 @@
   <a href="{% url 'courses:course_detail' course.slug %}" class="back-link">← {{ course.title }}</a>
 
   <div class="locked-card">
-    <div class="locked-icon" aria-hidden="true">⌗</div>
+    <div class="locked-icon" aria-hidden="true">
+      <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor"
+           stroke-width="1.8" stroke-linecap="round">
+        <rect x="5" y="11" width="14" height="9" rx="2" />
+        <path d="M8 11V7a4 4 0 0 1 8 0v4" />
+      </svg>
+    </div>
     <h1 class="section-h" style="margin-top: 10px">Урок пока закрыт</h1>
     <p class="page-sub">
       Он откроется после завершения

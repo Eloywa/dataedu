@@ -101,7 +101,7 @@ gunicorn config.wsgi:application --workers 4
 
 ```bash
 python manage.py check           # системные проверки
-python manage.py test            # 343 теста
+python manage.py test            # 349 тестов
 ruff check .                     # разбор кода
 ruff format --check .            # форматирование
 ```

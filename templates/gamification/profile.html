@@ -11,10 +11,10 @@
       <section class="level-card">
         <div class="level-top">
           <div>
-            <div class="mono small-label">уровень</div>
-            <div class="level-num accent-ink">{{ progress.level }}<span class="level-max mono">/{{ max_level }}</span></div>
+            <div class="small-label">уровень</div>
+            <div class="level-num accent-ink">{{ progress.level }}<span class="level-max">/{{ max_level }}</span></div>
           </div>
-          <div class="level-xp mono">{{ progress.xp }} XP</div>
+          <div class="level-xp">{{ progress.xp }} XP</div>
         </div>
         <div class="progress-bar"><span style="width: {{ progress.pct }}%"></span></div>
         <div class="progress-label">
@@ -26,35 +26,35 @@
       <section class="stat-row">
         <div class="stat-tile">
           <div class="stat-num">{{ stats.lessons }}</div>
-          <div class="stat-cap mono">уроков пройдено</div>
+          <div class="stat-cap">уроков пройдено</div>
         </div>
         <div class="stat-tile">
           <div class="stat-num">{{ stats.tests }}</div>
-          <div class="stat-cap mono">тестов сдано</div>
+          <div class="stat-cap">тестов сдано</div>
         </div>
         <div class="stat-tile">
           <div class="stat-num">{{ stats.assignments }}</div>
-          <div class="stat-cap mono">заданий решено</div>
+          <div class="stat-cap">заданий решено</div>
         </div>
         <div class="stat-tile">
           <div class="stat-num">{{ stats.queries }}</div>
-          <div class="stat-cap mono">запросов в тренажёре</div>
+          <div class="stat-cap">запросов в тренажёре</div>
         </div>
       </section>
 
       <section>
-        <h2 class="section-h">Достижения <span class="mono ach-count">{{ earned_count }}/{{ achievements|length }}</span></h2>
+        <h2 class="section-h">Достижения <span class="ach-count">{{ earned_count }}/{{ achievements|length }}</span></h2>
         <div class="ach-grid">
           {% for a in achievements %}
             <div class="ach-tile {% if a.earned %}earned{% endif %}">
               <div class="ach-icon" aria-hidden="true">{{ a.glyph }}</div>
               <div class="ach-title">{{ a.title }}</div>
               {% if a.description %}<div class="ach-desc">{{ a.description }}</div>{% endif %}
-              <div class="ach-xp mono">+{{ a.xp_reward }} XP</div>
+              <div class="ach-xp">+{{ a.xp_reward }} XP</div>
               {% if a.earned %}
-                <div class="ach-date mono">{{ a.awarded_at|date:"j M Y" }}</div>
+                <div class="ach-date">{{ a.awarded_at|date:"j M Y" }}</div>
               {% else %}
-                <div class="ach-date mono">закрыто</div>
+                <div class="ach-date">закрыто</div>
               {% endif %}
             </div>
           {% endfor %}
@@ -64,10 +64,10 @@
 
     <aside class="course-side">
       <div class="side-card">
-        <h3 class="side-title mono"># лента активности</h3>
+        <h3 class="side-title">Лента активности</h3>
         {% for group in activity %}
           <div class="feed-day">
-            <div class="feed-date mono">{{ group.day }}</div>
+            <div class="feed-date">{{ group.day }}</div>
             <ul class="feed-list">
               {% for item in group.items %}
                 <li class="feed-item">

@@ -8,15 +8,15 @@
 
   <div class="lesson-layout">
     <article class="lesson-main">
-      <div class="lesson-eyebrow mono">{{ lesson.module.title }}</div>
+      <div class="lesson-eyebrow">{{ lesson.module.title }}</div>
       <h1 class="page-title accent-ink">{{ lesson.title }}</h1>
-      {% if lesson.est_minutes %}<div class="lesson-time-top mono">Примерное время: {{ lesson.est_minutes }} мин</div>{% endif %}
+      {% if lesson.est_minutes %}<div class="lesson-time-top">Примерное время: {{ lesson.est_minutes }} мин</div>{% endif %}
 
       <div class="prose">{{ lesson.theory_content|md_to_html }}</div>
 
       {% if test %}
         <div class="lesson-test-block">
-          <div class="mono small-label">тест</div>
+          <div class="small-label">тест</div>
           <h2 class="section-h" style="margin-top: 4px">{{ test.title }}</h2>
           {% if best_attempt %}
             <p class="page-sub" style="margin-bottom: 14px">
@@ -35,7 +35,7 @@
 
       {% if user.is_authenticated and not user.is_teacher %}
         <div class="lesson-reflection-block" id="reflection">
-          <div class="mono small-label">рефлексия</div>
+          <div class="small-label">рефлексия</div>
           <h2 class="section-h" style="margin-top: 4px">Как прошёл урок?</h2>
           <p class="page-sub" style="margin-bottom: 18px">
             Две оценки и, если захочется, пара слов. Это помогает понять, какие темы
@@ -57,7 +57,7 @@
             {% csrf_token %}
 
             <fieldset class="rating-group">
-              <legend class="mono small-label">насколько понятно — 1 запутанно, 5 предельно ясно</legend>
+              <legend class="small-label">насколько понятно — 1 запутанно, 5 предельно ясно</legend>
               <div class="rating-scale">
                 {% for n in rating_scale %}
                   <label class="rating-option">
@@ -70,7 +70,7 @@
             </fieldset>
 
             <fieldset class="rating-group">
-              <legend class="mono small-label">насколько трудно — 1 легко, 5 очень трудно</legend>
+              <legend class="small-label">насколько трудно — 1 легко, 5 очень трудно</legend>
               <div class="rating-scale">
                 {% for n in rating_scale %}
                   <label class="rating-option">
@@ -131,12 +131,12 @@
 
     <aside class="course-side">
       <div class="side-card">
-        <h3 class="side-title mono"># литература</h3>
+        <h3 class="side-title">Литература</h3>
         <ul class="resource-list">
           {% for res in resources %}
             <li>
               <a href="{{ res.url }}" target="_blank" rel="noopener noreferrer" class="resource-link">{{ res.title }}</a>
-              <span class="resource-kind mono">{{ res.kind }}</span>
+              <span class="resource-kind">{{ res.kind }}</span>
             </li>
           {% endfor %}
         </ul>

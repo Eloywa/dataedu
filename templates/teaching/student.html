@@ -7,7 +7,7 @@
 
   <h1 class="page-title accent-ink">{{ person.label }}</h1>
   <p class="page-sub">
-    <span class="mono">{{ person.username }}</span>
+    <span>{{ person.username }}</span>
     {% if person.role %} · {{ person.role.name }}{% endif %}
     · уровень {{ level.level }} · {{ person.xp }} XP
     · достижений {{ earned_count }} из {{ achievements|length }}
@@ -25,7 +25,7 @@
             <tr>
               <td><a href="{% url 'courses:course_detail' e.course.slug %}">{{ e.course.title }}</a></td>
               <td>{{ e.pct }}%</td>
-              <td class="mono">{{ e.done }} / {{ e.total }}</td>
+              <td>{{ e.done }} / {{ e.total }}</td>
             </tr>
           {% endfor %}
         </tbody>
@@ -89,7 +89,7 @@
       {% for r in card.reflections %}
         <li>
           <div>
-            <span class="mono">{{ r.lesson.title }}</span> —
+            <span>{{ r.lesson.title }}</span> —
             понятность {{ r.clarity_rating|default:"—" }}/5,
             трудность {{ r.difficulty_rating|default:"—" }}/5
           </div>

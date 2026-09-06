@@ -14,19 +14,19 @@
   <div class="stat-row">
     <div class="stat-tile">
       <div class="stat-num">{{ summary.total }}</div>
-      <div class="stat-cap mono">записей на курсы</div>
+      <div class="stat-cap">записей на курсы</div>
     </div>
     <div class="stat-tile">
       <div class="stat-num" style="color: var(--danger)">{{ summary.high }}</div>
-      <div class="stat-cap mono">высокий риск</div>
+      <div class="stat-cap">высокий риск</div>
     </div>
     <div class="stat-tile">
-      <div class="stat-num" style="color: var(--secondary)">{{ summary.medium }}</div>
-      <div class="stat-cap mono">средний риск</div>
+      <div class="stat-num" style="color: var(--warning)">{{ summary.medium }}</div>
+      <div class="stat-cap">средний риск</div>
     </div>
     <div class="stat-tile">
       <div class="stat-num">{{ summary.avg_completion }}%</div>
-      <div class="stat-cap mono">средний прогресс</div>
+      <div class="stat-cap">средний прогресс</div>
     </div>
   </div>
 
@@ -53,13 +53,13 @@
           {% for r in rows %}
             <tr>
               <td>
-                <a class="mono" href="{% url 'teaching:student' r.user.pk %}">{{ r.user.username }}</a>
+                <a href="{% url 'teaching:student' r.user.pk %}">{{ r.user.username }}</a>
                 {% if r.user.display_name %}<div class="cell-sub">{{ r.user.display_name }}</div>{% endif %}
               </td>
               <td class="cell-sub">{{ r.course.title }}</td>
               <td>
                 {{ r.completion }}%
-                <div class="cell-sub mono">{{ r.lessons_done }} / {{ r.lessons_total }}</div>
+                <div class="cell-sub">{{ r.lessons_done }} / {{ r.lessons_total }}</div>
               </td>
               <td>{% if r.avg_score is None %}<span class="cell-sub">нет попыток</span>{% else %}{{ r.avg_score }}{% endif %}</td>
               <td>
@@ -95,7 +95,7 @@
         <tbody>
           {% for s in manual_queue %}
             <tr>
-              <td><a class="mono" href="{% url 'teaching:student' s.user.pk %}">{{ s.user.username }}</a></td>
+              <td><a href="{% url 'teaching:student' s.user.pk %}">{{ s.user.username }}</a></td>
               <td><a href="{% url 'teaching:submissions' %}#s-{{ s.pk }}">{{ s.assignment.title }}</a></td>
               <td class="cell-sub">{{ s.submitted_at|date:"d.m.Y H:i" }}</td>
             </tr>

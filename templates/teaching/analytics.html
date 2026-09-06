@@ -31,15 +31,15 @@
   <div class="stat-row">
     <div class="stat-tile">
       <div class="stat-num" style="color: var(--danger)">{{ div_summary.underestimate }}</div>
-      <div class="stat-cap mono">недооценивают трудность</div>
+      <div class="stat-cap">недооценивают трудность</div>
     </div>
     <div class="stat-tile">
-      <div class="stat-num" style="color: var(--secondary)">{{ div_summary.overestimate }}</div>
-      <div class="stat-cap mono">переоценивают трудность</div>
+      <div class="stat-num" style="color: var(--warning)">{{ div_summary.overestimate }}</div>
+      <div class="stat-cap">переоценивают трудность</div>
     </div>
     <div class="stat-tile">
       <div class="stat-num" style="color: var(--accent)">{{ div_summary.match }}</div>
-      <div class="stat-cap mono">оценка совпадает</div>
+      <div class="stat-cap">оценка совпадает</div>
     </div>
   </div>
 
@@ -86,7 +86,7 @@
                   <span class="cell-sub">нет данных</span>
                 {% endif %}
               </td>
-              <td class="cell-sub mono">
+              <td class="cell-sub">
                 балл {% if r.avg_score is None %}—{% else %}{{ r.avg_score }}{% endif %} ·
                 попыток {% if r.avg_attempts is None %}—{% else %}{{ r.avg_attempts }}{% endif %} ·
                 неверных {% if r.failed_share is None %}—{% else %}{{ r.failed_share }}%{% endif %}
@@ -145,7 +145,7 @@
               <td>{{ t.responses }}</td>
               <td>
                 <div class="bar-wrap"><div class="bar-fill" style="width: {{ t.pct_correct }}%"></div></div>
-                <span class="mono">{{ t.pct_correct }}%</span>
+                <span>{{ t.pct_correct }}%</span>
               </td>
               <td><span class="badge badge-{{ t.zone.tone }}">{{ t.zone.label }}</span></td>
             </tr>
@@ -196,7 +196,7 @@
       {% for a in activity %}
         <div class="stat-tile">
           <div class="stat-num">{{ a.n }}</div>
-          <div class="stat-cap mono">{{ a.label|lower }}</div>
+          <div class="stat-cap">{{ a.label|lower }}</div>
         </div>
       {% endfor %}
     </div>

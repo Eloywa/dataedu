@@ -5,8 +5,28 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>{% block title %}DataEdu{% endblock %}</title>
+
+    {% comment %}
+    Тема применяется до первой отрисовки — поэтому скрипт встроенный и стоит в
+    <head>, а не подключается файлом. Внешний файл грузится асинхронно, и между
+    отрисовкой светлой страницы и включением тёмной темы человек успевает увидеть
+    вспышку белого. Это единственная причина держать здесь inline-скрипт.
+    {% endcomment %}
+    <script>
+      (function () {
+        try {
+          var saved = localStorage.getItem("dataedu-theme");
+          if (saved === "dark" || saved === "light") {
+            document.documentElement.setAttribute("data-theme", saved);
+          }
+        } catch (e) {
+          /* Приватный режим запрещает хранилище — остаётся системная тема. */
+        }
+      })();
+    </script>
+
     <link rel="stylesheet" href="{% static 'vendor/fonts/fonts.css' %}" />
-    <link rel="stylesheet" href="{% static 'css/terminal.css' %}" />
+    <link rel="stylesheet" href="{% static 'css/app.css' %}" />
   </head>
   <body>
     {% comment %}
@@ -20,7 +40,7 @@
       <div class="container">
         <div class="header-left">
           <a class="brand" href="{% url 'core:home' %}">
-            <span class="sigil">~/</span><span class="name">DataEdu</span>
+            <span class="sigil" aria-hidden="true">D</span><span class="name">DataEdu</span>
           </a>
 
           {% comment %}
@@ -63,15 +83,33 @@
           </nav>
         </div>
         <div class="header-actions">
+          {% comment %}
+          Переключатель темы. Значок показывается тот, в который нажатие переведёт,
+          а подпись для скринридера ставит скрипт — до его загрузки состояние темы
+          в разметке неизвестно.
+          {% endcomment %}
+          <button class="icon-btn" id="theme-toggle" type="button" title="Сменить тему">
+            <span class="visually-hidden">Сменить тему</span>
+            <svg class="icon-light" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                 stroke-width="1.8" stroke-linecap="round" aria-hidden="true">
+              <circle cx="12" cy="12" r="4.2" />
+              <path d="M12 2.6v2.2M12 19.2v2.2M4.2 12H2M22 12h-2.2M6.3 6.3 4.8 4.8M19.2 19.2l-1.5-1.5M17.7 6.3l1.5-1.5M4.8 19.2l1.5-1.5" />
+            </svg>
+            <svg class="icon-dark" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                 stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M20 13.4A8.2 8.2 0 1 1 10.6 4a6.6 6.6 0 0 0 9.4 9.4z" />
+            </svg>
+          </button>
+
           {% if user.is_authenticated %}
-            <a class="link-muted" href="{% url 'accounts:settings' %}">{{ user.label }}{% if user.role %} · {{ user.role.name }}{% endif %}</a>
+            <a class="link-muted" href="{% url 'accounts:settings' %}">{{ user.label }}</a>
             <form method="post" action="{% url 'accounts:logout' %}" style="margin: 0">
               {% csrf_token %}
               <button class="btn btn-ghost" type="submit">Выйти</button>
             </form>
           {% else %}
             <a class="link-muted" href="{% url 'accounts:register' %}">Регистрация</a>
-            <a class="btn btn-ghost" href="{% url 'accounts:login' %}">Войти</a>
+            <a class="btn btn-primary" href="{% url 'accounts:login' %}">Войти</a>
           {% endif %}
         </div>
       </div>
@@ -86,7 +124,7 @@
 
     <footer class="site-footer">
       <div class="container footer-row">
-        <span>// DataEdu — учебная платформа по базам данных</span>
+        <span>DataEdu — учебная платформа по базам данных</span>
         <span class="footer-links">
           <a href="{% url 'core:privacy' %}">Обработка данных</a>
           <a href="{% url 'core:terms' %}">Соглашение</a>
@@ -95,6 +133,7 @@
     </footer>
 
     <script src="{% static 'js/nav.js' %}" defer></script>
+    <script src="{% static 'js/theme.js' %}" defer></script>
     {% if user.is_authenticated %}<script src="{% static 'js/chat.js' %}" defer></script>{% endif %}
   </body>
 </html>

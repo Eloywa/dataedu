@@ -24,9 +24,9 @@
                 <span class="inbox-peer">{{ d.peer.label }}</span>
                 {% if d.unread %}<span class="badge badge-danger">{{ d.unread }}</span>{% endif %}
               </div>
-              <div class="inbox-course mono">{{ d.course.title }}</div>
+              <div class="inbox-course">{{ d.course.title }}</div>
               <div class="inbox-last">{{ d.last_body|truncatechars:60 }}</div>
-              <div class="inbox-at mono">{{ d.last_at|date:"d.m H:i" }}</div>
+              <div class="inbox-at">{{ d.last_at|date:"d.m H:i" }}</div>
             </a>
           </li>
         {% endfor %}
@@ -36,7 +36,7 @@
         {% if active %}
           <header class="inbox-thread-head">
             <div class="inbox-peer">{{ active.peer.label }}</div>
-            <a class="inbox-course mono" href="{% url 'courses:course_detail' active.course.slug %}">
+            <a class="inbox-course" href="{% url 'courses:course_detail' active.course.slug %}">
               {{ active.course.title }}
             </a>
           </header>

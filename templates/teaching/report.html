@@ -74,22 +74,22 @@
             <tbody>
               {% for r in rows %}
                 <tr>
-                  <td class="mono">{{ forloop.counter }}</td>
+                  <td>{{ forloop.counter }}</td>
                   <td>
-                    <span class="mono">{{ r.user.username }}</span>
+                    <span>{{ r.user.username }}</span>
                     {% if r.user.display_name %}<div class="cell-sub">{{ r.user.display_name }}</div>{% endif %}
                   </td>
-                  <td class="mono">{{ r.lessons_done }} / {{ r.lessons_total }}</td>
+                  <td>{{ r.lessons_done }} / {{ r.lessons_total }}</td>
                   <td>
                     {% if r.tests_pct is None %}
                       <span class="cell-sub">нет тестов</span>
                     {% else %}
-                      <span class="mono">{{ r.tests_pct }}%</span>
-                      <div class="cell-sub mono">сдано {{ r.tests_taken }} / {{ r.tests_total }}</div>
+                      <span>{{ r.tests_pct }}%</span>
+                      <div class="cell-sub">сдано {{ r.tests_taken }} / {{ r.tests_total }}</div>
                     {% endif %}
                   </td>
                   <td>
-                    <span class="mono">{{ r.assignments_done }} / {{ r.assignments_total }}</span>
+                    <span>{{ r.assignments_done }} / {{ r.assignments_total }}</span>
                     {% if r.pending %}<div class="cell-sub">на проверке: {{ r.pending }}</div>{% endif %}
                   </td>
                   <td class="meter-val">{% if r.score is None %}—{% else %}{{ r.score }}{% endif %}</td>

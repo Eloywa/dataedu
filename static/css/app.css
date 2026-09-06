@@ -1,0 +1,2736 @@
+/* DataEdu — система стилей.
+ *
+ * Светлый интерфейс образовательной платформы: белый лист, синий акцент, карточки
+ * с мягкой тенью, много воздуха. Прежний «терминальный» вид (чёрный фон, лайм,
+ * моноширинный шрифт в навигации) заменён целиком: он читался как оформление
+ * инструмента для разработчика, а платформой пользуются студенты и преподаватели,
+ * которым важнее спокойный длинный текст, чем стилизация под консоль.
+ *
+ * Моноширинный шрифт остался ровно там, где он несёт смысл: SQL, код в теории,
+ * коды и идентификаторы. Как приём оформления — нигде.
+ *
+ * Порядок разделов:
+ *   1. Токены (светлая и тёмная тема)
+ *   2. База и типографика
+ *   3. Раскладка
+ *   4. Шапка, навигация, подвал
+ *   5. Кнопки, поля, плашки
+ *   6. Главная
+ * Продолжение — во второй половине файла.
+ */
+
+/* ===== 1. Токены ========================================================= */
+
+/* Светлая тема — основная. Все цвета объявлены здесь; тёмная тема ниже
+   переопределяет только значения, не правила. Поэтому новый компонент достаточно
+   написать один раз: он получит обе темы бесплатно, если берёт цвета из токенов. */
+:root {
+  color-scheme: light;
+
+  --bg: #ffffff;
+  --bg-soft: #f5f7fa;
+  --surface: #ffffff;
+  --surface-2: #f2f5f9;
+  --surface-3: #e9eef5;
+
+  --text: #14181f;
+  --text-strong: #0a0d12;
+  --muted: #5a6675;
+  --muted-soft: #8b96a5;
+
+  --accent: #0b57d0;
+  --accent-hover: #0842a0;
+  --accent-soft: #e8f0fe;
+  --accent-line: #b9d0f7;
+  --on-accent: #ffffff;
+
+  --border: #dde3ea;
+  --hairline: #edf1f5;
+
+  --success: #146c2e;
+  --success-soft: #e4f4e8;
+  --warning: #8a5a00;
+  --warning-soft: #fdf1dd;
+  --danger: #b3261e;
+  --danger-soft: #fdeceb;
+
+  --shadow-1: 0 1px 2px rgba(16, 24, 40, 0.05), 0 1px 3px rgba(16, 24, 40, 0.08);
+  --shadow-2: 0 4px 14px rgba(16, 24, 40, 0.1);
+
+  --radius: 10px;
+  --radius-sm: 6px;
+  --radius-lg: 16px;
+
+  --font-sans: "Geist", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-display: "Manrope", "Geist", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SF Mono", Consolas, monospace;
+
+  --header-h: 64px;
+}
+
+/* Тёмная тема — нейтральная, а не «терминальная»: те же роли цветов, другой
+   уровень яркости. Синий акцент осветлён, иначе на тёмном фоне он не набирает
+   нужного контраста с текстом. */
+[data-theme="dark"] {
+  color-scheme: dark;
+
+  --bg: #0f1319;
+  --bg-soft: #141922;
+  --surface: #171d26;
+  --surface-2: #1e2530;
+  --surface-3: #272f3c;
+
+  --text: #e5e9ef;
+  --text-strong: #f5f7fa;
+  --muted: #9aa5b4;
+  --muted-soft: #7b8697;
+
+  --accent: #7ba7ff;
+  --accent-hover: #a4c2ff;
+  --accent-soft: rgba(123, 167, 255, 0.14);
+  --accent-line: rgba(123, 167, 255, 0.35);
+  --on-accent: #0b1220;
+
+  --border: rgba(229, 233, 239, 0.13);
+  --hairline: rgba(229, 233, 239, 0.07);
+
+  --success: #6edc8f;
+  --success-soft: rgba(110, 220, 143, 0.13);
+  --warning: #f0b458;
+  --warning-soft: rgba(240, 180, 88, 0.14);
+  --danger: #ff8a7a;
+  --danger-soft: rgba(255, 138, 122, 0.14);
+
+  /* Тени на тёмном фоне почти не читаются — глубину даёт граница. */
+  --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-2: 0 6px 18px rgba(0, 0, 0, 0.45);
+}
+
+/* Пока человек не выбрал тему руками, слушаем системную настройку. Правило
+   отделено от `[data-theme="dark"]`, чтобы выбор в интерфейсе всегда побеждал
+   системный: `:root:not([data-theme])` перестаёт совпадать, как только атрибут
+   проставлен. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) {
+    color-scheme: dark;
+
+    --bg: #0f1319;
+    --bg-soft: #141922;
+    --surface: #171d26;
+    --surface-2: #1e2530;
+    --surface-3: #272f3c;
+
+    --text: #e5e9ef;
+    --text-strong: #f5f7fa;
+    --muted: #9aa5b4;
+    --muted-soft: #7b8697;
+
+    --accent: #7ba7ff;
+    --accent-hover: #a4c2ff;
+    --accent-soft: rgba(123, 167, 255, 0.14);
+    --accent-line: rgba(123, 167, 255, 0.35);
+    --on-accent: #0b1220;
+
+    --border: rgba(229, 233, 239, 0.13);
+    --hairline: rgba(229, 233, 239, 0.07);
+
+    --success: #6edc8f;
+    --success-soft: rgba(110, 220, 143, 0.13);
+    --warning: #f0b458;
+    --warning-soft: rgba(240, 180, 88, 0.14);
+    --danger: #ff8a7a;
+    --danger-soft: rgba(255, 138, 122, 0.14);
+
+    --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.4);
+    --shadow-2: 0 6px 18px rgba(0, 0, 0, 0.45);
+  }
+}
+
+/* ===== 2. База и типографика ============================================= */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  min-height: 100vh;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5 {
+  margin: 0;
+  font-family: var(--font-display);
+  color: var(--text-strong);
+  font-weight: 700;
+  line-height: 1.25;
+  letter-spacing: -0.015em;
+}
+
+h1 {
+  font-size: 34px;
+}
+h2 {
+  font-size: 24px;
+}
+h3 {
+  font-size: 19px;
+}
+
+p {
+  margin: 0 0 14px;
+}
+
+a {
+  color: var(--accent);
+  text-decoration: none;
+}
+a:hover {
+  color: var(--accent-hover);
+  text-decoration: underline;
+}
+
+code,
+kbd,
+samp,
+pre,
+.mono {
+  font-family: var(--font-mono);
+}
+
+::selection {
+  background: var(--accent-soft);
+  color: var(--text-strong);
+}
+
+hr {
+  height: 1px;
+  margin: 28px 0;
+  border: 0;
+  background: var(--border);
+}
+
+/* Доступность: видимое кольцо фокуса одно на весь интерфейс. `:focus-visible`,
+   а не `:focus`, — браузер сам решает, показывать ли его, и не рисует после
+   обычного щелчка мышью. */
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+summary:focus-visible,
+[tabindex]:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+.skip-link {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 100;
+  padding: 10px 18px;
+  border-radius: 0 0 var(--radius-sm) 0;
+  background: var(--accent);
+  color: var(--on-accent);
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+  transform: translateY(-120%);
+}
+.skip-link:focus {
+  transform: translateY(0);
+  color: var(--on-accent);
+  text-decoration: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ===== 3. Раскладка ====================================================== */
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 32px;
+}
+
+.page {
+  padding-top: 40px;
+  padding-bottom: 72px;
+}
+
+.page-title {
+  margin-bottom: 8px;
+}
+
+.page-sub {
+  max-width: 68ch;
+  margin: 0 0 24px;
+  color: var(--muted);
+  font-size: 16px;
+}
+
+.section-h,
+.section-title {
+  margin: 40px 0 14px;
+  font-size: 21px;
+}
+
+.section-title-sm,
+.side-title {
+  margin: 0 0 12px;
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-strong);
+}
+
+.small-label {
+  color: var(--muted);
+  font-size: 12px;
+  letter-spacing: 0.02em;
+}
+
+.cell-sub {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.back-link,
+.link-plain {
+  display: inline-block;
+  margin-bottom: 18px;
+  color: var(--muted);
+  font-size: 14px;
+}
+.back-link:hover,
+.link-plain:hover {
+  color: var(--accent);
+}
+
+/* Прежний акцентный цвет заголовков был частью «терминального» вида. Теперь
+   заголовки обычные, а класс оставлен, чтобы не править два десятка шаблонов. */
+.accent-ink,
+.accent {
+  color: inherit;
+}
+
+.card,
+.side-card,
+.level-card,
+.stat-tile,
+.auth-card,
+.sub-card,
+.practice-card,
+.course-card,
+.home-link,
+.module,
+.review,
+.locked-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+/* ===== 4. Шапка, навигация, подвал ======================================= */
+
+.site-header {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+.site-header .container {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  min-height: var(--header-h);
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 36px;
+  min-width: 0;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.brand:hover {
+  text-decoration: none;
+}
+/* Значок вместо прежнего «~/»: тот читался как приглашение командной строки. */
+.brand .sigil {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 7px;
+  background: var(--accent);
+  color: var(--on-accent);
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 700;
+}
+.brand .name {
+  font-family: var(--font-display);
+  font-size: 19px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--text-strong);
+}
+
+.nav {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+}
+.nav a {
+  position: relative;
+  color: var(--muted);
+  font-size: 15px;
+  font-weight: 500;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: color 0.15s;
+}
+.nav a:hover {
+  color: var(--text-strong);
+  text-decoration: none;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.link-muted {
+  max-width: 22ch;
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 14px;
+  text-decoration: none;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.link-muted:hover {
+  color: var(--accent);
+}
+
+.unread-badge {
+  display: inline-block;
+  min-width: 18px;
+  margin-left: 6px;
+  padding: 0 5px;
+  border-radius: 9px;
+  background: var(--danger);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 18px;
+  text-align: center;
+}
+
+/* Переключатель темы и кнопка меню — одинаковые по размеру значки в шапке. */
+.icon-btn,
+.nav-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--muted);
+  cursor: pointer;
+  transition:
+    color 0.15s,
+    border-color 0.15s;
+}
+.icon-btn:hover,
+.nav-toggle:hover {
+  color: var(--text-strong);
+  border-color: var(--muted-soft);
+}
+.icon-btn svg {
+  width: 18px;
+  height: 18px;
+}
+/* Показываем ту иконку, которая соответствует теме, в которую переключит нажатие. */
+.icon-btn .icon-dark {
+  display: none;
+}
+[data-theme="dark"] .icon-btn .icon-dark {
+  display: block;
+}
+[data-theme="dark"] .icon-btn .icon-light {
+  display: none;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) .icon-btn .icon-dark {
+    display: block;
+  }
+  :root:not([data-theme]) .icon-btn .icon-light {
+    display: none;
+  }
+}
+
+.nav-toggle {
+  display: none;
+}
+.nav-toggle-bars,
+.nav-toggle-bars::before,
+.nav-toggle-bars::after {
+  display: block;
+  width: 16px;
+  height: 1.5px;
+  border-radius: 2px;
+  background: currentColor;
+  content: "";
+}
+.nav-toggle-bars::before {
+  transform: translateY(-5px);
+}
+.nav-toggle-bars::after {
+  transform: translateY(3.5px);
+}
+
+.nav-settings {
+  display: none;
+}
+
+.site-footer {
+  margin-top: auto;
+  padding: 28px 0;
+  border-top: 1px solid var(--border);
+  background: var(--bg-soft);
+}
+.footer-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  color: var(--muted);
+  font-size: 14px;
+}
+.footer-links {
+  display: flex;
+  gap: 20px;
+}
+.footer-links a {
+  color: var(--muted);
+}
+.footer-links a:hover {
+  color: var(--accent);
+}
+
+/* ===== 5. Кнопки, поля, плашки =========================================== */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 18px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--text);
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.2;
+  text-decoration: none;
+  cursor: pointer;
+  transition:
+    background 0.15s,
+    border-color 0.15s,
+    color 0.15s;
+}
+.btn:hover {
+  text-decoration: none;
+}
+
+.btn-primary,
+.btn-accent {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--on-accent);
+}
+.btn-primary:hover,
+.btn-accent:hover {
+  background: var(--accent-hover);
+  border-color: var(--accent-hover);
+  color: var(--on-accent);
+}
+
+.btn-ghost {
+  border-color: var(--border);
+  color: var(--text);
+  background: var(--surface);
+}
+.btn-ghost:hover {
+  border-color: var(--muted-soft);
+  background: var(--surface-2);
+  color: var(--text-strong);
+}
+
+.btn-danger {
+  background: var(--danger);
+  border-color: var(--danger);
+  color: #fff;
+}
+.btn-danger:hover {
+  filter: brightness(0.94);
+  color: #fff;
+}
+
+.btn-block {
+  width: 100%;
+}
+
+.btn:disabled,
+.btn[disabled] {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Поля ввода */
+.field {
+  margin-bottom: 16px;
+}
+.field label,
+.small-label {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 500;
+}
+.field-opt,
+.field-hint {
+  color: var(--muted);
+  font-weight: 400;
+  font-size: 13px;
+}
+.field-hint {
+  display: block;
+  margin-top: 6px;
+}
+
+input[type="text"],
+input[type="password"],
+input[type="email"],
+input[type="number"],
+select,
+textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 15px;
+  transition: border-color 0.15s;
+}
+input:hover,
+select:hover,
+textarea:hover {
+  border-color: var(--muted-soft);
+}
+input:focus,
+select:focus,
+textarea:focus {
+  border-color: var(--accent);
+  outline: none;
+}
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+::placeholder {
+  color: var(--muted-soft);
+}
+
+.field-check {
+  display: flex;
+  gap: 10px;
+}
+.check-label {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  font-weight: 400;
+  font-size: 14px;
+  color: var(--muted);
+  cursor: pointer;
+}
+.check-label input {
+  width: auto;
+  margin-top: 3px;
+  flex: none;
+}
+
+.form-error {
+  margin-bottom: 16px;
+  padding: 10px 14px;
+  border: 1px solid var(--danger);
+  border-radius: var(--radius-sm);
+  background: var(--danger-soft);
+  color: var(--danger);
+  font-size: 14px;
+}
+.form-ok {
+  margin-bottom: 16px;
+  padding: 10px 14px;
+  border: 1px solid var(--success);
+  border-radius: var(--radius-sm);
+  background: var(--success-soft);
+  color: var(--success);
+  font-size: 14px;
+}
+
+.submit-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  margin-top: 20px;
+}
+
+/* Плашки состояния */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 12.5px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.badge-success {
+  background: var(--success-soft);
+  color: var(--success);
+}
+.badge-warning {
+  background: var(--warning-soft);
+  color: var(--warning);
+}
+.badge-danger {
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+.badge-neutral {
+  background: var(--surface-2);
+  color: var(--muted);
+}
+
+.stars {
+  color: #e2a33c;
+  font-size: 14px;
+  letter-spacing: 1px;
+}
+
+/* ===== 6. Главная ======================================================== */
+
+.hero {
+  display: grid;
+  grid-template-columns: 1.05fr 0.95fr;
+  align-items: center;
+  gap: 56px;
+  padding-top: 72px;
+  padding-bottom: 80px;
+}
+
+.eyebrow {
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 12px;
+  margin-bottom: 20px;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.hero h1 {
+  font-size: 46px;
+  letter-spacing: -0.025em;
+}
+
+.lead {
+  max-width: 52ch;
+  margin: 18px 0 0;
+  color: var(--muted);
+  font-size: 18px;
+  line-height: 1.6;
+}
+
+.hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 14px;
+  margin-top: 28px;
+}
+.hero-actions .btn {
+  padding: 12px 24px;
+  font-size: 16px;
+}
+
+.meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 18px;
+  margin-top: 32px;
+  padding-top: 24px;
+  border-top: 1px solid var(--hairline);
+  color: var(--muted);
+  font-size: 14px;
+}
+.meta b {
+  display: block;
+  color: var(--text-strong);
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+/* Превью SQL-тренажёра. Раньше это был макет окна терминала с «светофором» —
+   украшение, изображавшее чужое приложение. Теперь это карточка с настоящим
+   запросом и его результатом: она показывает, что платформа делает. */
+.terminal {
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  box-shadow: var(--shadow-2);
+}
+.terminal-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 18px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface-2);
+}
+.terminal-title {
+  color: var(--muted);
+  font-family: var(--font-mono);
+  font-size: 13px;
+}
+.terminal-body {
+  padding: 18px;
+  font-family: var(--font-mono);
+  font-size: 13.5px;
+  line-height: 1.7;
+}
+.terminal-body .pr {
+  color: var(--accent);
+  font-weight: 600;
+}
+.terminal-body .cmd {
+  color: var(--text-strong);
+}
+.t-table {
+  margin: 14px 0 8px;
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+.t-row {
+  display: grid;
+  grid-template-columns: 1.4fr 0.6fr 0.8fr;
+  gap: 12px;
+  padding: 7px 14px;
+  font-size: 13px;
+}
+.t-row + .t-row {
+  border-top: 1px solid var(--hairline);
+}
+.t-head {
+  background: var(--surface-2);
+  color: var(--muted);
+  font-weight: 600;
+}
+.t-row .ok {
+  color: var(--success);
+}
+.t-row .pending {
+  color: var(--warning);
+}
+.t-rows-note {
+  color: var(--muted-soft);
+  font-size: 12px;
+}
+
+/* ===== 7. Каталог ======================================================== */
+
+.catalog-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 20px;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface-2);
+}
+.toolbar-search {
+  flex: 1 1 240px;
+  min-width: 0;
+}
+.toolbar-select {
+  flex: 0 0 auto;
+  width: auto;
+  min-width: 150px;
+}
+
+.catalog-count {
+  margin-bottom: 18px;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.course-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 22px;
+}
+
+.course-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  text-decoration: none;
+  color: inherit;
+  box-shadow: var(--shadow-1);
+  transition:
+    transform 0.15s,
+    box-shadow 0.15s,
+    border-color 0.15s;
+}
+.course-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-2);
+  border-color: var(--accent-line);
+  text-decoration: none;
+}
+
+.course-cover,
+.card-cover {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 132px;
+  color: #fff;
+}
+.cover-icon svg,
+.cover-icon {
+  width: 40px;
+  height: 40px;
+  opacity: 0.92;
+}
+
+.enrolled-badge {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--success);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.course-card-body {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  gap: 8px;
+  padding: 16px 18px 18px;
+}
+.card-meta-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.course-card-title {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 700;
+  line-height: 1.35;
+}
+.course-card-desc {
+  margin: 0;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.55;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.card-meta-bottom {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+  margin-top: auto;
+  padding-top: 10px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.progress-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 10px;
+}
+.progress-bar,
+.bar-wrap {
+  flex: 1;
+  height: 6px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--surface-3);
+}
+.progress-bar span,
+.bar-fill {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--accent);
+}
+.progress-label {
+  color: var(--muted);
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.pager {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  margin-top: 36px;
+}
+.pager-link {
+  color: var(--accent);
+  font-size: 14px;
+  font-weight: 500;
+}
+.pager-link.is-off {
+  color: var(--muted-soft);
+  pointer-events: none;
+}
+.pager-state {
+  color: var(--muted);
+  font-size: 14px;
+}
+
+/* ===== 8. Страница курса ================================================= */
+
+.course-layout,
+.lesson-layout,
+.progress-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 300px;
+  gap: 40px;
+  align-items: start;
+}
+.course-main,
+.lesson-main,
+.progress-main {
+  min-width: 0;
+}
+
+.course-header {
+  padding-bottom: 28px;
+  margin-bottom: 12px;
+  border-bottom: 1px solid var(--border);
+}
+.course-header .page-title {
+  margin-top: 10px;
+}
+.course-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 20px;
+  color: var(--muted);
+  font-size: 14px;
+}
+.course-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 14px;
+  margin-top: 22px;
+}
+
+.modules {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-top: 26px;
+}
+.module {
+  padding: 20px;
+}
+.module-locked {
+  background: var(--surface-2);
+}
+.module-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.module-title {
+  margin: 0;
+  font-size: 18px;
+}
+.module-head-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.module-week {
+  color: var(--muted);
+  font-size: 13px;
+}
+.module-desc {
+  margin: 8px 0 0;
+  color: var(--muted);
+  font-size: 14px;
+}
+.module-lock-note {
+  margin: 12px 0 0;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.lesson-list {
+  margin: 14px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.lesson-item + .lesson-item {
+  border-top: 1px solid var(--hairline);
+}
+.lesson-link {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 8px;
+  margin: 0 -8px;
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  text-decoration: none;
+  transition: background 0.15s;
+}
+.lesson-link:hover {
+  background: var(--surface-2);
+  color: var(--text-strong);
+  text-decoration: none;
+}
+.lesson-check {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 22px;
+  height: 22px;
+  border: 1.5px solid var(--border);
+  border-radius: 50%;
+  color: var(--muted-soft);
+  font-size: 12px;
+}
+.lesson-check.done {
+  border-color: var(--success);
+  background: var(--success-soft);
+  color: var(--success);
+}
+.lesson-name {
+  flex: 1;
+  min-width: 0;
+  font-size: 15px;
+}
+.lesson-time,
+.lesson-time-top {
+  flex: none;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+/* Боковая колонка */
+.course-side,
+.lesson-foot {
+  min-width: 0;
+}
+.side-card {
+  position: sticky;
+  top: calc(var(--header-h) + 20px);
+  padding: 18px;
+}
+.resource-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.resource-list li + li {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--hairline);
+}
+.resource-link {
+  display: block;
+  font-size: 14px;
+  line-height: 1.45;
+}
+.resource-kind {
+  display: block;
+  margin-top: 3px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+/* Отзывы */
+.reviews {
+  margin-top: 44px;
+}
+.review-form {
+  margin-bottom: 24px;
+  padding: 18px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface-2);
+}
+.rating-group {
+  margin: 0 0 14px;
+  padding: 0;
+  border: none;
+}
+.rating-group legend {
+  padding: 0;
+  margin-bottom: 8px;
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 500;
+}
+.rating-input {
+  display: inline-flex;
+  flex-direction: row-reverse;
+  justify-content: flex-end;
+}
+/* Переключатель прячется прозрачностью, а не `display: none`: тот убирает
+   элемент и из обхода клавиатурой, и из дерева доступности — оценку нельзя
+   было бы поставить без мыши. */
+.rating-input input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}
+.rating-input label {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 34px;
+  min-height: 34px;
+  border-radius: var(--radius-sm);
+  color: var(--surface-3);
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+  transition: color 0.1s;
+}
+.rating-input input:checked ~ label,
+.rating-input label:hover,
+.rating-input label:hover ~ label {
+  color: #e2a33c;
+}
+.rating-input input:focus-visible + label {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.review-text {
+  margin-bottom: 12px;
+}
+.review {
+  padding: 16px 18px;
+  margin-bottom: 12px;
+}
+.review-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.review-author {
+  font-weight: 600;
+  font-size: 15px;
+}
+.review-comment {
+  margin: 8px 0 0;
+  color: var(--muted);
+  font-size: 14.5px;
+}
+
+/* ===== 9. Урок =========================================================== */
+
+.lesson-eyebrow {
+  margin-bottom: 6px;
+  color: var(--muted);
+  font-size: 14px;
+}
+.lesson-nav {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 36px;
+  padding-top: 22px;
+  border-top: 1px solid var(--border);
+}
+
+/* Теория. Ширина строки ограничена: длинная строка на широком экране читается
+   заметно хуже — глаз теряет начало следующей. */
+.prose {
+  max-width: 72ch;
+  font-size: 16.5px;
+  line-height: 1.75;
+}
+.prose h2 {
+  margin: 34px 0 12px;
+  font-size: 22px;
+}
+.prose h3 {
+  margin: 26px 0 10px;
+  font-size: 18px;
+}
+.prose p {
+  margin: 0 0 16px;
+}
+.prose ul,
+.prose ol {
+  margin: 0 0 16px;
+  padding-left: 22px;
+}
+.prose li {
+  margin-bottom: 6px;
+}
+.prose code {
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: var(--surface-2);
+  font-size: 0.9em;
+}
+.prose pre {
+  margin: 0 0 18px;
+  padding: 16px;
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  font-size: 14px;
+  line-height: 1.6;
+}
+.prose pre code {
+  padding: 0;
+  background: none;
+}
+.prose a {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.prose blockquote {
+  margin: 0 0 18px;
+  padding: 2px 0 2px 16px;
+  border-left: 3px solid var(--accent-line);
+  color: var(--muted);
+}
+.prose table {
+  width: 100%;
+  margin-bottom: 18px;
+  border-collapse: collapse;
+  font-size: 15px;
+}
+.prose th,
+.prose td {
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  text-align: left;
+}
+.prose th {
+  background: var(--surface-2);
+}
+
+.lesson-test-block,
+.lesson-reflection-block {
+  margin-top: 32px;
+  padding: 20px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface-2);
+}
+
+.done-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: var(--success-soft);
+  color: var(--success);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.locked-card {
+  max-width: 560px;
+  margin: 40px auto;
+  padding: 40px 32px;
+  text-align: center;
+}
+.locked-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  margin-bottom: 16px;
+  border-radius: 50%;
+  background: var(--surface-2);
+  color: var(--muted);
+  font-size: 22px;
+}
+.locked-card .btn {
+  margin-top: 20px;
+}
+
+/* Рефлексия: шкала из кружков */
+.rating-scale {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.rating-option {
+  position: relative;
+}
+.rating-option input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+.rating-option span {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--muted);
+  font-size: 15px;
+  font-weight: 600;
+  transition:
+    border-color 0.15s,
+    background 0.15s,
+    color 0.15s;
+}
+.rating-option input:hover + span {
+  border-color: var(--accent);
+  color: var(--text-strong);
+}
+.rating-option input:checked + span {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--on-accent);
+}
+.rating-option input:focus-visible + span {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.reflection-textarea {
+  min-height: 90px;
+}
+
+/* ===== 10. Тесты, тренажёр, задания ====================================== */
+
+.quiz-q {
+  margin-bottom: 22px;
+  padding: 20px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+.q-mark {
+  display: inline-block;
+  margin-right: 8px;
+  color: var(--muted);
+  font-weight: 600;
+}
+.quiz-q-text {
+  margin-bottom: 14px;
+  font-size: 16.5px;
+  font-weight: 600;
+}
+.quiz-options {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.quiz-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 11px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 15px;
+  cursor: pointer;
+  transition:
+    border-color 0.15s,
+    background 0.15s;
+}
+.quiz-option:hover {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+.quiz-option input {
+  width: auto;
+  margin-top: 4px;
+  flex: none;
+}
+.quiz-option-result {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 11px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 15px;
+}
+.quiz-option-result.tag-ok {
+  border-color: var(--success);
+  background: var(--success-soft);
+}
+.quiz-option-result.tag-wrong {
+  border-color: var(--danger);
+  background: var(--danger-soft);
+}
+.opt-tag {
+  margin-left: auto;
+  font-size: 13px;
+  font-weight: 600;
+}
+.tag-ok .opt-tag {
+  color: var(--success);
+}
+.tag-wrong .opt-tag {
+  color: var(--danger);
+}
+
+.result-banner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 26px;
+  padding: 22px 24px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface-2);
+}
+.result-score {
+  font-family: var(--font-display);
+  font-size: 38px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+/* Тренажёр.
+   Простая колонка, а не две: в разметке схема таблиц, поле запроса, кнопки и
+   вывод идут друг за другом одним потоком, и сеткой из двух колонок они
+   разъезжаются — схема оказывается слева, а редактор справа от неё. */
+.trainer {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.trainer-schema {
+  padding: 16px 18px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface-2);
+  font-family: var(--font-mono);
+  font-size: 13px;
+  line-height: 1.8;
+}
+.schema-title {
+  display: block;
+  margin-bottom: 8px;
+  color: var(--muted);
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 600;
+}
+.trainer-input {
+  min-height: 130px;
+  font-family: var(--font-mono);
+  font-size: 14px;
+  line-height: 1.6;
+  resize: vertical;
+}
+.trainer-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 14px;
+  margin-top: 14px;
+}
+.trainer-status {
+  color: var(--muted);
+  font-size: 13px;
+}
+.trainer-output {
+  margin-top: 18px;
+  padding: 16px;
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface-2);
+  font-family: var(--font-mono);
+  font-size: 13.5px;
+}
+.trainer-output table {
+  border-collapse: collapse;
+  width: 100%;
+}
+.trainer-output th,
+.trainer-output td {
+  padding: 6px 12px;
+  border-bottom: 1px solid var(--hairline);
+  text-align: left;
+  white-space: nowrap;
+}
+.trainer-output th {
+  color: var(--muted);
+  font-weight: 600;
+}
+
+/* Список заданий */
+.practice-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 18px;
+  margin-top: 6px;
+}
+.practice-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 18px;
+  color: inherit;
+  text-decoration: none;
+  box-shadow: var(--shadow-1);
+  transition:
+    border-color 0.15s,
+    box-shadow 0.15s;
+}
+.practice-card:hover {
+  border-color: var(--accent-line);
+  box-shadow: var(--shadow-2);
+  text-decoration: none;
+}
+.practice-card-top {
+  display: flex;
+  gap: 8px;
+}
+.practice-card-title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+.practice-card-course {
+  margin-top: auto;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+/* ===== 11. Прогресс и достижения ========================================= */
+
+.level-card {
+  padding: 22px 24px;
+}
+.level-top {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 14px;
+}
+.level-num {
+  font-family: var(--font-display);
+  font-size: 40px;
+  font-weight: 700;
+  line-height: 1;
+}
+.level-max {
+  color: var(--muted);
+  font-size: 20px;
+  font-weight: 500;
+}
+.level-xp {
+  color: var(--muted);
+  font-size: 15px;
+}
+.xp-strip {
+  margin-top: 10px;
+}
+
+.stat-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 14px;
+  margin-top: 20px;
+}
+.stat-tile {
+  padding: 18px 20px;
+}
+.stat-num {
+  font-family: var(--font-display);
+  font-size: 28px;
+  font-weight: 700;
+  line-height: 1.1;
+}
+.stat-cap {
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.ach-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 14px;
+  margin-top: 14px;
+}
+.ach-tile {
+  display: flex;
+  gap: 12px;
+  min-width: 0;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+.ach-tile:not(.earned) {
+  opacity: 0.55;
+}
+.ach-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: var(--surface-2);
+  color: var(--muted);
+  font-size: 17px;
+}
+.ach-tile.earned .ach-icon {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+/* Текстовая колонка плитки должна уметь сжиматься: без `min-width: 0` элемент
+   флекса не становится уже своего содержимого и раздвигает сетку. */
+.ach-tile > div {
+  min-width: 0;
+}
+.ach-title {
+  font-size: 15px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.ach-desc {
+  margin-top: 2px;
+  overflow-wrap: anywhere;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
+.ach-xp,
+.ach-date {
+  margin-top: 4px;
+  color: var(--muted-soft);
+  font-size: 12px;
+}
+.ach-count {
+  color: var(--muted);
+  font-size: 14px;
+}
+
+/* Лента активности */
+.feed-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.feed-day {
+  margin: 20px 0 8px;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 600;
+}
+.feed-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 9px 0;
+}
+.feed-dot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  margin-top: 8px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+.feed-text {
+  font-size: 15px;
+}
+.feed-date {
+  margin-left: auto;
+  color: var(--muted-soft);
+  font-size: 12px;
+}
+
+/* ===== 12. Отчёты преподавателя ========================================== */
+
+.report-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin: 22px 0;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--border);
+}
+.report-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.report-tabs a {
+  padding: 7px 14px;
+  border-radius: var(--radius-sm);
+  color: var(--muted);
+  font-size: 15px;
+  font-weight: 500;
+  text-decoration: none;
+}
+.report-tabs a:hover {
+  background: var(--surface-2);
+  color: var(--text-strong);
+  text-decoration: none;
+}
+.report-tabs a.is-active {
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-weight: 600;
+}
+.report-filter {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  color: var(--muted);
+  font-size: 14px;
+}
+.report-filter select {
+  width: auto;
+  min-width: 170px;
+  padding: 7px 10px;
+  font-size: 14px;
+}
+.report-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 20px 0;
+}
+
+.table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+.report-table,
+.doc-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14.5px;
+}
+.report-table th,
+.doc-table th {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface-2);
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 600;
+  text-align: left;
+  white-space: nowrap;
+}
+.report-table td,
+.doc-table td {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--hairline);
+  vertical-align: top;
+}
+.report-table tbody tr:last-child td,
+.doc-table tbody tr:last-child td {
+  border-bottom: none;
+}
+.report-table tbody tr:hover {
+  background: var(--surface-2);
+}
+.report-table a,
+.plain-list a {
+  color: var(--accent);
+}
+
+.report-legend {
+  margin: 22px 0 0;
+  padding: 16px 18px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface-2);
+  font-size: 14px;
+}
+.report-legend dt {
+  margin-top: 8px;
+  font-weight: 600;
+}
+.report-legend dd {
+  margin: 2px 0 0;
+  color: var(--muted);
+}
+
+.meter-val {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Ведомость как документ */
+.doc {
+  padding: 32px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+.doc-head {
+  margin-bottom: 24px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid var(--border);
+}
+.doc-title {
+  margin: 0 0 8px;
+  font-size: 22px;
+}
+.doc-meta {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 4px 16px;
+  margin: 0;
+  color: var(--muted);
+  font-size: 14px;
+}
+.doc-meta dt {
+  font-weight: 500;
+}
+.doc-meta dd {
+  margin: 0;
+  color: var(--text);
+}
+.doc-note,
+.doc-summary {
+  margin-top: 18px;
+  color: var(--muted);
+  font-size: 14px;
+}
+.doc-sign {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 40px;
+  margin-top: 40px;
+}
+.doc-sign-line {
+  min-width: 220px;
+}
+.doc-sign-rule {
+  height: 1px;
+  margin-bottom: 6px;
+  background: var(--muted-soft);
+}
+.doc-sign-cap {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+/* Очередь проверки работ */
+.sub-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-top: 22px;
+}
+.sub-card {
+  padding: 20px;
+}
+.sub-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  min-width: 0;
+}
+.sub-student {
+  font-size: 16px;
+  font-weight: 600;
+}
+.sub-badges {
+  display: flex;
+  gap: 8px;
+}
+.sub-answer {
+  margin: 14px 0 0;
+  padding: 14px;
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  font-size: 13.5px;
+}
+.sub-file {
+  margin: 14px 0 0;
+  font-size: 14px;
+  overflow-wrap: anywhere;
+}
+.sub-expected summary {
+  margin-top: 12px;
+  color: var(--muted);
+  font-size: 14px;
+  cursor: pointer;
+}
+.sub-feedback {
+  margin: 12px 0 0;
+  color: var(--muted);
+  font-size: 14px;
+}
+.sub-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--hairline);
+}
+.sub-form label {
+  margin: 0;
+  color: var(--muted);
+  font-size: 14px;
+}
+.sub-form input[type="number"] {
+  width: 90px;
+}
+.sub-form input[type="text"] {
+  flex: 1;
+  min-width: 200px;
+}
+
+/* Карточка студента */
+.plain-list {
+  margin: 14px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.plain-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-width: 0;
+  padding: 11px 0;
+  border-bottom: 1px solid var(--hairline);
+  font-size: 15px;
+}
+.plain-list-blocks li {
+  display: block;
+}
+.defend-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 14px;
+  margin-top: 14px;
+}
+.defend-form .page-sub {
+  margin: 0;
+  font-size: 14px;
+}
+
+/* Главная преподавателя */
+.home-links {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 14px;
+  margin-top: 32px;
+}
+.home-link {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 18px 20px;
+  text-decoration: none;
+  box-shadow: var(--shadow-1);
+  transition:
+    border-color 0.15s,
+    box-shadow 0.15s;
+}
+.home-link:hover {
+  border-color: var(--accent-line);
+  box-shadow: var(--shadow-2);
+  text-decoration: none;
+}
+.home-link-title {
+  color: var(--text-strong);
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: 700;
+}
+.home-link-sub {
+  color: var(--muted);
+  font-size: 13.5px;
+}
+
+/* ===== 13. Переписка ===================================================== */
+
+.inbox {
+  display: grid;
+  grid-template-columns: 300px minmax(0, 1fr);
+  gap: 18px;
+  margin-top: 24px;
+}
+.inbox,
+.inbox-list,
+.inbox-thread,
+.inbox-item {
+  min-width: 0;
+}
+.inbox-list {
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  list-style: none;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+.inbox-list li + li {
+  border-top: 1px solid var(--hairline);
+}
+.inbox-item {
+  display: block;
+  padding: 12px 14px;
+  color: inherit;
+  text-decoration: none;
+  transition: background 0.15s;
+}
+.inbox-item:hover {
+  background: var(--surface-2);
+  text-decoration: none;
+}
+.inbox-item.is-active {
+  background: var(--accent-soft);
+}
+.inbox-item-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+}
+.inbox-peer {
+  overflow: hidden;
+  color: var(--text-strong);
+  font-size: 15px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.inbox-course {
+  color: var(--accent);
+  font-size: 12.5px;
+  text-decoration: none;
+}
+.inbox-last,
+.inbox-at {
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.inbox-at {
+  font-size: 12px;
+  color: var(--muted-soft);
+}
+.inbox-thread {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+.inbox-thread-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--hairline);
+}
+
+.chat {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-height: 0;
+}
+.chat-log {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: 22rem;
+  margin: 0;
+  padding: 4px;
+  overflow-y: auto;
+  list-style: none;
+}
+.chat-msg {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  max-width: 78%;
+}
+.chat-msg.is-mine {
+  align-self: flex-end;
+  align-items: flex-end;
+}
+.chat-bubble {
+  padding: 9px 14px;
+  border-radius: 14px;
+  border-bottom-left-radius: 4px;
+  background: var(--surface-2);
+  color: var(--text);
+  font-size: 14.5px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+.chat-msg.is-mine .chat-bubble {
+  border-bottom-left-radius: 14px;
+  border-bottom-right-radius: 4px;
+  background: var(--accent);
+  color: var(--on-accent);
+}
+.chat-time {
+  margin-top: 3px;
+  color: var(--muted-soft);
+  font-size: 11.5px;
+}
+.chat-empty {
+  color: var(--muted);
+  font-size: 14px;
+}
+.chat-error {
+  margin: 0;
+  color: var(--danger);
+  font-size: 14px;
+}
+.chat-form {
+  display: flex;
+  gap: 10px;
+  align-items: flex-end;
+}
+.chat-form textarea {
+  flex: 1;
+  min-height: 44px;
+  resize: vertical;
+}
+.course-chat {
+  margin-top: 44px;
+}
+
+/* ===== 14. Сертификат ==================================================== */
+
+.cert-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.cert {
+  position: relative;
+  margin-top: 20px;
+  padding: 56px 40px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  box-shadow: var(--shadow-2);
+  text-align: center;
+}
+.cert-frame {
+  position: absolute;
+  inset: 14px;
+  border: 1px solid var(--accent-line);
+  border-radius: var(--radius);
+  pointer-events: none;
+}
+.cert-body {
+  position: relative;
+}
+.cert-brand {
+  color: var(--accent);
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 700;
+}
+.cert-brand-sub {
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 11px;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+}
+.cert-title {
+  margin: 34px 0 0;
+  font-size: 40px;
+}
+.cert-lead {
+  margin: 10px 0 0;
+  color: var(--muted);
+  font-size: 15px;
+}
+.cert-name {
+  margin-top: 16px;
+  font-family: var(--font-display);
+  font-size: 30px;
+  font-weight: 700;
+}
+.cert-course {
+  margin-top: 8px;
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 600;
+}
+.cert-meta {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+  max-width: 30rem;
+  margin: 40px auto 0;
+  text-align: left;
+}
+.cert-meta dt {
+  color: var(--muted);
+  font-size: 12.5px;
+}
+.cert-meta dd {
+  margin: 2px 0 0;
+  font-size: 15px;
+  font-weight: 500;
+}
+.cert-note {
+  margin-top: 16px;
+  color: var(--muted);
+  font-size: 13px;
+  text-align: center;
+}
+
+/* ===== 15. Вход, регистрация, правовые страницы ========================== */
+
+.auth-wrap {
+  display: flex;
+  justify-content: center;
+  padding: 56px 20px 80px;
+}
+.auth-card {
+  width: 100%;
+  min-width: 0;
+  max-width: 440px;
+  overflow-wrap: anywhere;
+  padding: 32px;
+  box-shadow: var(--shadow-1);
+}
+.auth-title {
+  margin-bottom: 6px;
+  font-size: 26px;
+}
+.auth-sub {
+  margin-bottom: 22px;
+  color: var(--muted);
+  font-size: 15px;
+}
+.auth-foot {
+  margin: 18px 0 0;
+  color: var(--muted);
+  font-size: 14px;
+  text-align: center;
+}
+.demo-note {
+  max-width: 440px;
+  margin: 18px auto 0;
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  color: var(--muted);
+  font-size: 13.5px;
+  line-height: 1.6;
+}
+
+.legal-page {
+  max-width: 780px;
+  padding-top: 40px;
+  padding-bottom: 72px;
+}
+.legal-page h2 {
+  margin: 32px 0 10px;
+  font-size: 20px;
+}
+.legal-page p,
+.legal-page li {
+  color: var(--text);
+  font-size: 16px;
+  line-height: 1.7;
+}
+.legal-callout {
+  margin: 20px 0 28px;
+  padding: 18px 20px;
+  border: 1px solid var(--accent-line);
+  border-radius: var(--radius);
+  background: var(--accent-soft);
+}
+.legal-callout p:last-child {
+  margin-bottom: 0;
+}
+.legal-foot {
+  margin-top: 36px;
+  padding-top: 18px;
+  border-top: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 14px;
+}
+.consent-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 14px;
+}
+.consent-list li {
+  padding: 8px 0;
+  border-bottom: 1px solid var(--hairline);
+  color: var(--muted);
+}
+.help {
+  color: var(--muted);
+  font-size: 14px;
+}
+
+/* ===== 16. Узкие экраны ================================================== */
+
+@media (max-width: 1000px) {
+  .course-layout,
+  .lesson-layout,
+  .progress-layout {
+    grid-template-columns: 1fr;
+    gap: 28px;
+  }
+  .side-card {
+    position: static;
+  }
+  .hero {
+    grid-template-columns: 1fr;
+    gap: 40px;
+    padding-top: 48px;
+  }
+  .hero h1 {
+    font-size: 38px;
+  }
+}
+
+@media (max-width: 860px) {
+  .container {
+    padding: 0 20px;
+  }
+  .site-header .container {
+    position: relative;
+  }
+  .nav-toggle {
+    display: inline-flex;
+  }
+  /* Сворачивание включает скрипт: пока он не загрузился и при отключённом JS
+     навигация видна и работает. */
+  html.js-nav .nav {
+    display: none;
+  }
+  html.js-nav .nav.is-open {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    z-index: 20;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 2px;
+    padding: 12px 20px 18px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+    box-shadow: var(--shadow-2);
+  }
+  html.js-nav .nav.is-open a {
+    padding: 10px 0;
+    font-size: 16px;
+  }
+  .header-left {
+    gap: 14px;
+  }
+  .inbox {
+    grid-template-columns: 1fr;
+  }
+  .inbox-list {
+    max-height: 15rem;
+    overflow-y: auto;
+  }
+  /* Размер цели под палец. `display` кнопки меню не трогаем — им управляет
+     медиазапрос выше, и правило с той же специфичностью его перебьёт. */
+  .btn,
+  .nav a,
+  .pager-link {
+    min-height: 44px;
+  }
+}
+
+@media (max-width: 620px) {
+  .header-actions .link-muted {
+    display: none;
+  }
+  .nav-settings {
+    display: block;
+  }
+  .hero h1 {
+    font-size: 31px;
+  }
+  h1,
+  .page-title {
+    font-size: 27px;
+  }
+  .doc {
+    padding: 20px;
+  }
+  .cert {
+    padding: 34px 20px;
+  }
+  .cert-title {
+    font-size: 29px;
+  }
+  .cert-meta {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 520px) {
+  .container {
+    padding: 0 14px;
+  }
+  .stat-row {
+    grid-template-columns: 1fr;
+  }
+  .course-actions .btn,
+  .trainer-actions .btn,
+  .defend-form .btn,
+  .sub-form .btn,
+  .hero-actions .btn {
+    flex: 1 1 100%;
+  }
+  .sub-form input[type="text"],
+  .sub-form input[type="number"] {
+    flex: 1 1 100%;
+    width: 100%;
+  }
+  .auth-wrap {
+    padding: 32px 14px 56px;
+  }
+  .auth-card {
+    padding: 20px;
+  }
+}
+
+/* ===== 17. Печать ======================================================== */
+
+/* Печатаются две вещи: ведомость и сертификат. Обе — документы, поэтому на бумаге
+   интерфейс убирается целиком, а цвета принудительно светлые: тёмная тема на
+   принтере нечитаема и расходует тонер. */
+@media print {
+  :root,
+  [data-theme="dark"] {
+    --bg: #fff;
+    --bg-soft: #fff;
+    --surface: #fff;
+    --surface-2: #fff;
+    --surface-3: #fff;
+    --text: #000;
+    --text-strong: #000;
+    --muted: #444;
+    --border: #999;
+    --hairline: #bbb;
+    --accent: #000;
+    --accent-line: #999;
+  }
+  @page {
+    size: A4 portrait;
+    margin: 18mm 14mm;
+  }
+  body {
+    background: #fff;
+    color: #000;
+  }
+  .no-print,
+  .site-header,
+  .site-footer,
+  .skip-link {
+    display: none !important;
+  }
+  .container,
+  .page {
+    max-width: none;
+    width: auto;
+    margin: 0;
+    padding: 0;
+  }
+  .doc,
+  .cert {
+    border: none;
+    border-radius: 0;
+    padding: 0;
+    box-shadow: none;
+  }
+  .cert {
+    border: 2px solid #000;
+    padding: 24mm 18mm;
+  }
+  .table-wrap {
+    overflow: visible;
+    border: none;
+    border-radius: 0;
+  }
+  .report-table thead,
+  .doc-table thead {
+    display: table-header-group;
+  }
+  .report-table tr,
+  .doc-table tr {
+    break-inside: avoid;
+  }
+  /* Цветные плашки на монохромном принтере сливаются в одинаковые серые пятна. */
+  .badge {
+    background: none !important;
+    color: #000 !important;
+    border: 1px solid #666;
+  }
+  a {
+    color: #000;
+    text-decoration: none;
+  }
+}

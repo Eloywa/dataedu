@@ -45,7 +45,7 @@
               <span class="module-head-right">
                 {% if module.gate.is_complete %}<span class="badge badge-success">пройдено</span>
                 {% elif not module.gate.unlocked %}<span class="badge badge-neutral">закрыто</span>{% endif %}
-                {% if module.week_number %}<span class="module-week mono">неделя {{ module.week_number }}</span>{% endif %}
+                {% if module.week_number %}<span class="module-week">неделя {{ module.week_number }}</span>{% endif %}
               </span>
             </div>
             {% if module.description %}<p class="module-desc">{{ module.description }}</p>{% endif %}
@@ -56,14 +56,14 @@
                     <a href="{% url 'courses:lesson_detail' lesson.id %}" class="lesson-link">
                       <span class="lesson-check {% if lesson.done %}done{% endif %}">{% if lesson.done %}✓{% else %}○{% endif %}</span>
                       <span class="lesson-name">{{ lesson.title }}</span>
-                      {% if lesson.est_minutes %}<span class="lesson-time mono">{{ lesson.est_minutes }} мин</span>{% endif %}
+                      {% if lesson.est_minutes %}<span class="lesson-time">{{ lesson.est_minutes }} мин</span>{% endif %}
                     </a>
                   </li>
                 {% endfor %}
               </ul>
             {% else %}
-              <p class="module-lock-note mono">
-                ⌗ откроется после завершения
+              <p class="module-lock-note">
+                Откроется после завершения
                 {% if module.prev_title %}недели «{{ module.prev_title }}»{% else %}предыдущей недели{% endif %}
               </p>
             {% endif %}
@@ -86,7 +86,7 @@
             иначе название варианта состоит из одного символа «★».
             {% endcomment %}
             <fieldset class="rating-group">
-              <legend class="mono small-label">Ваша оценка</legend>
+              <legend class="small-label">Ваша оценка</legend>
               <div class="rating-input">
                 {% for n in "54321" %}
                   <input type="radio" id="star{{ n }}" name="rating" value="{{ n }}"
@@ -132,12 +132,12 @@
 
     <aside class="course-side">
       <div class="side-card">
-        <h3 class="side-title mono"># литература</h3>
+        <h3 class="side-title">Литература</h3>
         <ul class="resource-list">
           {% for res in resources %}
             <li>
               <a href="{{ res.url }}" target="_blank" rel="noopener noreferrer" class="resource-link">{{ res.title }}</a>
-              <span class="resource-kind mono">{{ res.kind }}</span>
+              <span class="resource-kind">{{ res.kind }}</span>
             </li>
           {% endfor %}
         </ul>

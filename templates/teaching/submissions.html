@@ -32,7 +32,7 @@
           </div>
         </div>
 
-        <div class="cell-sub mono">сдано {{ s.submitted_at|date:"d.m.Y H:i" }}</div>
+        <div class="cell-sub">сдано {{ s.submitted_at|date:"d.m.Y H:i" }}</div>
 
         {% if s.answer %}
           <pre class="sub-answer"><code>{{ s.answer }}</code></pre>
@@ -66,7 +66,7 @@
 
         <form class="sub-form" method="post" action="{% url 'teaching:grade' s.pk %}">
           {% csrf_token %}
-          <label class="mono" for="score-{{ s.pk }}">балл</label>
+          <label for="score-{{ s.pk }}">балл</label>
           <input id="score-{{ s.pk }}" name="score" type="number" min="0" max="{{ s.assignment.max_score }}"
                  step="1" value="{{ s.score|default_if_none:''|floatformat:'-2' }}" required />
           <label class="visually-hidden" for="feedback-{{ s.pk }}">Отзыв</label>

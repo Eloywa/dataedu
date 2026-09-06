@@ -4,14 +4,14 @@
 {% block content %}
 <main class="container page">
   <h1 class="page-title">С возвращением, <span class="accent-ink">{{ user.label }}</span></h1>
-  <div class="xp-strip mono">
+  <div class="xp-strip">
     уровень {{ user.level }} · {{ user.xp }} XP ·
     <a href="{% url 'gamification:profile' %}">мой прогресс →</a>
   </div>
 
   {% if current %}
     <div class="module" style="margin-top: 18px">
-      <div class="mono" style="color: var(--accent); font-size: 13px">продолжить обучение</div>
+      <div style="color: var(--accent); font-size: 13px">продолжить обучение</div>
       <h2 class="module-title" style="margin-top: 6px">{{ current.course.title }}</h2>
       <div class="progress-row" style="max-width: 420px">
         <div class="progress-bar"><span style="width: {{ current.pct }}%"></span></div>

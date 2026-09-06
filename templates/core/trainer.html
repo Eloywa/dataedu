@@ -15,9 +15,9 @@
     class="trainer"
     id="trainer"
     {% if user.is_authenticated %}data-log-url="{% url 'core:trainer_log' %}" data-csrf="{{ csrf_token }}"{% endif %}
-  >
+>
     <div class="trainer-schema mono">
-      <span class="schema-title"># доступные таблицы</span>
+      <span class="schema-title">Доступные таблицы</span>
       <div><b>students</b>(id, full_name, group_id, xp)</div>
       <div><b>groups</b>(id, name, curator)</div>
     </div>

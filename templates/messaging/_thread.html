@@ -18,7 +18,7 @@ data-атрибуты на обёртке читает static/js/chat.js: он �
     {% for m in messages %}
       <li class="chat-msg {% if m.sender_id == user.pk %}is-mine{% endif %}" data-id="{{ m.id }}">
         <div class="chat-bubble">{{ m.body|linebreaksbr }}</div>
-        <time class="chat-time mono" datetime="{{ m.created_at|date:'c' }}">{{ m.created_at|date:"d.m H:i" }}</time>
+        <time class="chat-time" datetime="{{ m.created_at|date:'c' }}">{{ m.created_at|date:"d.m H:i" }}</time>
       </li>
     {% empty %}
       <li class="chat-empty" id="chat-empty">{{ empty_hint|default:"Сообщений пока нет. Напишите первым." }}</li>
