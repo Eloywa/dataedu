@@ -8,6 +8,7 @@ register = template.Library()
 
 LEVEL_LABEL = {"basic": "Начальный", "medium": "Средний", "advanced": "Продвинутый"}
 LEVEL_TONE = {"basic": "success", "medium": "warning", "advanced": "danger"}
+TASK_TYPE_LABEL = {"sql": "SQL", "ddl": "DDL", "file": "файл", "text": "текст"}
 
 
 @register.inclusion_tag("courses/_cover.html")
@@ -34,6 +35,22 @@ def stars(value):
         v = 0
     v = max(0, min(5, v))
     return "★" * v + "☆" * (5 - v)
+
+
+@register.filter
+def task_type_label(code):
+    return TASK_TYPE_LABEL.get(code, code)
+
+
+@register.filter
+def is_http_url(value):
+    """Только http(s)-адрес можно отрисовать ссылкой.
+
+    Поле `file_url` заполняет студент, а `javascript:`- и `data:`-адрес в ссылке на
+    странице преподавателя — это готовый XSS. Экранирование шаблона здесь не спасает:
+    оно защищает текст, а не схему адреса.
+    """
+    return str(value or "").strip().lower().startswith(("http://", "https://"))
 
 
 @register.filter

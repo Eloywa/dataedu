@@ -13,8 +13,15 @@
        class="{% if active == 'analytics' %}is-active{% endif %}">аналитика</a>
     <a href="{% url 'teaching:report' %}{% if selected %}?course={{ selected.slug }}{% endif %}"
        class="{% if active == 'report' %}is-active{% endif %}">ведомость</a>
+    {% comment %}
+    Очередь проверки фильтр по курсу не принимает: разбирают её целиком, а не
+    по одной дисциплине, поэтому строка запроса сюда не переносится.
+    {% endcomment %}
+    <a href="{% url 'teaching:submissions' %}"
+       class="{% if active == 'submissions' %}is-active{% endif %}">работы</a>
   </div>
 
+  {% if courses %}
   <form method="get" class="report-filter">
     <label for="course" class="mono">курс</label>
     <select id="course" name="course" onchange="this.form.submit()">
@@ -41,4 +48,5 @@
     {% endif %}
     <noscript><button class="btn btn-ghost" type="submit">Показать</button></noscript>
   </form>
+  {% endif %}
 </div>

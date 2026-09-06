@@ -16,6 +16,9 @@ db.sqlite3
 tmp_*
 *.log
 
+# Локальные настройки инструментов (пути к venv у каждого свои)
+.claude/
+
 # IDE / ОС
 .DS_Store
 Thumbs.db

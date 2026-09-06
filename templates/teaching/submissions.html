@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+{% load course_extras %}
+{% block title %}Проверка работ — DataEdu{% endblock %}
+
+{% block content %}
+<main class="container page">
+  <h1 class="page-title accent-ink">Проверка работ</h1>
+  <p class="page-sub">
+    Решения студентов по практическим заданиям ваших курсов.
+    {% if summary.pending %}Ждут проверки: {{ summary.pending }}.{% else %}Непроверенных нет.{% endif %}
+  </p>
+
+  {% include "teaching/_nav.html" with active="submissions" %}
+
+  {% if error %}<p class="chat-error" role="alert">{{ error }}</p>{% endif %}
+
+  <div class="sub-list">
+    {% for s in rows %}
+      <article class="sub-card" id="s-{{ s.pk }}">
+        <div class="sub-head">
+          <div>
+            <a class="sub-student" href="{% url 'teaching:student' s.user.pk %}">{{ s.user.label }}</a>
+            <div class="cell-sub">
+              {{ s.assignment.title }} · {{ s.assignment.course.title }} · {{ s.assignment.type|task_type_label }}
+            </div>
+          </div>
+          <div class="sub-badges">
+            {% if s.score is not None %}
+              <span class="badge badge-neutral">{{ s.score|floatformat:"-2" }} / {{ s.assignment.max_score }}</span>
+            {% endif %}
+            <span class="badge badge-{{ s.meta.tone }}">{{ s.meta.label }}</span>
+          </div>
+        </div>
+
+        <div class="cell-sub mono">сдано {{ s.submitted_at|date:"d.m.Y H:i" }}</div>
+
+        {% if s.answer %}
+          <pre class="sub-answer"><code>{{ s.answer }}</code></pre>
+        {% elif s.file_url %}
+          {% comment %}
+          Ссылка рисуется только для http(s): javascript:- и data:-адрес в поле,
+          которое заполняет студент, — это готовый XSS на странице преподавателя.
+          {% endcomment %}
+          {% if s.file_url|is_http_url %}
+            <p class="sub-file">
+              <a href="{{ s.file_url }}" target="_blank" rel="noopener noreferrer">Открыть прикреплённый файл →</a>
+            </p>
+          {% else %}
+            <p class="sub-file cell-sub">Файл: {{ s.file_url }}</p>
+          {% endif %}
+        {% else %}
+          <p class="cell-sub">Ответ не приложен.</p>
+        {% endif %}
+
+        {% if s.assignment.expected_sql %}
+          <details class="sub-expected">
+            <summary>Эталонное решение</summary>
+            <pre class="sub-answer"><code>{{ s.assignment.expected_sql }}</code></pre>
+          </details>
+        {% endif %}
+
+        {% if s.auto_graded %}
+          <p class="cell-sub">Оценено автоматически — можно перепроверить и оставить отзыв.</p>
+        {% endif %}
+        {% if s.feedback %}<p class="sub-feedback">Текущий отзыв: «{{ s.feedback }}»</p>{% endif %}
+
+        <form class="sub-form" method="post" action="{% url 'teaching:grade' s.pk %}">
+          {% csrf_token %}
+          <label class="mono" for="score-{{ s.pk }}">балл</label>
+          <input id="score-{{ s.pk }}" name="score" type="number" min="0" max="{{ s.assignment.max_score }}"
+                 step="1" value="{{ s.score|default_if_none:''|floatformat:'-2' }}" required />
+          <label class="visually-hidden" for="feedback-{{ s.pk }}">Отзыв</label>
+          <input id="feedback-{{ s.pk }}" name="feedback" type="text" maxlength="500"
+                 placeholder="Отзыв студенту" value="{{ s.feedback|default_if_none:'' }}" />
+          <button class="btn btn-accent" type="submit" name="status" value="graded">Оценить</button>
+          <button class="btn btn-ghost" type="submit" name="status" value="returned">На доработку</button>
+        </form>
+      </article>
+    {% empty %}
+      <p class="page-sub">Сдач по вашим курсам пока нет.</p>
+    {% endfor %}
+  </div>
+
+  {% include "_pagination.html" %}
+</main>
+{% endblock %}

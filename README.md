@@ -1,0 +1,111 @@
+# DataEdu
+
+Учебная веб-платформа по базам данных для студентов педагогических направлений:
+курсы с теорией и тестами, SQL-тренажёр прямо в браузере, практические задания с
+автопроверкой, аналитика и ведомость для преподавателя, переписка, сертификаты.
+
+Устройство системы и основания принятых решений — в [ARCHITECTURE.md](ARCHITECTURE.md).
+Журнал работ — в [ЧТО_СДЕЛАНО.md](ЧТО_СДЕЛАНО.md).
+
+---
+
+## Запуск на любой машине
+
+Нужен только **Python 3.13**. СУБД устанавливать не требуется: в разработке
+платформа работает на файловой базе SQLite.
+
+```bash
+python -m venv .venv
+.venv/Scripts/activate            # Linux/macOS: source .venv/bin/activate
+pip install -r requirements.txt
+
+cp .env.example .env              # Windows (PowerShell): Copy-Item .env.example .env
+python manage.py migrate
+python manage.py load_dump        # курсы, теория, тесты и демо-данные
+python manage.py set_demo_passwords
+python manage.py setup_teacher_admin
+
+python manage.py runserver
+```
+
+Откройте http://127.0.0.1:8000.
+
+**Демо-вход:** преподаватель `petrova`, студент `dmitry`, администратор `admin`.
+Пароль всех демо-аккаунтов — `dataedu2026`.
+
+### Что делают команды наполнения
+
+| Команда | Зачем |
+| --- | --- |
+| `load_dump` | заливает содержимое из `db/dump.sql`: 8 курсов с теорией, тесты, задания, демонстрационные данные об обучении |
+| `set_demo_passwords` | задаёт демо-пароль (в дампе лежат хеши от первой версии платформы, Django их не понимает) |
+| `setup_teacher_admin` | создаёт группу «Преподаватели» с правами на контент |
+| `compute_expected` | считает эталоны для автопроверки SQL-заданий |
+| `assign_question_topics` | проставляет темы вопросам — для карты освоения |
+| `create_study_group` | набирает состав учебной группы для ведомости |
+| `create_pilot_accounts` | выдаёт обезличенные логины пачкой (апробация) |
+| `purge_metrics` | чистит события старше срока хранения |
+
+---
+
+## PostgreSQL
+
+Целевая СУБД платформы — PostgreSQL; SQLite нужен только чтобы проект поднимался
+без установки сервера. Переключение — переменными окружения в `.env`:
+
+```
+DB_ENGINE=postgres
+DB_NAME=dataedu_django
+DB_USER=postgres
+DB_PASSWORD=...
+DB_HOST=127.0.0.1
+DB_PORT=5432
+```
+
+Дальше — те же `migrate` и `load_dump`.
+
+---
+
+## Эксплуатация
+
+```bash
+DJANGO_ENV=prod \
+SECRET_KEY="$(python -c 'import secrets; print(secrets.token_urlsafe(64))')" \
+ALLOWED_HOSTS=dataedu.example.ru \
+DB_HOST=... DB_NAME=... DB_USER=... DB_PASSWORD=... \
+python manage.py collectstatic --noinput
+
+gunicorn config.wsgi:application --workers 4
+```
+
+Профиль `prod` **не запустится** без `SECRET_KEY`, с отладочным ключом или без
+параметров PostgreSQL — это сделано намеренно, потому что тихий запуск с ключом по
+умолчанию выглядит как успех. Общий кэш и сессии для нескольких рабочих процессов
+включаются переменной `REDIS_URL` (строка `redis` в `requirements.txt`).
+
+Все настройки профилей — в `config/settings/`, разбор — в
+[ARCHITECTURE.md §8](ARCHITECTURE.md).
+
+---
+
+## Проверка
+
+```bash
+python manage.py check           # системные проверки
+python manage.py test            # 331 тест
+```
+
+Тесты идут на SQLite в памяти. Прогнать их на боевом движке:
+
+```bash
+DB_ENGINE=postgres python manage.py test
+```
+
+---
+
+## Автономность
+
+Платформа не делает **ни одного** внешнего запроса: шрифты и движок PGlite
+(PostgreSQL, собранный в WebAssembly) лежат в `static/vendor/`. Это требование
+контура, в котором она разворачивается, — и заодно причина, по которой SQL-задания
+исполняются в браузере студента, а не на сервере.

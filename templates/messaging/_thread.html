@@ -1,0 +1,40 @@
+{% comment %}
+Тред переписки: лента сообщений и форма отправки.
+
+Разметка вынесена в отдельный файл, потому что используется дважды — на странице
+инбокса и виджетом на странице курса. `peer`, `course` и `messages` кладёт в
+контекст вызывающий шаблон, `next` — куда вернуться после отправки.
+
+data-атрибуты на обёртке читает static/js/chat.js: он опрашивает thread.json и
+дорисовывает новые сообщения, не перезагружая страницу. Без JS страница остаётся
+рабочей — форма обычная, ответ приходит с редиректом.
+{% endcomment %}
+<div class="chat"
+     id="chat"
+     data-thread-url="{% url 'messaging:thread_json' %}"
+     data-peer="{{ peer.pk }}"
+     data-course="{{ course.pk }}">
+  <ol class="chat-log" id="chat-log" aria-live="polite" aria-label="Переписка">
+    {% for m in messages %}
+      <li class="chat-msg {% if m.sender_id == user.pk %}is-mine{% endif %}" data-id="{{ m.id }}">
+        <div class="chat-bubble">{{ m.body|linebreaksbr }}</div>
+        <time class="chat-time mono" datetime="{{ m.created_at|date:'c' }}">{{ m.created_at|date:"d.m H:i" }}</time>
+      </li>
+    {% empty %}
+      <li class="chat-empty" id="chat-empty">{{ empty_hint|default:"Сообщений пока нет. Напишите первым." }}</li>
+    {% endfor %}
+  </ol>
+
+  {% if error %}<p class="chat-error" role="alert">{{ error }}</p>{% endif %}
+
+  <form class="chat-form" method="post" action="{% url 'messaging:send' %}">
+    {% csrf_token %}
+    <input type="hidden" name="peer" value="{{ peer.pk }}" />
+    <input type="hidden" name="course" value="{{ course.pk }}" />
+    <input type="hidden" name="next" value="{{ next }}" />
+    <label class="visually-hidden" for="chat-body">Сообщение</label>
+    <textarea id="chat-body" name="body" rows="2" maxlength="2000"
+              placeholder="Вопрос преподавателю…" required></textarea>
+    <button class="btn btn-accent" type="submit">Отправить</button>
+  </form>
+</div>

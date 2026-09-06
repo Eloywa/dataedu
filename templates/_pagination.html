@@ -1,0 +1,25 @@
+{% comment %}
+Переключатель страниц. Ждёт в контексте `page` — объект Page из Paginator.
+
+Ссылки сохраняют остальные параметры запроса (поиск, фильтр, сортировка): без
+этого переход на вторую страницу каталога сбрасывал бы подобранный фильтр.
+Строка запроса собирается тегом `querystring` (Django 5.1+) — он подменяет
+только `page` и оставляет всё прочее как есть.
+{% endcomment %}
+{% if page.paginator.num_pages > 1 %}
+  <nav class="pager" aria-label="Постраничная навигация">
+    {% if page.has_previous %}
+      <a class="pager-link" href="{% querystring page=page.previous_page_number %}" rel="prev">← назад</a>
+    {% else %}
+      <span class="pager-link is-off">← назад</span>
+    {% endif %}
+
+    <span class="pager-state mono">{{ page.number }} / {{ page.paginator.num_pages }}</span>
+
+    {% if page.has_next %}
+      <a class="pager-link" href="{% querystring page=page.next_page_number %}" rel="next">вперёд →</a>
+    {% else %}
+      <span class="pager-link is-off">вперёд →</span>
+    {% endif %}
+  </nav>
+{% endif %}

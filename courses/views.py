@@ -1,4 +1,9 @@
+import hashlib
+import hmac
+
+from django.conf import settings
 from django.contrib.auth.decorators import login_required
+from django.core.paginator import Paginator
 from django.db.models import Avg, Count
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
@@ -7,6 +12,7 @@ from django.views.decorators.http import require_POST
 
 from gamification import services
 from learning.models import Enrollment, LessonProgress, Reflection
+from messaging import services as chat
 
 from .models import Course, CourseRating, Lesson, Topic
 from .resources import get_course_resources
@@ -51,18 +57,38 @@ def catalog(request):
     else:
         qs = qs.order_by("-rating_count", "title")
 
-    courses = list(qs.distinct())
+    # Каталог разбит на страницы: «показать всё» работает, пока курсов десяток, и
+    # перестаёт работать вместе с ростом платформы. Разбиение снимает и вторую
+    # проблему — прогресс считается только для того, что видно на экране.
+    page = Paginator(qs.distinct(), settings.PAGE_SIZE).get_page(request.GET.get("page"))
+    courses = list(page.object_list)
 
-    if request.user.is_authenticated:
+    enrolled_ids = set()
+    progress_by_course = {}
+    if request.user.is_authenticated and courses:
+        course_ids = [c.id for c in courses]
         enrolled_ids = set(
-            Enrollment.objects.filter(user=request.user).values_list("course_id", flat=True)
+            Enrollment.objects.filter(user=request.user, course_id__in=course_ids).values_list(
+                "course_id", flat=True
+            )
         )
-        for c in courses:
-            c.is_enrolled = c.id in enrolled_ids
-            c.prog = _progress(request.user, c) if c.is_enrolled else None
-    else:
-        for c in courses:
-            c.is_enrolled = False
+        # Пройденные уроки по всем курсам страницы — одним запросом вместо запроса
+        # на карточку: раньше открытие каталога стоило по два обращения на курс.
+        progress_by_course = dict(
+            LessonProgress.objects.filter(
+                user=request.user, lesson__module__course_id__in=course_ids, status="completed"
+            )
+            .values_list("lesson__module__course_id")
+            .annotate(n=Count("id"))
+        )
+
+    for c in courses:
+        c.is_enrolled = c.id in enrolled_ids
+        if c.is_enrolled:
+            done = progress_by_course.get(c.id, 0)
+            total = c.lesson_count or 0
+            c.prog = {"done": done, "total": total, "pct": round(done * 100 / total) if total else 0}
+        else:
             c.prog = None
 
     return render(
@@ -70,6 +96,7 @@ def catalog(request):
         "courses/catalog.html",
         {
             "courses": courses,
+            "page": page,
             "topics": Topic.objects.order_by("name"),
             "q": q,
             "level": level,
@@ -118,6 +145,19 @@ def course_detail(request, slug):
         course.ratings.filter(user=request.user).first() if request.user.is_authenticated else None
     )
 
+    progress = _progress(request.user, course) if request.user.is_authenticated else None
+
+    # Вопрос преподавателю прямо со страницы курса: собеседник — автор курса.
+    # Виджет показывается только записанному студенту: у преподавателя для этого
+    # есть инбокс, а незаписанному писать не о чем.
+    chat_peer = None
+    chat_messages = []
+    if enrolled and request.user.is_authenticated and not request.user.is_teacher:
+        chat_peer = chat.teacher_for(course)
+        if chat_peer is not None:
+            chat_messages = chat.thread(request.user, chat_peer, course)
+            chat.mark_thread_read(request.user, chat_peer, course)
+
     return render(
         request,
         "courses/course_detail.html",
@@ -125,13 +165,78 @@ def course_detail(request, slug):
             "course": course,
             "modules": modules,
             "enrolled": enrolled,
-            "progress": _progress(request.user, course) if request.user.is_authenticated else None,
+            "progress": progress,
             "next_lesson": next_lesson,
             "resources": get_course_resources(slug),
             "rating_avg": agg["avg"],
             "rating_count": agg["cnt"],
             "reviews": reviews,
             "my_rating": my_rating,
+            "chat_peer": chat_peer,
+            "chat_messages": chat_messages,
+            "chat_error": request.GET.get("error"),
+            # Сертификат открывается только при полном прохождении — см. `certificate`.
+            "certificate_ready": bool(enrolled and progress and progress["pct"] >= 100),
+        },
+    )
+
+
+def certificate_code(user_id, course_id):
+    """Проверочный код сертификата — детерминированно из пользователя и курса.
+
+    Код не хранится в базе: он однозначно восстанавливается из той же пары, что
+    его породила, и хранить нечего. Соль — `SECRET_KEY`, поэтому по коду нельзя
+    восстановить идентификаторы, а подобрать код к чужой паре, не зная ключа,
+    нельзя. Длина — 8 символов: достаточно, чтобы код читался с бумаги и не
+    совпадал случайно у двух выпускников курса.
+    """
+    digest = hmac.new(
+        settings.SECRET_KEY.encode("utf-8"),
+        f"{user_id}:{course_id}".encode("utf-8"),
+        hashlib.sha256,
+    ).hexdigest()
+    return "DE-" + digest[:8].upper()
+
+
+@login_required
+def certificate(request, slug):
+    """Сертификат о прохождении курса — открывается при 100% пройденных уроков.
+
+    Печать штатная, браузерная (Ctrl+P), правила — в `@media print`: библиотека
+    генерации PDF сюда не заводится по той же причине, что и в ведомости (этап 11.5) —
+    системные зависимости ломают простоту установки.
+    """
+    course = get_object_or_404(Course.objects.filter(is_published=True).select_related("author"), slug=slug)
+    enrolled = Enrollment.objects.filter(user=request.user, course=course).exists()
+    progress = _progress(request.user, course)
+
+    if not enrolled or progress["pct"] < 100:
+        return render(
+            request,
+            "courses/certificate_locked.html",
+            {"course": course, "progress": progress, "enrolled": enrolled},
+            status=403,
+        )
+
+    # Дата завершения — когда закрыт последний урок курса, а не «сегодня»: сертификат
+    # должен показывать одну и ту же дату при каждом открытии.
+    last_done = (
+        LessonProgress.objects.filter(
+            user=request.user, lesson__module__course=course, status="completed"
+        )
+        .order_by("-completed_at")
+        .values_list("completed_at", flat=True)
+        .first()
+    )
+
+    return render(
+        request,
+        "courses/certificate.html",
+        {
+            "course": course,
+            "issued_at": last_done or timezone.now(),
+            "lesson_count": progress["total"],
+            "code": certificate_code(request.user.pk, course.pk),
         },
     )
 

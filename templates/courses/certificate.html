@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% block title %}Сертификат — {{ course.title }} — DataEdu{% endblock %}
+
+{% block content %}
+<main class="container page">
+  <div class="cert-actions no-print">
+    <a href="{% url 'courses:course_detail' course.slug %}" class="back-link">← К курсу</a>
+    {% comment %}
+    Печать — штатная браузерная: onclick вместо отдельного скрипта, потому что
+    кнопка ровно одна и делает ровно одно действие. Без JS кнопка бесполезна,
+    но Ctrl+P работает всегда — правила печати живут в CSS, а не в кнопке.
+    {% endcomment %}
+    <button class="btn btn-accent" type="button" onclick="window.print()">Печать</button>
+  </div>
+
+  <article class="cert">
+    <div class="cert-frame" aria-hidden="true"></div>
+
+    <div class="cert-body">
+      <div class="cert-brand mono">DataEdu</div>
+      <div class="cert-brand-sub mono">образовательная платформа</div>
+
+      {% comment %}
+      Формулировка выстроена так, чтобы обойтись без «прошёл(-ла)»: документ не
+      знает пол участника и не должен его угадывать, а скобки в бланке выглядят
+      небрежно. «Выдан … в подтверждение прохождения» — обычный для справок оборот.
+      {% endcomment %}
+      <h1 class="cert-title">Сертификат</h1>
+      <p class="cert-lead">выдан участнику</p>
+
+      <div class="cert-name">{{ user.label }}</div>
+
+      <p class="cert-lead">в подтверждение прохождения курса</p>
+      <div class="cert-course">«{{ course.title }}»</div>
+
+      <dl class="cert-meta">
+        <div>
+          <dt>Дата завершения</dt>
+          <dd>{{ issued_at|date:"j E Y" }}</dd>
+        </div>
+        <div>
+          <dt>Преподаватель</dt>
+          <dd>{% if course.author %}{{ course.author.label }}{% else %}—{% endif %}</dd>
+        </div>
+        <div>
+          <dt>Уроков пройдено</dt>
+          <dd>{{ lesson_count }}</dd>
+        </div>
+        <div>
+          <dt>Код сертификата</dt>
+          <dd class="mono">{{ code }}</dd>
+        </div>
+      </dl>
+    </div>
+  </article>
+
+  <p class="cert-note no-print">
+    Код выше однозначно соответствует паре «участник — курс» и не меняется при
+    повторном открытии страницы.
+  </p>
+</main>
+{% endblock %}

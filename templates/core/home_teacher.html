@@ -4,13 +4,42 @@
 {% block content %}
 <main class="container page">
   <h1 class="page-title">Здравствуйте, <span class="accent-ink">{{ user.label }}</span></h1>
-  <p class="page-sub">Управляйте курсами и следите за прогрессом студентов.</p>
+  <p class="page-sub">Курсы, успеваемость и очередь проверки — всё отсюда.</p>
 
   <div class="course-actions">
-    <a class="btn btn-primary" href="/admin/">Управление курсами</a>
-    <a class="btn btn-ghost" href="{% url 'courses:catalog' %}">Каталог</a>
+    <a class="btn btn-primary" href="{% url 'teaching:dashboard' %}">Панель преподавателя</a>
+    <a class="btn btn-ghost" href="/admin/">Управление курсами</a>
   </div>
 
-  <p class="page-sub mono" style="margin-top: 22px; font-size: 13px">// дашборд с аналитикой и зонами риска — на следующих этапах</p>
+  <div class="home-links">
+    <a class="home-link" href="{% url 'teaching:dashboard' %}">
+      <span class="home-link-title">Зоны риска</span>
+      <span class="home-link-sub">кто отстаёт и почему</span>
+    </a>
+    <a class="home-link" href="{% url 'teaching:analytics' %}">
+      <span class="home-link-title">Аналитика</span>
+      <span class="home-link-sub">трудность уроков, разбор вопросов, карта тем</span>
+    </a>
+    <a class="home-link" href="{% url 'teaching:report' %}">
+      <span class="home-link-title">Ведомость</span>
+      <span class="home-link-sub">итоговые отметки, печать и выгрузки</span>
+    </a>
+    <a class="home-link" href="{% url 'teaching:submissions' %}">
+      <span class="home-link-title">Проверка работ</span>
+      <span class="home-link-sub">
+        {% if pending %}ждут проверки: {{ pending }}{% else %}непроверенных нет{% endif %}
+      </span>
+    </a>
+    <a class="home-link" href="{% url 'messaging:inbox' %}">
+      <span class="home-link-title">Сообщения</span>
+      <span class="home-link-sub">
+        {% if unread_messages %}непрочитанных: {{ unread_messages }}{% else %}новых нет{% endif %}
+      </span>
+    </a>
+    <a class="home-link" href="{% url 'courses:catalog' %}">
+      <span class="home-link-title">Каталог</span>
+      <span class="home-link-sub">как курсы видят студенты</span>
+    </a>
+  </div>
 </main>
 {% endblock %}

@@ -23,6 +23,9 @@
               <a class="btn btn-primary" href="{% url 'courses:lesson_detail' next_lesson.id %}">Продолжить →</a>
             {% endif %}
             {% if progress %}<span class="progress-label">{{ progress.done }}/{{ progress.total }} уроков · {{ progress.pct }}%</span>{% endif %}
+            {% if certificate_ready %}
+              <a class="btn btn-accent" href="{% url 'courses:certificate' course.slug %}">Сертификат</a>
+            {% endif %}
           {% elif user.is_authenticated %}
             <form method="post" action="{% url 'courses:enroll' course.slug %}">
               {% csrf_token %}
@@ -97,6 +100,17 @@
           <p class="page-sub">Отзывов пока нет.</p>
         {% endfor %}
       </section>
+
+      {% if chat_peer %}
+        <section class="course-chat">
+          <h2 class="section-h">Вопрос преподавателю</h2>
+          <p class="page-sub">
+            Переписка с {{ chat_peer.label }} по этому курсу. Ответ придёт сюда же
+            и в раздел «Сообщения».
+          </p>
+          {% include "messaging/_thread.html" with peer=chat_peer course=course messages=chat_messages next=request.path error=chat_error empty_hint="Что-то непонятно в курсе? Спросите — преподаватель увидит вопрос." %}
+        </section>
+      {% endif %}
     </div>
 
     <aside class="course-side">

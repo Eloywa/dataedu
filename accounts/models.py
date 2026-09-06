@@ -1,9 +1,23 @@
+import re
 import uuid
 
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
 from django.core.validators import RegexValidator
 from django.db import models
 from django.utils import timezone
+
+
+# Допустимый вид логина — **единственный** источник правды: на него ссылается и
+# валидатор модели, и проверка в форме регистрации. Разъезжались они не гипотетически:
+# в форме стояла проверка `ch.isalnum()`, а она в Python истинна и для кириллицы, и
+# логин «иванов» проходил мимо валидатора, хотя поле объявлено латинским. Логин служит
+# ключом сопоставления при выгрузке в Moodle, и кириллица в нём ломает импорт.
+USERNAME_PATTERN = r"^[a-zA-Z0-9._-]+$"
+USERNAME_HELP = "Логин может содержать только латиницу, цифры, точку, дефис и подчёркивание."
+
+
+def is_valid_username(value):
+    return bool(re.match(USERNAME_PATTERN, value or ""))
 
 
 class Role(models.Model):
@@ -70,12 +84,7 @@ class User(AbstractBaseUser, PermissionsMixin):
         "логин",
         max_length=150,
         unique=True,
-        validators=[
-            RegexValidator(
-                r"^[a-zA-Z0-9._-]+$",
-                "Логин может содержать только латиницу, цифры, точку, дефис и подчёркивание.",
-            )
-        ],
+        validators=[RegexValidator(USERNAME_PATTERN, USERNAME_HELP)],
         help_text="Латиница, цифры, точка, дефис, подчёркивание.",
     )
     email = models.EmailField(

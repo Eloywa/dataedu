@@ -16,6 +16,10 @@ class Enrollment(models.Model):
     class Meta:
         db_table = "enrollments"
         unique_together = (("user", "course"),)
+        indexes = [
+            # Отчёты всегда начинаются с «кто записан на этот курс».
+            models.Index(fields=["course", "user"], name="idx_enrollment_course_user"),
+        ]
 
 
 class StudyGroup(models.Model):
@@ -81,6 +85,12 @@ class LessonProgress(models.Model):
     class Meta:
         db_table = "lesson_progress"
         unique_together = (("user", "lesson"),)
+        indexes = [
+            # «Сколько уроков курса пройдено» — самый частый запрос платформы:
+            # он на панели, в ведомости, в каталоге и на странице курса.
+            models.Index(fields=["user", "status"], name="idx_progress_user_status"),
+            models.Index(fields=["lesson", "status"], name="idx_progress_lesson_status"),
+        ]
 
 
 class Reflection(models.Model):
@@ -127,3 +137,10 @@ class Activity(models.Model):
 
     class Meta:
         db_table = "activities"
+        indexes = [
+            # Лента профиля и «дней без активности» на панели: и то и другое —
+            # выборка последних событий пользователя.
+            models.Index(fields=["user", "-created_at"], name="idx_activity_user_recent"),
+            # Чистка по сроку хранения (`purge_metrics`) идёт по одному времени.
+            models.Index(fields=["created_at"], name="idx_activity_created"),
+        ]

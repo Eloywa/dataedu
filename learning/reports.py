@@ -8,7 +8,7 @@
 только своих студентов, как и в админке (§17.9). Суперпользователь видит всё.
 """
 
-from django.db.models import Avg, Count, Max, Q
+from django.db.models import Avg, Case, Count, IntegerField, Max, Q, Value, When
 from django.utils import timezone
 
 from assessments.models import AnswerSubmission, Assignment, Question, Submission, Test, TestAttempt
@@ -47,7 +47,13 @@ def visible_groups(teacher):
 
 
 def student_rows(teacher, course=None):
-    """Строки таблицы студентов: прогресс, средний балл, простой, индекс риска."""
+    """Строки таблицы студентов: прогресс, средний балл, простой, индекс риска.
+
+    Все составляющие собираются **групповыми** запросами, а не запросом на строку.
+    Разница не теоретическая: в первой редакции на каждую запись делалось три
+    обращения к базе, и поток в четыреста человек превращал открытие панели в
+    тысячу двести запросов. Здесь их шесть — независимо от размера потока.
+    """
     courses = visible_courses(teacher)
     if course is not None:
         courses = courses.filter(pk=course.pk)
@@ -55,36 +61,62 @@ def student_rows(teacher, course=None):
     if not course_ids:
         return []
 
+    enrollments = list(
+        Enrollment.objects.filter(course_id__in=course_ids)
+        .select_related("user", "course")
+        .order_by("user__username")
+    )
+    if not enrollments:
+        return []
+
+    user_ids = {e.user_id for e in enrollments}
+
     lessons_per_course = dict(
         Lesson.objects.filter(module__course_id__in=course_ids)
         .values_list("module__course_id")
         .annotate(n=Count("id"))
     )
 
-    enrollments = (
-        Enrollment.objects.filter(course_id__in=course_ids)
-        .select_related("user", "course")
-        .order_by("user__username")
+    # Пройденные уроки в разрезе «студент × курс» — один запрос на всю таблицу.
+    done_by_pair = {
+        (r["user_id"], r["lesson__module__course_id"]): r["n"]
+        for r in LessonProgress.objects.filter(
+            user_id__in=user_ids, lesson__module__course_id__in=course_ids, status="completed"
+        )
+        .values("user_id", "lesson__module__course_id")
+        .annotate(n=Count("id"))
+    }
+
+    score_by_pair = {
+        (r["user_id"], r["test__lesson__module__course_id"]): r["v"]
+        for r in TestAttempt.objects.filter(
+            user_id__in=user_ids, test__lesson__module__course_id__in=course_ids
+        )
+        .values("user_id", "test__lesson__module__course_id")
+        .annotate(v=Avg("score"))
+    }
+
+    # Последнее событие каждого студента. Простой считается по активности вообще,
+    # а не по конкретному курсу: «человек не заходит» — свойство человека.
+    last_event = dict(
+        Activity.objects.filter(user_id__in=user_ids)
+        .values_list("user_id")
+        .annotate(last=Max("created_at"))
     )
 
     now = timezone.now()
     rows = []
     for e in enrollments:
+        key = (e.user_id, e.course_id)
         total = lessons_per_course.get(e.course_id, 0)
-        done = LessonProgress.objects.filter(
-            user=e.user, lesson__module__course_id=e.course_id, status="completed"
-        ).count()
+        done = done_by_pair.get(key, 0)
         completion = round(done * 100 / total) if total else 0
 
-        avg_score = TestAttempt.objects.filter(
-            user=e.user, test__lesson__module__course_id=e.course_id
-        ).aggregate(v=Avg("score"))["v"]
-        avg_score = round(float(avg_score)) if avg_score is not None else None
+        avg = score_by_pair.get(key)
+        avg_score = round(float(avg)) if avg is not None else None
 
-        last_event = (
-            Activity.objects.filter(user=e.user).order_by("-created_at").values_list("created_at", flat=True).first()
-        )
-        days_inactive = (now - last_event).days if last_event else None
+        seen_at = last_event.get(e.user_id)
+        days_inactive = (now - seen_at).days if seen_at else None
 
         risk = compute_risk(completion, avg_score, days_inactive)
         rows.append(
@@ -139,33 +171,51 @@ def lesson_difficulty_rows(teacher, course=None):
     if not course_ids:
         return []
 
-    lessons = (
+    lessons = list(
         Lesson.objects.filter(module__course_id__in=course_ids)
         .select_related("module", "module__course")
         .order_by("module__course__title", "module__order_index", "order_index")
     )
+    lesson_ids = [lesson.pk for lesson in lessons]
+    if not lesson_ids:
+        return []
+
+    # Всё, что раньше собиралось запросом на урок, собирается группировкой.
+    # На курсе из полусотни уроков это разница между двумя сотнями запросов и пятью.
+    refl_by_lesson = {
+        r["lesson_id"]: r
+        for r in Reflection.objects.filter(lesson_id__in=lesson_ids)
+        .values("lesson_id")
+        .annotate(n=Count("id"), difficulty=Avg("difficulty_rating"), clarity=Avg("clarity_rating"))
+    }
+
+    attempts_by_lesson = {
+        r["test__lesson_id"]: r
+        for r in TestAttempt.objects.filter(test__lesson_id__in=lesson_ids)
+        .values("test__lesson_id")
+        .annotate(avg_score=Avg("score"), n=Count("id"), students=Count("user_id", distinct=True))
+    }
+
+    subs_by_lesson = {
+        r["assignment__lesson_id"]: r
+        for r in Submission.objects.filter(assignment__lesson_id__in=lesson_ids)
+        .values("assignment__lesson_id")
+        .annotate(n=Count("id"), failed=Count("id", filter=Q(score__lt=1)))
+    }
 
     rows = []
     for lesson in lessons:
-        refl = Reflection.objects.filter(lesson=lesson).aggregate(
-            n=Count("id"), difficulty=Avg("difficulty_rating"), clarity=Avg("clarity_rating")
-        )
-        if not refl["n"]:
+        refl = refl_by_lesson.get(lesson.pk)
+        if not refl or not refl["n"]:
             continue
 
-        attempts = TestAttempt.objects.filter(test__lesson=lesson)
-        avg_score = attempts.aggregate(v=Avg("score"))["v"]
-        avg_score = float(avg_score) if avg_score is not None else None
-
+        att = attempts_by_lesson.get(lesson.pk)
+        avg_score = float(att["avg_score"]) if att and att["avg_score"] is not None else None
         # Среднее число попыток на студента: сколько раз в среднем брались за тест.
-        per_user = attempts.values("user_id").annotate(n=Count("id"))
-        avg_attempts = (sum(x["n"] for x in per_user) / len(per_user)) if per_user else None
+        avg_attempts = (att["n"] / att["students"]) if att and att["students"] else None
 
-        subs = Submission.objects.filter(assignment__lesson=lesson)
-        n_subs = subs.count()
-        failed_share = (
-            subs.filter(score__lt=1).count() / n_subs if n_subs else None
-        )
+        sub = subs_by_lesson.get(lesson.pk)
+        failed_share = (sub["failed"] / sub["n"]) if sub and sub["n"] else None
 
         objective = objective_difficulty(avg_score, avg_attempts, failed_share)
         subjective = subjective_difficulty(refl["difficulty"])
@@ -416,17 +466,156 @@ def gradebook_summary(rows):
     }
 
 
-def manual_queue(teacher):
-    """Работы, ожидающие ручной проверки: DDL и файловые задания."""
-    course_ids = list(visible_courses(teacher).values_list("id", flat=True))
-    manual_ids = [
-        a.id
-        for a in Assignment.objects.filter(course_id__in=course_ids)
-        if not a.is_autocheckable
-    ]
+def manual_queue(teacher, limit=20):
+    """Работы, ожидающие ручной проверки: DDL и файловые задания.
+
+    Отбор ручных заданий делает база (`AssignmentQuerySet.manual`), а не перебор в
+    Python. Длина ограничена: на панели это врезка «есть что разобрать», а не сама
+    очередь — полная живёт на странице проверки работ.
+    """
+    manual = Assignment.objects.manual().filter(
+        course_id__in=visible_courses(teacher).values("id")
+    )
     return list(
-        Submission.objects.filter(assignment_id__in=manual_ids)
+        Submission.objects.filter(assignment__in=manual)
         .exclude(status="graded")
         .select_related("user", "assignment")
-        .order_by("submitted_at")
+        .order_by("submitted_at")[:limit]
     )
+
+
+# --- Проверка работ преподавателем ------------------------------------------
+
+# Порядок разбора очереди: сначала то, что ждёт решения, в конце — уже закрытое.
+STATUS_RANK = {"submitted": 0, "returned": 1, "graded": 2}
+
+STATUS_META = {
+    "submitted": {"label": "на проверке", "tone": "warning"},
+    "returned": {"label": "на доработке", "tone": "neutral"},
+    "graded": {"label": "оценено", "tone": "success"},
+}
+
+
+def visible_submissions(teacher):
+    """Сдачи по курсам этого преподавателя — та же изоляция, что у отчётов.
+
+    Именно этот запрос отделяет «свои работы» от чужих: без фильтра по автору курса
+    преподаватель видел бы очередь коллеги, а по идентификатору из формы — и правил бы её.
+    """
+    course_ids = list(visible_courses(teacher).values_list("id", flat=True))
+    return Submission.objects.filter(assignment__course_id__in=course_ids)
+
+
+def submission_queryset(teacher):
+    """Очередь проверки: непроверенное сверху, внутри — свежее раньше.
+
+    Порядок задаётся **в базе**, а не сортировкой списка в Python. Разница
+    принципиальная: сортировка в Python требует вытащить всю очередь целиком, и
+    постраничный вывод становится невозможен — вторая страница показывала бы
+    результат сортировки другого набора строк.
+    """
+    rank = Case(
+        *[When(status=status, then=Value(rank)) for status, rank in STATUS_RANK.items()],
+        default=Value(9),
+        output_field=IntegerField(),
+    )
+    return (
+        visible_submissions(teacher)
+        .select_related("user", "assignment", "assignment__course", "graded_by")
+        .annotate(status_rank=rank)
+        .order_by("status_rank", "-submitted_at")
+    )
+
+
+def decorate_submissions(rows):
+    """Подписи и разобранный ответ — для показанной страницы очереди."""
+    for s in rows:
+        s.meta = STATUS_META.get(s.status, {"label": s.status, "tone": "neutral"})
+        s.answer = s.sql_query or s.text_answer or None
+        # «Оценено, но не человеком» — работа автопроверки. Преподавателю полезно
+        # видеть разницу: такую сдачу имеет смысл перепроверить, руками оценённую — нет.
+        s.auto_graded = s.status == "graded" and s.graded_by_id is None
+    return rows
+
+
+def submission_summary(teacher):
+    """Сводка по всей очереди, а не по видимой странице.
+
+    Считается отдельным запросом сознательно: «ждут проверки: 3», посчитанное по
+    текущей странице, вводило бы в заблуждение ровно тогда, когда очередь длинная.
+    """
+    agg = visible_submissions(teacher).aggregate(
+        total=Count("id"),
+        pending=Count("id", filter=Q(status="submitted")),
+        returned=Count("id", filter=Q(status="returned")),
+    )
+    return agg
+
+
+def student_card(teacher, student):
+    """Данные карточки студента: курсы, уроки, тесты, рефлексия.
+
+    По каждому тесту берётся **последняя** попытка, а не все: список из десяти строк
+    про один и тот же тест ничего не добавляет, а последняя показывает, где студент
+    остановился.
+    """
+    courses = list(visible_courses(teacher))
+    course_ids = [c.pk for c in courses]
+
+    enrolled = list(
+        Enrollment.objects.filter(user=student, course_id__in=course_ids)
+        .select_related("course")
+        .order_by("course__title")
+    )
+    for e in enrolled:
+        total = Lesson.objects.filter(module__course=e.course).count()
+        done = LessonProgress.objects.filter(
+            user=student, lesson__module__course=e.course, status="completed"
+        ).count()
+        e.total = total
+        e.done = done
+        e.pct = round(done * 100 / total) if total else 0
+
+    lessons = list(
+        LessonProgress.objects.filter(user=student, lesson__module__course_id__in=course_ids)
+        .select_related("lesson", "lesson__module")
+        .order_by("lesson__module__order_index", "lesson__order_index")
+    )
+
+    attempts = []
+    seen_tests = set()
+    for a in (
+        TestAttempt.objects.filter(user=student, test__lesson__module__course_id__in=course_ids)
+        .select_related("test")
+        .order_by("-finished_at", "-started_at")
+    ):
+        if a.test_id in seen_tests:
+            continue
+        seen_tests.add(a.test_id)
+        attempts.append(a)
+
+    reflections = list(
+        Reflection.objects.filter(user=student, lesson__module__course_id__in=course_ids)
+        .select_related("lesson")
+        .order_by("lesson__module__order_index", "lesson__order_index")
+    )
+
+    return {
+        "enrollments": enrolled,
+        "lessons": lessons,
+        "attempts": attempts,
+        "reflections": reflections,
+    }
+
+
+def is_my_student(teacher, student):
+    """Записан ли студент хотя бы на один курс этого преподавателя.
+
+    Проверка нужна против подстановки чужого идентификатора в адрес карточки:
+    без неё преподаватель открыл бы прогресс любого пользователя платформы.
+    """
+    if teacher.is_superuser:
+        return True
+    return Enrollment.objects.filter(
+        user=student, course_id__in=visible_courses(teacher).values_list("id", flat=True)
+    ).exists()

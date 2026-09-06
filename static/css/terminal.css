@@ -2025,6 +2025,540 @@ pre,
   }
 }
 
+/* --- Этап 12: паритет с Next-версией ------------------------------------- */
+/* Переписка, проверка работ, карточка студента, сертификат и мобильное меню. */
+
+/* Текст только для скринридера: убрать с экрана, но оставить в дереве
+   доступности. `display: none` не подходит — он выкидывает элемент и оттуда. */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Мобильное меню шапки.
+   Скрытие включает скрипт: класс js-nav ставит static/js/nav.js. Пока скрипт не
+   загрузился (или JS выключен), правило не срабатывает и меню просто видно —
+   навигация обязана работать без JS. Порог 860px продублирован в nav.js. */
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 44px;
+}
+.nav-toggle {
+  display: none;
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 10px;
+  cursor: pointer;
+}
+.nav-toggle-bars,
+.nav-toggle-bars::before,
+.nav-toggle-bars::after {
+  display: block;
+  width: 18px;
+  height: 2px;
+  background: var(--text);
+  content: "";
+}
+.nav-toggle-bars::before {
+  transform: translateY(-6px);
+}
+.nav-toggle-bars::after {
+  transform: translateY(4px);
+}
+
+.nav-messages {
+  position: relative;
+}
+.unread-badge {
+  display: inline-block;
+  min-width: 17px;
+  margin-left: 6px;
+  padding: 0 5px;
+  border-radius: 9px;
+  background: var(--danger);
+  color: var(--bg);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 17px;
+  text-align: center;
+}
+
+/* Переписка */
+.chat {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 0;
+}
+.chat-log {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: 22rem;
+  margin: 0;
+  padding: 14px;
+  overflow-y: auto;
+  list-style: none;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+}
+.chat-msg {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  max-width: 78%;
+}
+/* Свои сообщения — справа: направление разговора видно без подписей автора. */
+.chat-msg.is-mine {
+  align-self: flex-end;
+  align-items: flex-end;
+}
+.chat-bubble {
+  padding: 8px 12px;
+  border-radius: 12px;
+  background: var(--surface-2);
+  color: var(--text);
+  font-size: 14px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+.chat-msg.is-mine .chat-bubble {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+.chat-time {
+  margin-top: 3px;
+  color: var(--muted);
+  font-size: 11px;
+}
+.chat-empty {
+  color: var(--muted);
+  font-size: 14px;
+}
+.chat-error {
+  margin: 0;
+  color: var(--danger);
+  font-size: 13px;
+}
+.chat-form {
+  display: flex;
+  gap: 10px;
+  align-items: flex-end;
+}
+.chat-form textarea {
+  flex: 1;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 14px;
+  resize: vertical;
+}
+.chat-form textarea:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+.course-chat {
+  margin-top: 46px;
+}
+
+/* Инбокс */
+.inbox {
+  display: grid;
+  grid-template-columns: 18rem 1fr;
+  gap: 18px;
+  margin-top: 24px;
+}
+.inbox-list {
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  list-style: none;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+}
+.inbox-list li + li {
+  border-top: 1px solid var(--border);
+}
+.inbox-item {
+  display: block;
+  padding: 10px 12px;
+  text-decoration: none;
+  transition: background 0.15s;
+}
+.inbox-item:hover,
+.inbox-item.is-active {
+  background: var(--surface-2);
+}
+.inbox-item-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.inbox-peer {
+  color: var(--text);
+  font-weight: 600;
+  font-size: 14px;
+}
+.inbox-course {
+  color: var(--accent);
+  font-size: 12px;
+  text-decoration: none;
+}
+.inbox-last,
+.inbox-at {
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.inbox-at {
+  font-size: 11px;
+}
+.inbox-thread {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+}
+.inbox-thread-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border);
+}
+
+/* Проверка работ */
+.sub-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-top: 24px;
+}
+.sub-card {
+  padding: 18px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+}
+.sub-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+.sub-student {
+  color: var(--text);
+  font-weight: 600;
+}
+.sub-badges {
+  display: flex;
+  gap: 8px;
+}
+.sub-answer {
+  margin: 12px 0 0;
+  padding: 12px;
+  overflow-x: auto;
+  border-radius: 10px;
+  background: var(--bg);
+  font-size: 13px;
+}
+.sub-file {
+  margin: 12px 0 0;
+  font-size: 14px;
+  overflow-wrap: anywhere;
+}
+.sub-expected summary {
+  margin-top: 10px;
+  color: var(--muted);
+  font-size: 13px;
+  cursor: pointer;
+}
+.sub-feedback {
+  margin: 10px 0 0;
+  color: var(--muted);
+  font-size: 14px;
+}
+.sub-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+}
+.sub-form input {
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 14px;
+}
+.sub-form input[type="number"] {
+  width: 6rem;
+}
+.sub-form input[type="text"] {
+  flex: 1;
+  min-width: 12rem;
+}
+
+/* Карточка студента */
+.plain-list {
+  margin: 14px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.plain-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 14px;
+}
+.plain-list-blocks li {
+  display: block;
+}
+.defend-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin-top: 14px;
+}
+.defend-form .page-sub {
+  margin: 0;
+}
+
+/* Сертификат.
+   Печать — штатная браузерная (Ctrl+P), как у ведомости: отдельная библиотека
+   генерации PDF тянет системные зависимости и ломает простоту установки. */
+.cert-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.cert {
+  position: relative;
+  margin-top: 22px;
+  padding: 54px 40px;
+  overflow: hidden;
+  border: 2px solid rgba(163, 230, 53, 0.35);
+  border-radius: 16px;
+  background: var(--surface);
+  text-align: center;
+}
+.cert-frame {
+  position: absolute;
+  inset: 12px;
+  border: 1px solid rgba(163, 230, 53, 0.2);
+  border-radius: 10px;
+  pointer-events: none;
+}
+.cert-body {
+  position: relative;
+}
+.cert-brand {
+  color: var(--accent);
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+.cert-brand-sub {
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 11px;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+}
+.cert-title {
+  margin: 34px 0 0;
+  font-size: 40px;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+}
+.cert-lead {
+  margin: 8px 0 0;
+  color: var(--muted);
+  font-size: 15px;
+}
+.cert-name {
+  margin-top: 18px;
+  color: var(--accent);
+  font-family: "Space Grotesk", "Manrope", sans-serif;
+  font-size: 30px;
+  font-weight: 600;
+}
+.cert-course {
+  margin-top: 8px;
+  font-family: "Space Grotesk", "Manrope", sans-serif;
+  font-size: 23px;
+}
+.cert-meta {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+  max-width: 30rem;
+  margin: 36px auto 0;
+  text-align: left;
+}
+.cert-meta dt {
+  color: var(--muted);
+  font-size: 12px;
+}
+.cert-meta dd {
+  margin: 2px 0 0;
+  font-size: 15px;
+}
+.cert-note {
+  margin-top: 16px;
+  color: var(--muted);
+  font-size: 12px;
+  text-align: center;
+}
+
+@media (max-width: 860px) {
+  /* Меню сворачивается только когда есть чем управлять — см. js-nav выше. */
+  .nav-toggle {
+    display: block;
+  }
+  html.js-nav .nav {
+    display: none;
+  }
+  html.js-nav .nav.is-open {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    z-index: 20;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding: 18px 20px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+  }
+  .site-header .container {
+    position: relative;
+  }
+  .header-left {
+    gap: 16px;
+  }
+
+  .inbox {
+    grid-template-columns: 1fr;
+  }
+  .inbox-list {
+    max-height: 14rem;
+    overflow-y: auto;
+  }
+  .cert {
+    padding: 34px 20px;
+  }
+  .cert-title {
+    font-size: 30px;
+  }
+  .cert-meta {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Ссылки внутри отчётных таблиц и списков.
+   Появились вместе с карточкой студента и очередью проверки: до этого таблицы были
+   без ссылок, и браузер рисовал их своим синим с подчёркиванием — единственное
+   место во всём интерфейсе, выпадавшее из палитры. */
+.report-table a,
+.plain-list a {
+  color: var(--accent);
+  text-decoration: none;
+}
+.report-table a:hover,
+.plain-list a:hover {
+  text-decoration: underline;
+}
+
+/* Плитки быстрых переходов на главной преподавателя */
+.home-links {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+  gap: 14px;
+  margin-top: 34px;
+}
+.home-link {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 16px 18px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+  text-decoration: none;
+  transition: border-color 0.2s;
+}
+.home-link:hover {
+  border-color: var(--accent);
+}
+.home-link-title {
+  color: var(--text);
+  font-family: "Space Grotesk", "Manrope", sans-serif;
+  font-size: 16px;
+  font-weight: 600;
+}
+.home-link-sub {
+  color: var(--muted);
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 12px;
+}
+
+/* Постраничная навигация */
+.pager {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  margin-top: 32px;
+}
+.pager-link {
+  color: var(--accent);
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 13px;
+  text-decoration: none;
+}
+.pager-link.is-off {
+  color: var(--muted);
+  opacity: 0.5;
+}
+.pager-state {
+  color: var(--muted);
+  font-size: 13px;
+}
+
 /* Печать ведомости.
    PDF генерирует сам браузер (Ctrl+P): библиотека вроде WeasyPrint тянет системные
    зависимости и ломает простоту установки, ради которой делался этап 9.5.
@@ -2101,6 +2635,21 @@ pre,
   }
   .cell-sub {
     color: #444;
+  }
+
+  /* Сертификат на бумаге: рамка чёрная, фон белый — цветная рамка на монохромном
+     принтере превращается в серую полосу, а заливка съедает тонер. */
+  .cert {
+    border-color: #000;
+    border-radius: 0;
+    padding: 30mm 20mm;
+  }
+  .cert-frame {
+    border-color: #666;
+  }
+  .cert-brand,
+  .cert-name {
+    color: #000;
   }
   a {
     text-decoration: none;

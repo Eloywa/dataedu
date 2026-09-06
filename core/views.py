@@ -6,6 +6,7 @@ from django.views.decorators.http import require_POST
 from accounts import legal
 from courses.models import Lesson
 from gamification import services
+from learning import reports
 from learning.models import Enrollment, LessonProgress
 
 
@@ -15,7 +16,13 @@ def home(request):
         return render(request, "core/home.html")
 
     if user.is_teacher:
-        return render(request, "core/home_teacher.html")
+        # Число непроверенных работ — единственная цифра, ради которой стоит идти
+        # в базу с главной: она говорит, есть ли сегодня что разбирать.
+        return render(
+            request,
+            "core/home_teacher.html",
+            {"pending": reports.submission_summary(user)["pending"]},
+        )
 
     # Студент: найти курс «в процессе» и следующий незавершённый урок
     enrollments = Enrollment.objects.filter(user=user).select_related("course").order_by("-enrolled_at")

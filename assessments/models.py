@@ -78,6 +78,11 @@ class TestAttempt(models.Model):
 
     class Meta:
         db_table = "test_attempts"
+        indexes = [
+            # Лучшая попытка студента по тесту — основа ведомости и страницы урока.
+            models.Index(fields=["user", "test", "-score"], name="idx_attempt_user_test"),
+            models.Index(fields=["test", "is_passed"], name="idx_attempt_test_passed"),
+        ]
 
     def __str__(self):
         return f"{self.test_id} · {self.user_id}"
@@ -93,6 +98,24 @@ class AnswerSubmission(models.Model):
 
     class Meta:
         db_table = "answer_submissions"
+
+
+class AssignmentQuerySet(models.QuerySet):
+    """Разделение заданий на автопроверяемые и ручные — на стороне базы.
+
+    Раньше это решалось перебором в Python: выбирались все задания курса и
+    отсеивались свойством `is_autocheckable`. Пока заданий два десятка, разницы нет;
+    на каталоге в несколько сотен это лишняя выборка целиком ради флага, который
+    база умеет проверить сама по индексу.
+
+    Условие повторяет `is_autocheckable` и обязано с ним совпадать — на это есть тест.
+    """
+
+    def autocheckable(self):
+        return self.filter(type="sql", expected_result__isnull=False)
+
+    def manual(self):
+        return self.exclude(type="sql", expected_result__isnull=False)
 
 
 class Assignment(models.Model):
@@ -114,8 +137,14 @@ class Assignment(models.Model):
     is_final = models.BooleanField(default=False)
     created_at = models.DateTimeField(default=timezone.now)
 
+    objects = AssignmentQuerySet.as_manager()
+
     class Meta:
         db_table = "assignments"
+        indexes = [
+            # Очередь проверки и список заданий всегда идут в разрезе курса и типа.
+            models.Index(fields=["course", "type"], name="idx_assignment_course_type"),
+        ]
 
     def __str__(self):
         return self.title
@@ -127,8 +156,11 @@ class Assignment(models.Model):
         Недостаточно `type == "sql"`: нужен ещё посчитанный эталон. DDL-задания
         (`type = "ddl"`) сравнением результата не проверяются — запрос студента не
         возвращает строк; файловые — тем более. Такие идут на проверку преподавателя.
+
+        Условие обязано совпадать с `AssignmentQuerySet.autocheckable()`, иначе
+        страница задания и очередь проверки разойдутся в том, что считать ручным.
         """
-        return self.type == "sql" and bool(self.expected_result)
+        return self.type == "sql" and self.expected_result is not None
 
 
 class Submission(models.Model):
@@ -154,3 +186,8 @@ class Submission(models.Model):
 
     class Meta:
         db_table = "submissions"
+        indexes = [
+            # Очередь проверки: «непроверенное, свежее сверху».
+            models.Index(fields=["status", "-submitted_at"], name="idx_submission_status"),
+            models.Index(fields=["user", "assignment"], name="idx_submission_user_task"),
+        ]

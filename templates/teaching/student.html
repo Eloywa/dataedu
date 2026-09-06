@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+{% block title %}{{ person.label }} — DataEdu{% endblock %}
+
+{% block content %}
+<main class="container page">
+  <a href="{% url 'teaching:dashboard' %}" class="back-link">← К панели</a>
+
+  <h1 class="page-title accent-ink">{{ person.label }}</h1>
+  <p class="page-sub">
+    <span class="mono">{{ person.username }}</span>
+    {% if person.role %} · {{ person.role.name }}{% endif %}
+    · уровень {{ level.level }} · {{ person.xp }} XP
+    · достижений {{ earned_count }} из {{ achievements|length }}
+  </p>
+
+  {% if error %}<p class="chat-error" role="alert">{{ error }}</p>{% endif %}
+
+  <h2 class="section-h">Курсы</h2>
+  {% if card.enrollments %}
+    <div class="table-wrap">
+      <table class="report-table">
+        <thead><tr><th>Курс</th><th>Прогресс</th><th>Уроков</th></tr></thead>
+        <tbody>
+          {% for e in card.enrollments %}
+            <tr>
+              <td><a href="{% url 'courses:course_detail' e.course.slug %}">{{ e.course.title }}</a></td>
+              <td>{{ e.pct }}%</td>
+              <td class="mono">{{ e.done }} / {{ e.total }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <p class="page-sub">На ваши курсы не записан.</p>
+  {% endif %}
+
+  <h2 class="section-h">Итоговый проект</h2>
+  {% if project_defended %}
+    <p class="page-sub">Защита итогового проекта зачтена.</p>
+  {% elif final_assignment %}
+    <form method="post" action="{% url 'teaching:defend_project' person.pk %}" class="defend-form">
+      {% csrf_token %}
+      <button class="btn btn-accent" type="submit">Зачесть защиту проекта</button>
+      <span class="page-sub">
+        Создаст оценённую сдачу по заданию «{{ final_assignment.title }}»
+        и выдаст достижение «Защитник проекта».
+      </span>
+    </form>
+  {% else %}
+    <p class="page-sub">Итогового задания в ваших курсах нет — зачитывать нечего.</p>
+  {% endif %}
+
+  <h2 class="section-h">Уроки</h2>
+  {% if card.lessons %}
+    <ul class="plain-list">
+      {% for lp in card.lessons %}
+        <li>
+          <span>{{ lp.lesson.title }}</span>
+          {% if lp.status == "completed" %}<span class="badge badge-success">завершён</span>
+          {% elif lp.status == "in_progress" %}<span class="badge badge-warning">в процессе</span>
+          {% else %}<span class="badge badge-neutral">{{ lp.status }}</span>{% endif %}
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p class="page-sub">Данных о прохождении уроков нет.</p>
+  {% endif %}
+
+  <h2 class="section-h">Тесты</h2>
+  {% if card.attempts %}
+    <ul class="plain-list">
+      {% for a in card.attempts %}
+        <li>
+          <span>{{ a.test.title }} — {% if a.score is None %}—{% else %}{{ a.score|floatformat:"-2" }} баллов{% endif %}</span>
+          {% if a.is_passed %}<span class="badge badge-success">сдан</span>
+          {% else %}<span class="badge badge-danger">не сдан</span>{% endif %}
+        </li>
+      {% endfor %}
+    </ul>
+    <p class="page-sub">Показана последняя попытка по каждому тесту.</p>
+  {% else %}
+    <p class="page-sub">Тесты ещё не проходились.</p>
+  {% endif %}
+
+  <h2 class="section-h">Рефлексия</h2>
+  {% if card.reflections %}
+    <ul class="plain-list plain-list-blocks">
+      {% for r in card.reflections %}
+        <li>
+          <div>
+            <span class="mono">{{ r.lesson.title }}</span> —
+            понятность {{ r.clarity_rating|default:"—" }}/5,
+            трудность {{ r.difficulty_rating|default:"—" }}/5
+          </div>
+          {% comment %}
+          Комментарий, помеченный анонимным, автору принадлежит по-прежнему, но
+          на карточке конкретного студента его показывать нельзя: страница и есть
+          указание на автора. В общей аналитике он виден без имени.
+          {% endcomment %}
+          {% if r.comment and not r.comment_is_anonymous %}
+            <div class="cell-sub">«{{ r.comment }}»</div>
+          {% elif r.comment %}
+            <div class="cell-sub">комментарий оставлен анонимно — см. аналитику</div>
+          {% endif %}
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p class="page-sub">Анкеты рефлексии не заполнены.</p>
+  {% endif %}
+</main>
+{% endblock %}

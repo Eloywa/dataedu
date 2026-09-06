@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+
+{% block title %}Сообщения — DataEdu{% endblock %}
+
+{% block content %}
+<main class="container page">
+  <h1 class="page-title accent-ink">Сообщения</h1>
+  <p class="page-sub">
+    {% if user.is_teacher %}
+      Вопросы студентов по вашим курсам. Каждый предмет — отдельная переписка.
+    {% else %}
+      Переписка с преподавателями. Написать можно со страницы курса.
+    {% endif %}
+  </p>
+
+  {% if dialogs %}
+    <div class="inbox">
+      <ul class="inbox-list">
+        {% for d in dialogs %}
+          <li>
+            <a href="?peer={{ d.peer.pk }}&amp;course={{ d.course.pk }}"
+               class="inbox-item {% if active and active.peer.pk == d.peer.pk and active.course.pk == d.course.pk %}is-active{% endif %}">
+              <div class="inbox-item-top">
+                <span class="inbox-peer">{{ d.peer.label }}</span>
+                {% if d.unread %}<span class="badge badge-danger">{{ d.unread }}</span>{% endif %}
+              </div>
+              <div class="inbox-course mono">{{ d.course.title }}</div>
+              <div class="inbox-last">{{ d.last_body|truncatechars:60 }}</div>
+              <div class="inbox-at mono">{{ d.last_at|date:"d.m H:i" }}</div>
+            </a>
+          </li>
+        {% endfor %}
+      </ul>
+
+      <section class="inbox-thread">
+        {% if active %}
+          <header class="inbox-thread-head">
+            <div class="inbox-peer">{{ active.peer.label }}</div>
+            <a class="inbox-course mono" href="{% url 'courses:course_detail' active.course.slug %}">
+              {{ active.course.title }}
+            </a>
+          </header>
+          {% include "messaging/_thread.html" with peer=active.peer course=active.course messages=messages next=request.get_full_path empty_hint="Начните переписку." %}
+        {% else %}
+          <p class="page-sub" style="margin: auto">Выберите диалог слева.</p>
+        {% endif %}
+      </section>
+    </div>
+  {% else %}
+    <p class="page-sub">
+      {% if user.is_teacher %}
+        Пока никто не написал. Студенты пишут со страницы курса.
+      {% else %}
+        Диалогов пока нет. Задать вопрос можно на странице любого курса, на который вы записаны.
+      {% endif %}
+    </p>
+  {% endif %}
+</main>
+{% endblock %}

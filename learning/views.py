@@ -6,13 +6,22 @@
 
 import csv
 
-from django.http import HttpResponse
-from django.shortcuts import get_object_or_404, render
+from django.conf import settings
+from django.core.paginator import Paginator
+from django.http import Http404, HttpResponse
+from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 from django.utils import timezone
+from django.views.decorators.http import require_POST
 
 from accounts.decorators import teacher_required
+from accounts.models import User
+from assessments.models import Assignment, Submission
+from gamification import services as gamification
+from gamification.levels import level_progress
 
-from . import reports
+from . import grading, reports
+from .cache import cached_report, report_key
 
 
 def _selected_course(request, teacher):
@@ -75,8 +84,17 @@ def analytics(request):
     """Трудность уроков, анализ вопросов, карта тем, активность."""
     teacher = request.user
     course = _selected_course(request, teacher)
-    topics, topic_stats = reports.topic_mastery_rows(teacher)
-    difficulty = reports.lesson_difficulty_rows(teacher, course)
+
+    # Самая тяжёлая страница платформы: три отчёта по всем урокам, вопросам и темам.
+    # Держим посчитанное в кэше — на паре преподаватель обновляет её несколько раз
+    # подряд, и каждый раз собирать заново незачем (см. learning/cache.py).
+    topics, topic_stats = cached_report(
+        report_key("topics", teacher), lambda: reports.topic_mastery_rows(teacher)
+    )
+    difficulty = cached_report(
+        report_key("difficulty", teacher, course),
+        lambda: reports.lesson_difficulty_rows(teacher, course),
+    )
 
     # Сводка по расхождениям — то, ради чего этот отчёт и нужен.
     def count_label(name):
@@ -92,10 +110,14 @@ def analytics(request):
                 "overestimate": count_label("переоценивают"),
                 "match": count_label("совпадает"),
             },
-            "items": reports.item_analysis_rows(teacher),
+            "items": cached_report(
+                report_key("items", teacher), lambda: reports.item_analysis_rows(teacher)
+            ),
             "topics": topics,
             "topic_stats": topic_stats,
-            "activity": reports.activity_breakdown(teacher),
+            "activity": cached_report(
+                report_key("activity", teacher), lambda: reports.activity_breakdown(teacher)
+            ),
             "courses": reports.visible_courses(teacher),
             "selected": course,
         },
@@ -127,6 +149,115 @@ def report(request):
             "today": timezone.now(),
         },
     )
+
+
+@teacher_required
+def submissions(request):
+    """Очередь проверки работ: что сдали студенты по курсам этого преподавателя."""
+    page = Paginator(reports.submission_queryset(request.user), settings.PAGE_SIZE).get_page(
+        request.GET.get("page")
+    )
+    return render(
+        request,
+        "teaching/submissions.html",
+        {
+            "rows": reports.decorate_submissions(list(page.object_list)),
+            "page": page,
+            "summary": reports.submission_summary(request.user),
+            "error": request.GET.get("error"),
+        },
+    )
+
+
+@teacher_required
+@require_POST
+def grade(request, submission_id):
+    """Выставить балл и отзыв за сдачу.
+
+    Работа берётся из `visible_submissions`, а не из всех: иначе чужую сдачу можно
+    было бы оценить, подставив её идентификатор в форму.
+    """
+    submission = get_object_or_404(
+        reports.visible_submissions(request.user).select_related("assignment"), pk=submission_id
+    )
+    data, error = grading.clean_grade(
+        request.POST.get("score"),
+        request.POST.get("feedback"),
+        request.POST.get("status"),
+        submission.assignment.max_score,
+    )
+    target = reverse("teaching:submissions")
+    if error:
+        return redirect(f"{target}?error={error}#s-{submission.pk}")
+
+    submission.score = data["score"]
+    submission.feedback = data["feedback"]
+    submission.status = data["status"]
+    submission.graded_by = request.user
+    submission.graded_at = timezone.now()
+    submission.save(update_fields=["score", "feedback", "status", "graded_by", "graded_at"])
+    return redirect(f"{target}#s-{submission.pk}")
+
+
+@teacher_required
+def student(request, user_id):
+    """Карточка студента: что он прошёл по курсам этого преподавателя."""
+    person = get_object_or_404(User, pk=user_id)
+    if not reports.is_my_student(request.user, person):
+        raise Http404("Студент не найден")
+
+    achievements = gamification.get_achievements_for_user(person)
+    return render(
+        request,
+        "teaching/student.html",
+        {
+            "person": person,
+            "card": reports.student_card(request.user, person),
+            "achievements": achievements,
+            "earned_count": sum(1 for a in achievements if a["earned"]),
+            "level": level_progress(person.xp or 0),
+            "project_defended": any(
+                a["code"] == "project_defender" and a["earned"] for a in achievements
+            ),
+            "final_assignment": Assignment.objects.filter(
+                is_final=True, course__in=reports.visible_courses(request.user)
+            ).first(),
+            "error": request.GET.get("error"),
+        },
+    )
+
+
+@teacher_required
+@require_POST
+def defend_project(request, user_id):
+    """Зачесть защиту итогового проекта: оценённая сдача + достижение.
+
+    Итоговое задание берётся только из курсов этого преподавателя — зачесть защиту
+    по чужой дисциплине нельзя.
+    """
+    person = get_object_or_404(User, pk=user_id)
+    target = reverse("teaching:student", args=[person.pk])
+    if not reports.is_my_student(request.user, person):
+        raise Http404("Студент не найден")
+
+    assignment = Assignment.objects.filter(
+        is_final=True, course__in=reports.visible_courses(request.user)
+    ).first()
+    if assignment is None:
+        return redirect(f"{target}?error=Итоговое задание не найдено")
+
+    Submission.objects.update_or_create(
+        assignment=assignment,
+        user=person,
+        defaults={
+            "score": assignment.max_score,
+            "status": "graded",
+            "graded_by": request.user,
+            "graded_at": timezone.now(),
+        },
+    )
+    gamification.award_achievement(person, "project_defender")
+    return redirect(target)
 
 
 def _csv_response(filename, header, rows):

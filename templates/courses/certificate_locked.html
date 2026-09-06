@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}Сертификат пока недоступен — DataEdu{% endblock %}
+
+{% block content %}
+<main class="container page">
+  <h1 class="page-title accent-ink">Сертификат пока недоступен</h1>
+  {% if not enrolled %}
+    <p class="page-sub">Он выдаётся тем, кто записан на курс «{{ course.title }}» и прошёл его целиком.</p>
+  {% else %}
+    <p class="page-sub">
+      Он откроется, когда курс «{{ course.title }}» будет пройден полностью.
+      Сейчас пройдено {{ progress.done }} из {{ progress.total }} уроков — {{ progress.pct }}%.
+    </p>
+  {% endif %}
+  <p><a class="btn btn-ghost" href="{% url 'courses:course_detail' course.slug %}">← Вернуться к курсу</a></p>
+</main>
+{% endblock %}

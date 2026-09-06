@@ -9,7 +9,7 @@ from django.shortcuts import redirect, render
 from django.utils import timezone
 
 from .legal import VERSIONS
-from .models import Consent, Role, User
+from .models import USERNAME_HELP, Consent, Role, User, is_valid_username
 
 
 def login_view(request):
@@ -65,8 +65,11 @@ def register_view(request):
 
         if not form["username"] or not password:
             error = "Логин и пароль обязательны."
-        elif not all(ch.isalnum() or ch in "._-" for ch in form["username"]):
-            error = "Логин может содержать только латиницу, цифры, точку, дефис и подчёркивание."
+        elif not is_valid_username(form["username"]):
+            # Проверка берётся из модели, а не пишется здесь заново: `str.isalnum()`
+            # в Python истинно и для кириллицы, и рукописная проверка пропускала
+            # логины, которые поле объявляет недопустимыми.
+            error = USERNAME_HELP
         elif len(password) < 8:
             error = "Пароль должен быть не короче 8 символов."
         elif password != confirm:
