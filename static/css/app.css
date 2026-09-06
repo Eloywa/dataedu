@@ -189,10 +189,20 @@ body {
 }
 
 /* Середина забирает всё свободное место. `min-height: 0` нужен, чтобы длинные
-   страницы могли сжиматься: у элемента флекса по умолчанию он `auto`. */
+   страницы могли сжиматься: у элемента флекса по умолчанию он `auto`.
+
+   Внутри — тоже колонка, а <main> растянут на всю доступную высоту. Это нужно
+   коротким страницам вроде входа: без явной высоты у них нечего центрировать по
+   вертикали, и карточка прилипает к верхней четверти экрана. На длинных страницах
+   правило ничего не меняет — <main> и так выше окна. */
 #content {
+  display: flex;
+  flex-direction: column;
   flex: 1 0 auto;
   min-height: 0;
+}
+#content > main {
+  flex: 1 0 auto;
 }
 
 h1,
@@ -2628,10 +2638,16 @@ select {
 
 /* ===== 15. Вход, регистрация, правовые страницы ========================== */
 
+/* Колонка, а не строка: раньше здесь стоял `display: flex` в расчёте на одного
+   ребёнка, и второй блок вставал рядом с карточкой, а не под ней. Колонка с
+   центрированием ведёт себя одинаково при любом числе элементов внутри. */
 .auth-wrap {
   display: flex;
+  flex-direction: column;
+  align-items: center;
   justify-content: center;
-  padding: 56px 20px 80px;
+  gap: 16px;
+  padding: 56px 20px 72px;
 }
 .auth-card {
   width: 100%;
@@ -2655,17 +2671,6 @@ select {
   color: var(--muted);
   font-size: 14px;
   text-align: center;
-}
-.demo-note {
-  max-width: 440px;
-  margin: 18px auto 0;
-  padding: 14px 16px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  background: var(--surface-2);
-  color: var(--muted);
-  font-size: 13.5px;
-  line-height: 1.6;
 }
 
 .legal-page {
