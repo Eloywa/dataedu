@@ -27,35 +27,46 @@
 :root {
   color-scheme: light;
 
-  --bg: #ffffff;
-  --bg-soft: #f5f7fa;
-  --surface: #ffffff;
-  --surface-2: #f2f5f9;
-  --surface-3: #e9eef5;
+  /* Дневная тема — не белая. Чистый лист под текстом бьёт по глазам на длинном
+     чтении: теория урока занимает экран целиком, и белизна за ней светит ровно
+     столько, сколько человек читает. Здесь фон — тёплый серый, а карточки на
+     нём светлее фона. Разница между «подложкой» и «листом» заодно делает
+     структуру страницы видимой без единой рамки.
 
-  --text: #14181f;
-  --text-strong: #0a0d12;
-  --muted: #5a6675;
-  --muted-soft: #8b96a5;
+     Серый именно тёплый. Холодный серый на длинном тексте отдаёт больничным
+     кабинетом, тёплый читается как бумага. */
+  --bg: #edebe6;
+  --bg-soft: #e6e3dc;
+  --surface: #fbfaf8;
+  --surface-2: #f2f0ea;
+  --surface-3: #e4e1d9;
 
+  --text: #23211d;
+  --text-strong: #131210;
+  --muted: #625e57;
+  --muted-soft: #96928a;
+
+  /* Синий остаётся: он в логотипе, и менять его — менять узнаваемость.
+     На тёплой подложке холодный акцент работает как чернила на бумаге. */
   --accent: #0b57d0;
-  --accent-hover: #0842a0;
-  --accent-soft: #e8f0fe;
-  --accent-line: #b9d0f7;
+  --accent-hover: #08409e;
+  --accent-soft: #e3ebfa;
+  --accent-line: #bcd0f2;
   --on-accent: #ffffff;
 
-  --border: #dde3ea;
-  --hairline: #edf1f5;
+  --border: #dbd7ce;
+  --hairline: #e8e5de;
 
-  --success: #146c2e;
-  --success-soft: #e4f4e8;
+  --success: #1c6b34;
+  --success-soft: #e1efe4;
   --warning: #8a5a00;
-  --warning-soft: #fdf1dd;
+  --warning-soft: #f6ecd7;
   --danger: #b3261e;
-  --danger-soft: #fdeceb;
+  --danger-soft: #f8e5e2;
 
-  --shadow-1: 0 1px 2px rgba(16, 24, 40, 0.05), 0 1px 3px rgba(16, 24, 40, 0.08);
-  --shadow-2: 0 4px 14px rgba(16, 24, 40, 0.1);
+  /* Тени тёплые: серая тень на тёплом фоне выглядит грязью. */
+  --shadow-1: 0 1px 2px rgba(48, 42, 32, 0.05), 0 1px 3px rgba(48, 42, 32, 0.08);
+  --shadow-2: 0 4px 14px rgba(48, 42, 32, 0.1);
 
   --radius: 10px;
   --radius-sm: 6px;
@@ -80,36 +91,43 @@
 [data-theme="dark"] {
   color-scheme: dark;
 
-  --bg: #0f1319;
-  --bg-soft: #141922;
-  --surface: #171d26;
-  --surface-2: #1e2530;
-  --surface-3: #272f3c;
+  /* Тёмная тема уведена от сине-чёрного. Тот оттенок стоит по умолчанию в
+     половине интерфейсов, и страница на нём выглядит не оформленной, а просто
+     инвертированной. Здесь фон тёплый — тёмные чернила, а не синий пластик;
+     с антиквой в заголовках он и держится заодно.
 
-  --text: #e5e9ef;
-  --text-strong: #f5f7fa;
-  --muted: #9aa5b4;
-  --muted-soft: #7b8697;
+     Акцент приглушён по сравнению с обычным для тёмных тем ярко-синим: на
+     тёплом фоне неоновая подсветка спорит с текстом, а не выделяет его. */
+  --bg: #1a1815;
+  --bg-soft: #201d19;
+  --surface: #242019;
+  --surface-2: #2b2721;
+  --surface-3: #38332b;
 
-  --accent: #7ba7ff;
-  --accent-hover: #a4c2ff;
-  --accent-soft: rgba(123, 167, 255, 0.14);
-  --accent-line: rgba(123, 167, 255, 0.35);
-  --on-accent: #0b1220;
+  --text: #ece8e0;
+  --text-strong: #faf8f4;
+  --muted: #a8a196;
+  --muted-soft: #857e73;
 
-  --border: rgba(229, 233, 239, 0.13);
-  --hairline: rgba(229, 233, 239, 0.07);
+  --accent: #8fb1e0;
+  --accent-hover: #b2caed;
+  --accent-soft: rgba(143, 177, 224, 0.15);
+  --accent-line: rgba(143, 177, 224, 0.34);
+  --on-accent: #171512;
 
-  --success: #6edc8f;
-  --success-soft: rgba(110, 220, 143, 0.13);
-  --warning: #f0b458;
-  --warning-soft: rgba(240, 180, 88, 0.14);
-  --danger: #ff8a7a;
-  --danger-soft: rgba(255, 138, 122, 0.14);
+  --border: rgba(236, 232, 224, 0.14);
+  --hairline: rgba(236, 232, 224, 0.07);
+
+  --success: #93c9a1;
+  --success-soft: rgba(147, 201, 161, 0.14);
+  --warning: #e6b66a;
+  --warning-soft: rgba(230, 182, 106, 0.15);
+  --danger: #e89a8b;
+  --danger-soft: rgba(232, 154, 139, 0.15);
 
   /* Тени на тёмном фоне почти не читаются — глубину даёт граница. */
-  --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.4);
-  --shadow-2: 0 6px 18px rgba(0, 0, 0, 0.45);
+  --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.45);
+  --shadow-2: 0 6px 18px rgba(0, 0, 0, 0.5);
 }
 
 /* Пока человек не выбрал тему руками, слушаем системную настройку. Правило
@@ -120,35 +138,43 @@
   :root:not([data-theme]) {
     color-scheme: dark;
 
-    --bg: #0f1319;
-    --bg-soft: #141922;
-    --surface: #171d26;
-    --surface-2: #1e2530;
-    --surface-3: #272f3c;
+    /* Тёмная тема уведена от сине-чёрного. Тот оттенок стоит по умолчанию в
+       половине интерфейсов, и страница на нём выглядит не оформленной, а просто
+       инвертированной. Здесь фон тёплый — тёмные чернила, а не синий пластик;
+       с антиквой в заголовках он и держится заодно.
 
-    --text: #e5e9ef;
-    --text-strong: #f5f7fa;
-    --muted: #9aa5b4;
-    --muted-soft: #7b8697;
+       Акцент приглушён по сравнению с обычным для тёмных тем ярко-синим: на
+       тёплом фоне неоновая подсветка спорит с текстом, а не выделяет его. */
+    --bg: #1a1815;
+    --bg-soft: #201d19;
+    --surface: #242019;
+    --surface-2: #2b2721;
+    --surface-3: #38332b;
 
-    --accent: #7ba7ff;
-    --accent-hover: #a4c2ff;
-    --accent-soft: rgba(123, 167, 255, 0.14);
-    --accent-line: rgba(123, 167, 255, 0.35);
-    --on-accent: #0b1220;
+    --text: #ece8e0;
+    --text-strong: #faf8f4;
+    --muted: #a8a196;
+    --muted-soft: #857e73;
 
-    --border: rgba(229, 233, 239, 0.13);
-    --hairline: rgba(229, 233, 239, 0.07);
+    --accent: #8fb1e0;
+    --accent-hover: #b2caed;
+    --accent-soft: rgba(143, 177, 224, 0.15);
+    --accent-line: rgba(143, 177, 224, 0.34);
+    --on-accent: #171512;
 
-    --success: #6edc8f;
-    --success-soft: rgba(110, 220, 143, 0.13);
-    --warning: #f0b458;
-    --warning-soft: rgba(240, 180, 88, 0.14);
-    --danger: #ff8a7a;
-    --danger-soft: rgba(255, 138, 122, 0.14);
+    --border: rgba(236, 232, 224, 0.14);
+    --hairline: rgba(236, 232, 224, 0.07);
 
-    --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.4);
-    --shadow-2: 0 6px 18px rgba(0, 0, 0, 0.45);
+    --success: #93c9a1;
+    --success-soft: rgba(147, 201, 161, 0.14);
+    --warning: #e6b66a;
+    --warning-soft: rgba(230, 182, 106, 0.15);
+    --danger: #e89a8b;
+    --danger-soft: rgba(232, 154, 139, 0.15);
+
+    /* Тени на тёмном фоне почти не читаются — глубину даёт граница. */
+    --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.45);
+    --shadow-2: 0 6px 18px rgba(0, 0, 0, 0.5);
   }
 }
 
@@ -874,11 +900,11 @@ select {
   cursor: pointer;
 }
 [data-theme="dark"] select {
-  background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%239aa5b4' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 6l4 4 4-4'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23a8a196' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 6l4 4 4-4'/%3E%3C/svg%3E");
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme]) select {
-    background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%239aa5b4' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 6l4 4 4-4'/%3E%3C/svg%3E");
+    background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23a8a196' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 6l4 4 4-4'/%3E%3C/svg%3E");
   }
 }
 
