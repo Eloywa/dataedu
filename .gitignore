@@ -7,7 +7,9 @@ db.sqlite3
 
 # Окружение (секреты)
 .env
+.env.docker
 !.env.example
+!.env.docker.example
 
 # Статика, собранная для прода
 /staticfiles/

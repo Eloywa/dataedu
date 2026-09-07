@@ -70,9 +70,12 @@ else:
         }
     }
 
+# Хеши в именах — для своих файлов, вендор остаётся как есть: PGlite подтягивает
+# свои части по путям, вычисляемым во время выполнения. Подробности и история
+# поломки — в config/storages.py.
 STORAGES = {
     "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
-    "staticfiles": {"BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage"},
+    "staticfiles": {"BACKEND": "config.storages.VendorAwareStaticFilesStorage"},
 }
 
 

@@ -11,6 +11,7 @@ dependencies = [
     # заголовком кэша и хешем в имени, отдельный nginx для этого не нужен.
     "whitenoise>=6.9",
     "django-jazzmin>=3.0.1",
+    "gunicorn>=23.0",
 ]
 
 [project.optional-dependencies]

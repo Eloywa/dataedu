@@ -1,0 +1,78 @@
+# Развёртывание DataEdu на одной машине: приложение, nginx и PostgreSQL.
+#
+# Три контейнера, а не один с несколькими процессами внутри. Один процесс на
+# контейнер — не догма ради догмы: при падении gunicorn Docker перезапустит
+# именно его, логи каждой части идут отдельным потоком, а nginx и база
+# обновляются независимо от кода.
+#
+# Запуск:
+#   cp .env.docker.example .env.docker
+#   # заполнить SECRET_KEY, DB_PASSWORD, ALLOWED_HOSTS
+#   docker compose --env-file .env.docker up -d --build
+#
+# Первое наполнение (один раз, после того как контейнеры поднялись):
+#   docker compose --env-file .env.docker exec web python manage.py load_dump
+#   docker compose --env-file .env.docker exec web python manage.py setup_teacher_admin
+#   docker compose --env-file .env.docker exec web python manage.py createsuperuser
+#
+# `--env-file` обязателен. Без него compose подставляет ${...} из файла `.env`,
+# а тот в этом проекте занят разработкой на SQLite: база в контейнере поднялась
+# бы с чужими параметрами, а приложение искало бы её по другим. С флагом
+# источник один и тот же файл — и для подстановки, и для переменных внутри
+# контейнеров.
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_NAME:-dataedu_django}
+      POSTGRES_USER: ${DB_USER:-dataedu}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?нужно задать DB_PASSWORD в .env.docker}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    # Наружу порт не публикуется: база доступна только другим контейнерам.
+    # Для psql — docker compose exec db psql -U "$DB_USER" "$DB_NAME".
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-dataedu} -d ${DB_NAME:-dataedu_django}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  web:
+    build: .
+    restart: unless-stopped
+    env_file: .env.docker
+    environment:
+      # Профиль эксплуатации задаётся здесь, а не в .env: забыть его в файле
+      # означает поднять в контейнере профиль разработки с DEBUG.
+      DJANGO_ENV: prod
+      # Имя сервиса вместо адреса — разрешается сетью compose.
+      DB_HOST: db
+      DB_PORT: 5432
+    volumes:
+      - static:/var/www/static
+    depends_on:
+      db:
+        condition: service_healthy
+    # Порт наружу не публикуется: приложение доступно только через nginx.
+    expose:
+      - "8000"
+
+  nginx:
+    build: ./docker/nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      # Для HTTPS: раскомментировать вместе с сертификатами и server-блоком.
+      # - "443:443"
+    volumes:
+      # Только на чтение: отдавать статику nginx должен, менять — нет.
+      - static:/var/www/static:ro
+    depends_on:
+      - web
+
+volumes:
+  pgdata:
+  static:

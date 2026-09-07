@@ -75,6 +75,53 @@ DB_PORT=5432
 
 ---
 
+## Развёртывание в Docker
+
+Три контейнера: приложение под gunicorn, nginx перед ним и PostgreSQL.
+
+```bash
+cp .env.docker.example .env.docker
+# заполнить SECRET_KEY, DB_PASSWORD, ALLOWED_HOSTS
+docker compose --env-file .env.docker up -d --build
+```
+
+Первое наполнение — один раз, после того как контейнеры поднялись:
+
+```bash
+docker compose --env-file .env.docker exec web python manage.py load_dump
+docker compose --env-file .env.docker exec web python manage.py setup_teacher_admin
+docker compose --env-file .env.docker exec web python manage.py createsuperuser
+```
+
+Сайт — на 80 порту. Наружу открыт только он: приложение и база доступны лишь
+внутри сети compose.
+
+Три вещи, на которых легко споткнуться:
+
+* **`--env-file` обязателен.** Без него compose подставит `${...}` из `.env`, а
+  тот занят разработкой на SQLite: база в контейнере поднялась бы с одними
+  параметрами, приложение искало бы её по другим.
+* **`SECURE_SSL=0`, пока нет сертификата.** По умолчанию профиль эксплуатации
+  переадресует всё на HTTPS, и на голом 80-м порту это даёт бесконечную
+  переадресацию. После выпуска сертификата вернуть `1` и добавить домен в
+  `CSRF_TRUSTED_ORIGINS`.
+* **Пароль базы задаётся при первом запуске** контейнера `db` и запекается в том
+  `pgdata`. Поменять его потом можно только внутри самой базы.
+
+Статику отдаёт nginx, а не приложение: в `static/vendor` лежит движок PGlite на
+18 МБ, и каждая его загрузка занимала бы рабочий процесс gunicorn целиком.
+Файлы собираются в образ на этапе сборки и копируются в общий том при запуске.
+
+Обновление после изменений в коде:
+
+```bash
+docker compose --env-file .env.docker up -d --build
+```
+
+Миграции применяются при старте контейнера (`RUN_MIGRATIONS=0` отключает).
+
+---
+
 ## Эксплуатация
 
 ```bash

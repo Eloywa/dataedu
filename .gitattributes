@@ -13,3 +13,11 @@ templates/**/*.html linguist-language=HTML+Django
 *.css  text eol=lf
 *.js   text eol=lf
 *.md   text eol=lf
+
+# Скрипты, исполняемые в контейнере, обязаны иметь LF. С CRLF ядро Linux читает
+# шебанг как «/bin/sh» с возвратом каретки на конце, не находит такой
+# интерпретатор и сообщает «no such file or directory» про файл, который лежит
+# на месте. Ошибка сбивает с толку надолго, а всплывает только на сервере.
+*.sh   text eol=lf
+*.conf text eol=lf
+Dockerfile text eol=lf
