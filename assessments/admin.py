@@ -53,21 +53,23 @@ class TestInline(admin.TabularInline):
 
 @admin.register(Test)
 class TestAdmin(OwnedAdmin):
-    owner_path = "lesson__module__course__author"
+    course_path = "lesson__module__course"
     list_display = ("title", "lesson", "pass_score")
     inlines = [QuestionInline]
 
     def formfield_for_foreignkey(self, db_field, request, **kwargs):
         if not request.user.is_superuser and db_field.name == "lesson":
-            from courses.models import Lesson
+            from courses.models import Course, Lesson
 
-            kwargs["queryset"] = Lesson.objects.filter(module__course__author=request.user)
+            kwargs["queryset"] = Lesson.objects.filter(
+                module__course__in=Course.objects.authored_by(request.user)
+            )
         return super().formfield_for_foreignkey(db_field, request, **kwargs)
 
 
 @admin.register(Question)
 class QuestionAdmin(OwnedAdmin):
-    owner_path = "test__lesson__module__course__author"
+    course_path = "test__lesson__module__course"
     list_display = ("text", "test", "topic", "points")
     list_filter = ("topic",)
     list_editable = ("topic",)  # тему удобно проставлять пачкой прямо в списке
@@ -88,7 +90,7 @@ class AssignmentAdmin(OwnedAdmin):
     сверялись бы с эталоном от прежней редакции задания.
     """
 
-    owner_path = "course__author"
+    course_path = "course"
     list_display = ("title", "course", "level", "type", "expected_state", "is_final")
     list_filter = ("level", "type", "is_final")
     search_fields = ("title", "description")
@@ -268,13 +270,14 @@ class AssignmentAdmin(OwnedAdmin):
             self.message_user(request, f"Не удалось — {line}", messages.ERROR)
 
     def formfield_for_foreignkey(self, db_field, request, **kwargs):
-        if not request.user.is_superuser:
+        if not request.user.is_superuser and db_field.name in ("course", "lesson"):
+            # Импорт внутри метода — courses и assessments ссылаются друг на друга
+            # моделями, и импорт на уровне модуля замкнул бы круг.
+            from courses.models import Course, Lesson
+
+            mine = Course.objects.authored_by(request.user)
             if db_field.name == "course":
-                from courses.models import Course
-
-                kwargs["queryset"] = Course.objects.filter(author=request.user)
-            elif db_field.name == "lesson":
-                from courses.models import Lesson
-
-                kwargs["queryset"] = Lesson.objects.filter(module__course__author=request.user)
+                kwargs["queryset"] = mine
+            else:
+                kwargs["queryset"] = Lesson.objects.filter(module__course__in=mine)
         return super().formfield_for_foreignkey(db_field, request, **kwargs)

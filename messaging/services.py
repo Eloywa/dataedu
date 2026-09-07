@@ -145,8 +145,17 @@ def conversations(user):
 
 
 def teacher_for(course):
-    """Кому студент пишет по курсу — автору курса. None, если автор не задан."""
-    author = course.author
-    if author is None or not author.is_active or not author.is_teacher:
-        return None
-    return author
+    """Кому студент пишет по курсу.
+
+    Сначала автор — он за курс отвечает. Если автор не задан или его учётная
+    запись выключена, письмо уходит соавтору: с появлением соавторства курс
+    может остаться без автора, и вопрос студента не должен уходить в никуда.
+    Возвращает None, если писать некому — тогда форма ответа не показывается.
+    """
+
+    def suitable(user):
+        return user is not None and user.is_active and user.is_teacher
+
+    if suitable(course.author):
+        return course.author
+    return next((u for u in course.coauthors.all() if suitable(u)), None)

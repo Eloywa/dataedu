@@ -2,6 +2,7 @@ import uuid
 
 from django.conf import settings
 from django.db import models
+from django.db.models import Q
 from django.utils import timezone
 
 # Уровень сложности. Набор значений взят из перечисления `task_level` исходной
@@ -30,6 +31,18 @@ class Topic(models.Model):
         return self.name
 
 
+class CourseQuerySet(models.QuerySet):
+    def authored_by(self, user):
+        """Курсы, к которым пользователь имеет отношение как автор или соавтор.
+
+        `distinct` обязателен: соединение с таблицей соавторов задваивает строки
+        курса, у которого соавторов несколько.
+        """
+        if user is not None and user.is_superuser:
+            return self
+        return self.filter(Q(author=user) | Q(coauthors=user)).distinct()
+
+
 class Course(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     title = models.CharField(verbose_name="название", max_length=200)
@@ -44,10 +57,23 @@ class Course(models.Model):
         null=True,
         verbose_name="автор",
     )
+    # Соавторы. Отдельным полем, а не заменой `author` на «многие-ко-многим»:
+    # у курса должен оставаться один ответственный — на него записывается курс в
+    # каталоге и ему уходят вопросы студентов. Соавторы получают те же права на
+    # содержание и отчёты, но не подменяют собой автора.
+    coauthors = models.ManyToManyField(
+        settings.AUTH_USER_MODEL,
+        related_name="cocourses",
+        blank=True,
+        verbose_name="соавторы",
+        help_text="Видят курс, правят содержание и получают доступ к аналитике по нему.",
+    )
     is_published = models.BooleanField(verbose_name="опубликован", default=False)
     created_at = models.DateTimeField(verbose_name="создан", default=timezone.now)
     level = models.CharField(verbose_name="уровень", max_length=50, choices=LEVEL_CHOICES)
     cover_url = models.TextField(verbose_name="обложка", blank=True, null=True)
+
+    objects = CourseQuerySet.as_manager()
 
     class Meta:
         verbose_name = "курс"
@@ -56,6 +82,13 @@ class Course(models.Model):
 
     def __str__(self):
         return self.title
+
+    def is_authored_by(self, user):
+        """Автор или соавтор. Единственное место, где записано правило доступа
+        к курсу, — иначе оно разъедется между админкой и отчётами."""
+        if user is None or not user.is_authenticated:
+            return False
+        return self.author_id == user.pk or self.coauthors.filter(pk=user.pk).exists()
 
 
 class CourseTopic(models.Model):

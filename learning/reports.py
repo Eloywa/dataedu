@@ -29,11 +29,13 @@ from learning.models import Activity, Enrollment, LessonProgress, Reflection, St
 
 
 def visible_courses(teacher):
-    """Курсы, которые преподаватель вправе видеть."""
-    qs = Course.objects.all()
-    if not teacher.is_superuser:
-        qs = qs.filter(author=teacher)
-    return qs.order_by("title")
+    """Курсы, которые преподаватель вправе видеть: свои и те, где он соавтор.
+
+    Через эту функцию проходят все отчёты, поэтому правило доступа задаётся
+    здесь один раз — иначе соавтор видел бы курс в админке, но не находил его
+    в аналитике и ведомости.
+    """
+    return Course.objects.authored_by(teacher).order_by("title")
 
 
 def visible_groups(teacher):
