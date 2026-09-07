@@ -361,14 +361,24 @@ summary:focus-visible,
 /* ===== 3. Раскладка ====================================================== */
 
 .container {
-  max-width: 1200px;
+  /* `width: 100%` обязателен. Тело страницы — flex-колонка (ею подвал прижат к
+     низу окна), а у flex-элемента авто-поля по поперечной оси отменяют
+     растягивание: блок сжимается по содержимому. Из-за этого контейнер держал
+     1046 пикселей вместо 1200 на широком экране — сетка каталога теряла
+     четвёртую колонку, а текст шёл уже, чем задумано, на всех страницах. */
+  width: 100%;
+  /* 1320, а не 1200: на ноутбучном экране это ровно четвёртая колонка в каталоге
+     вместо третьей, то есть на треть меньше прокрутки. Читаемость длинного
+     текста при этом не страдает — абзацы урока ограничены отдельно (`.prose`,
+     72 знака в строке), и от ширины контейнера не зависят. */
+  max-width: 1320px;
   margin: 0 auto;
   padding: 0 32px;
 }
 
 .page {
-  padding-top: 40px;
-  padding-bottom: 72px;
+  padding-top: 28px;
+  padding-bottom: 44px;
 }
 
 .page-title {
@@ -377,14 +387,14 @@ summary:focus-visible,
 
 .page-sub {
   max-width: 68ch;
-  margin: 0 0 24px;
+  margin: 0 0 18px;
   color: var(--muted);
   font-size: 16px;
 }
 
 .section-h,
 .section-title {
-  margin: 40px 0 14px;
+  margin: 30px 0 12px;
   font-size: 21px;
 }
 
@@ -1224,7 +1234,7 @@ select {
 .course-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 22px;
+  gap: 18px;
 }
 
 .course-card {
