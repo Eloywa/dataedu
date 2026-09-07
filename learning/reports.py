@@ -13,6 +13,7 @@ from django.utils import timezone
 
 from assessments.models import AnswerSubmission, Assignment, Question, Submission, Test, TestAttempt
 from courses.models import Course, Lesson
+from learning import sqlerrors
 from learning.analytics import (
     compute_risk,
     divergence,
@@ -331,6 +332,100 @@ def activity_breakdown(teacher):
         .order_by("-n")
     )
     return [{"label": LABELS.get(a["type"], a["type"]), "n": a["n"]} for a in agg]
+
+
+def sql_error_rows(teacher, course=None, limit=12):
+    """«На чём спотыкаются»: классы ошибок SQL и уроки, где они случаются.
+
+    Третий объективный признак трудности рядом с баллами и числом попыток. В
+    отличие от них он отвечает не на вопрос «трудно ли», а «что именно не
+    выходит»: балл 60 у двух уроков выглядит одинаково, а за одним стоит
+    непонятая группировка, за другим — опечатки в названиях таблиц.
+
+    Разбирает ошибку браузер, сюда приходит только код класса
+    (см. `learning/sqlerrors.py`) — ни запроса, ни текста ошибки.
+
+    Запросов три и все агрегирующие: разбивка по классам, разбивка по заданиям
+    и добор самих заданий. Обход событий по одному дал бы столько обращений,
+    сколько ошибок сделали студенты, — то есть больше всего именно там, где
+    отчёт нужнее.
+    """
+    course_ids = list(visible_courses(teacher).values_list("id", flat=True))
+    if course is not None:
+        course_ids = [course.id] if course.id in course_ids else []
+    user_ids = Enrollment.objects.filter(course_id__in=course_ids).values_list("user_id", flat=True)
+
+    errors = Activity.objects.filter(user_id__in=user_ids, type="sql_error")
+
+    by_code = errors.values("metadata__code").annotate(n=Count("id")).order_by("-n")
+    counts = {}
+    for row in by_code:
+        counts[row["metadata__code"] or "other"] = counts.get(row["metadata__code"] or "other", 0) + row["n"]
+    total = sum(counts.values())
+
+    classes = [
+        {
+            "code": code,
+            "label": sqlerrors.title(code),
+            "advice": sqlerrors.ERROR_ADVICE.get(code, ""),
+            "n": n,
+            "share": round(n * 100 / total) if total else 0,
+        }
+        for code, n in sorted(counts.items(), key=lambda kv: -kv[1])
+    ]
+
+    # Разрез по урокам. Связи «событие → задание» в схеме нет (entity_id хранит
+    # идентификатор без внешнего ключа — событие переживает удаление объекта),
+    # поэтому склейка делается в Python по одному добору заданий.
+    per_task = (
+        errors.filter(entity_type="assignment")
+        .values("entity_id", "metadata__code")
+        .annotate(n=Count("id"))
+    )
+    per_task = list(per_task)
+    tasks = {
+        a.id: a
+        for a in Assignment.objects.filter(
+            id__in={r["entity_id"] for r in per_task}
+        ).select_related("lesson", "course")
+    }
+
+    lessons = {}
+    for row in per_task:
+        task = tasks.get(row["entity_id"])
+        if task is None:
+            continue
+        key = task.lesson_id or task.id
+        entry = lessons.setdefault(
+            key,
+            {
+                # Задание может быть привязано к курсу, но не к уроку — тогда
+                # называем его самим заданием, иначе строка осталась бы без имени.
+                "lesson": task.lesson.title if task.lesson else task.title,
+                "course": task.course.title,
+                "n": 0,
+                "codes": {},
+            },
+        )
+        code = row["metadata__code"] or "other"
+        entry["n"] += row["n"]
+        entry["codes"][code] = entry["codes"].get(code, 0) + row["n"]
+
+    rows = []
+    for entry in lessons.values():
+        top_code, top_n = max(entry["codes"].items(), key=lambda kv: kv[1])
+        rows.append(
+            {
+                "lesson": entry["lesson"],
+                "course": entry["course"],
+                "n": entry["n"],
+                "top_label": sqlerrors.title(top_code),
+                "top_share": round(top_n * 100 / entry["n"]) if entry["n"] else 0,
+            }
+        )
+    rows.sort(key=lambda r: -r["n"])
+
+    return {"total": total, "classes": classes[:limit], "lessons": rows[:limit]}
 
 
 # --- Ведомость по группе (этап 11.5) ----------------------------------------

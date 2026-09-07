@@ -4,6 +4,7 @@
 // Библиотека вшита в static/vendor/pglite — см. комментарий в trainer.js.
 import { PGlite } from "../vendor/pglite/index.js";
 import { rowsLabel } from "./plural.js";
+import { classify } from "./sql/errors.js";
 
 const $ = (id) => document.getElementById(id);
 const root = $("assignment");
@@ -47,8 +48,23 @@ function renderTable(res) {
   return { cols, rows: res.rows.map((r) => cols.map((c) => r[c])) };
 }
 
+// Ошибку разбирает тот же модуль, что и в тренажёре: студент, привыкший к
+// пояснению в песочнице, не должен терять его ровно там, где решает задачу.
+// Класс ошибки уходит на сервер — из него собирается отчёт «на чём спотыкаются».
 function showError(msg) {
-  $("output").innerHTML = `<div class="trainer-error mono">${esc(msg)}</div>`;
+  const { code, hint } = classify(msg);
+  $("output").innerHTML =
+    `<div class="trainer-error mono">${esc(msg)}</div>` +
+    (hint ? `<div class="diag-hint">${esc(hint)}</div>` : "");
+  const url = root.dataset.errorUrl;
+  if (!url) return;
+  fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "X-CSRFToken": csrf },
+    body: JSON.stringify({ error: code }),
+  }).catch(() => {
+    // молча: учёт не должен мешать решению задачи
+  });
 }
 // Вердикт с разбором: три проверки (столбцы / число строк / состав строк) и одна
 // подсказка о вероятной причине. Содержимое эталона сервер не присылает — только

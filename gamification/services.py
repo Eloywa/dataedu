@@ -6,6 +6,7 @@ from django.utils import timezone
 
 from courses.models import Lesson
 from learning.models import Activity, LessonProgress
+from learning.sqlerrors import ERROR_CODES
 
 from .gating import compute_gating
 from .levels import level_for_xp
@@ -38,12 +39,13 @@ def add_xp(user, amount):
     user.save(update_fields=["xp", "level"])
 
 
-def log_activity(user, type_, entity_type=None, entity_id=None):
+def log_activity(user, type_, entity_type=None, entity_id=None, metadata=None):
     Activity.objects.create(
         user=user,
         type=type_,
         entity_type=entity_type,
         entity_id=entity_id,
+        metadata=metadata,
         created_at=timezone.now(),
     )
 
@@ -142,6 +144,28 @@ def record_sql_run(user):
         ach = Achievement.objects.filter(code="first_query").first()
         return ach.title if ach else None
     return None
+
+
+def record_sql_error(user, code, assignment_id=None):
+    """Ошибка в SQL: запоминается класс ошибки, но не сам запрос и не текст ошибки.
+
+    Смысл записи — в отчёте «на чём спотыкаются»: он показывает не «урок трудный»,
+    а что именно не выходит — группировка, соединение, типы. Это третий
+    объективный признак трудности рядом с баллами и числом попыток, и в отличие
+    от них он говорит о причине, а не о следствии.
+
+    В запросе студента и в тексте ошибки PostgreSQL оказываются придуманные им
+    данные, поэтому на сервер приходит только код класса.
+    """
+    if code not in ERROR_CODES:
+        return
+    log_activity(
+        user,
+        "sql_error",
+        entity_type="assignment" if assignment_id else "trainer",
+        entity_id=assignment_id,
+        metadata={"code": code},
+    )
 
 
 def record_login(user):

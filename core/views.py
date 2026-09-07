@@ -1,3 +1,5 @@
+import json
+
 from django.conf import settings
 from django.http import JsonResponse
 from django.shortcuts import render
@@ -83,13 +85,27 @@ def trainer(request):
 
 @require_POST
 def trainer_log(request):
-    """Отметка об удачном запуске запроса: событие + «Первый запрос».
+    """Отметка о работе в тренажёре: удачный запуск или класс ошибки.
 
-    SQL сюда не передаётся — запрос исполняется только в браузере; серверу нужен
-    лишь факт запуска (аналитика этапа 11 и достижение).
+    Ни SQL, ни текст ошибки сюда не передаются — запрос исполняется только в
+    браузере, а в тексте ошибки PostgreSQL оказываются придуманные студентом
+    данные. Серверу нужен факт запуска (аналитика этапа 11 и достижение
+    «Первый запрос») и код класса ошибки для отчёта «на чём спотыкаются».
     """
     if not request.user.is_authenticated:
         return JsonResponse({"ok": False})
+
+    # Тело может не прийти вовсе: до этапа 15 отметка отправлялась пустым POST,
+    # и открытая у студента вкладка со старым скриптом не должна падать.
+    try:
+        payload = json.loads(request.body or b"{}")
+    except (ValueError, TypeError):
+        payload = {}
+
+    if payload.get("event") == "error":
+        services.record_sql_error(request.user, payload.get("error"))
+        return JsonResponse({"ok": True})
+
     achievement = services.record_sql_run(request.user)
     return JsonResponse({"ok": True, "achievement": achievement})
 

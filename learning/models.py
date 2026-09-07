@@ -25,6 +25,7 @@ ACTIVITY_TYPE_CHOICES = [
     ("test_start", "Начало теста"),
     ("test_finish", "Завершение теста"),
     ("sql_run", "Запрос в тренажёре"),
+    ("sql_error", "Ошибка в SQL"),
     ("submission", "Сдача задания"),
     ("achievement", "Достижение"),
     ("reflection", "Рефлексия"),

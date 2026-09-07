@@ -189,6 +189,68 @@
     <p class="page-sub">Ответов на вопросы пока нет.</p>
   {% endif %}
 
+  {# --- На чём спотыкаются --- #}
+  {% comment %}
+  Отчёт отвечает на вопрос, которого нет у остальных: не «трудный ли урок», а
+  что именно не выходит. Балл 60 у двух уроков выглядит одинаково, а за одним
+  стоит непонятая группировка, за другим — опечатки в названиях таблиц.
+  Разбирает ошибку браузер, сюда приходит только код класса.
+  {% endcomment %}
+  <h2 class="section-h" style="margin-top: 46px">На чём спотыкаются</h2>
+  {% if sql_errors.total %}
+    <p class="page-sub">
+      Ошибок в SQL: {{ sql_errors.total }}. Сам запрос и текст ошибки не сохраняются —
+      только класс.
+    </p>
+
+    <div class="table-wrap">
+      <table class="report-table">
+        <thead>
+          <tr><th>Класс ошибки</th><th>Доля</th><th>Раз</th><th>Что с этим делать</th></tr>
+        </thead>
+        <tbody>
+          {% for c in sql_errors.classes %}
+            <tr>
+              <td>{{ c.label }}</td>
+              <td>
+                <div class="share-bar"><i style="width: {{ c.share }}%"></i></div>
+                <span class="cell-sub">{{ c.share }}%</span>
+              </td>
+              <td>{{ c.n }}</td>
+              <td class="cell-sub">{{ c.advice }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    {% if sql_errors.lessons %}
+      <h3 class="section-title-sm" style="margin-top: 26px">Где именно</h3>
+      <div class="table-wrap">
+        <table class="report-table">
+          <thead>
+            <tr><th>Урок или задание</th><th>Курс</th><th>Ошибок</th><th>Преобладает</th></tr>
+          </thead>
+          <tbody>
+            {% for l in sql_errors.lessons %}
+              <tr>
+                <td>{{ l.lesson }}</td>
+                <td class="cell-sub">{{ l.course }}</td>
+                <td>{{ l.n }}</td>
+                <td>{{ l.top_label }} <span class="cell-sub">{{ l.top_share }}%</span></td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% endif %}
+  {% else %}
+    <p class="page-sub">
+      Ошибок пока не записано. Отчёт наполняется, когда студенты решают задания и
+      работают в тренажёре.
+    </p>
+  {% endif %}
+
   {# --- Активность --- #}
   <h2 class="section-h" style="margin-top: 46px">Активность</h2>
   {% if activity %}

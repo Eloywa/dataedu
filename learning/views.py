@@ -81,7 +81,7 @@ def dashboard(request):
 
 @teacher_required
 def analytics(request):
-    """Трудность уроков, анализ вопросов, карта тем, активность."""
+    """Трудность уроков, ошибки в SQL, анализ вопросов, карта тем, активность."""
     teacher = request.user
     course = _selected_course(request, teacher)
 
@@ -117,6 +117,10 @@ def analytics(request):
             "topic_stats": topic_stats,
             "activity": cached_report(
                 report_key("activity", teacher), lambda: reports.activity_breakdown(teacher)
+            ),
+            "sql_errors": cached_report(
+                report_key("sqlerrors", teacher, course),
+                lambda: reports.sql_error_rows(teacher, course),
             ),
             "courses": reports.visible_courses(teacher),
             "selected": course,

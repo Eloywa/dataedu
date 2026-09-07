@@ -187,6 +187,25 @@ def check_assignment(request, assignment_id):
     return JsonResponse({"passed": passed, "checks": report["checks"], "hint": report["hint"]})
 
 
+@login_required
+@require_POST
+def report_error(request, assignment_id):
+    """Класс ошибки SQL при решении задания.
+
+    Отдельная точка, а не поле в `check`: ошибка происходит раньше проверки —
+    запрос не выполнился, и сравнивать с эталоном нечего. Приходит только код
+    класса (см. `learning/sqlerrors.py`), запрос и текст ошибки остаются в
+    браузере.
+    """
+    assignment = get_object_or_404(Assignment, id=assignment_id)
+    try:
+        payload = json.loads(request.body or b"{}")
+    except (ValueError, TypeError):
+        return JsonResponse({"ok": False}, status=400)
+    services.record_sql_error(request.user, payload.get("error"), assignment_id=assignment.id)
+    return JsonResponse({"ok": True})
+
+
 def _feedback_text(report):
     """Текст для `Submission.feedback` — чтобы преподаватель видел ту же картину.
 

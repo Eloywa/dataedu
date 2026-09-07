@@ -18,6 +18,7 @@
       id="assignment"
       class="trainer"
       data-check-url="{% url 'assessments:check' assignment.id %}"
+      data-error-url="{% url 'assessments:report_error' assignment.id %}"
       data-csrf="{{ csrf_token }}"
 >
       <label class="visually-hidden" for="sql">Ваш SQL-запрос</label>
