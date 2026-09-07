@@ -3,7 +3,7 @@ from django import template
 from django.utils.safestring import mark_safe
 
 from assessments.models import Assignment
-from courses.cover import cover_for
+from courses.cover import cover_for, photo_for
 from courses.models import Course
 
 register = template.Library()
@@ -20,7 +20,13 @@ LEVEL_TONE = {"basic": "success", "medium": "warning", "advanced": "danger"}
 @register.inclusion_tag("courses/_cover.html")
 def course_cover(slug, css_class=""):
     a, b, icon = cover_for(slug)
-    return {"a": a, "b": b, "icon": mark_safe(icon), "css_class": css_class}
+    return {
+        "a": a,
+        "b": b,
+        "icon": mark_safe(icon),
+        "css_class": css_class,
+        "photo": photo_for(slug),
+    }
 
 
 @register.filter

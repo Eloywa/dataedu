@@ -1,3 +1,17 @@
-<div class="course-cover {{ css_class }}" style="background: linear-gradient(135deg, {{ a }}, {{ b }});" role="img" aria-label="Обложка курса">
-  <svg viewBox="0 0 24 24" class="cover-icon" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">{{ icon }}</svg>
-</div>
+{% load static %}
+{% comment %}
+Обложка курса. Со снимком — картинка; без него остаётся рисованная плашка
+с градиентом и иконкой, чтобы курс, заведённый преподавателем, не выглядел
+дырой в каталоге.
+
+Снимок пустой для чтения с экрана (alt=""): название курса стоит рядом в той же
+карточке, и озвучивать «обложка курса» второй раз незачем.
+{% endcomment %}
+{% if photo %}
+  <img class="course-cover cover-photo {{ css_class }}" src="{% static photo %}" alt=""
+       width="900" height="506" loading="lazy" decoding="async" />
+{% else %}
+  <div class="course-cover {{ css_class }}" style="background: linear-gradient(135deg, {{ a }}, {{ b }});" role="img" aria-label="Обложка курса">
+    <svg viewBox="0 0 24 24" class="cover-icon" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">{{ icon }}</svg>
+  </div>
+{% endif %}
