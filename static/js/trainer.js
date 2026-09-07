@@ -111,32 +111,58 @@ async function report(payload) {
 
 // PGlite скачивает 16 МБ и о ходе загрузки не сообщает. На быстрой машине это
 // незаметно, в аудитории с общим каналом — секунд восемь пустой строки
-// «загрузка…». Файлы запрашиваются заранее ради шкалы: движок берёт их из кеша.
+// «загрузка…». Поэтому файлы скачиваются здесь, со шкалой, и передаются движку
+// готовыми (см. `preload`), а не оставляются ему на самостоятельную загрузку.
 const HEAVY = [
   ["pglite.wasm", 9851],
   ["pglite.data", 6146],
 ];
 
-async function warmUp(onProgress) {
+async function readWithProgress(file, onChunk) {
+  const res = await fetch(new URL(`../vendor/pglite/${file}`, import.meta.url));
+  if (!res.ok) throw new Error(`${file}: ${res.status}`);
+  const reader = res.body.getReader();
+  const parts = [];
+  for (;;) {
+    const chunk = await reader.read();
+    if (chunk.done) break;
+    parts.push(chunk.value);
+    onChunk(chunk.value.length);
+  }
+  return new Blob(parts);
+}
+
+/**
+ * Скачивает движок со шкалой и отдаёт его уже разобранным.
+ *
+ * Скачанное обязательно передаётся в PGlite: иначе он тянет те же файлы второй
+ * раз, и шкала, задуманная как утешение на время загрузки, сама удваивает её —
+ * почти десять лишних мегабайт. Имена `pgliteWasmModule` и `fsBundle` — из
+ * самого PGlite; при обновлении библиотеки их надо сверить. Если не совпадут,
+ * поломки не будет: движок просто скачает файлы сам, как и раньше.
+ */
+async function preload(onProgress) {
   const total = HEAVY.reduce((sum, [, kb]) => sum + kb, 0);
   let done = 0;
-  await Promise.all(
-    HEAVY.map(async ([file]) => {
-      try {
-        const res = await fetch(new URL(`../vendor/pglite/${file}`, import.meta.url));
-        const reader = res.body.getReader();
-        for (;;) {
-          const chunk = await reader.read();
-          if (chunk.done) break;
-          done += chunk.value.length / 1024;
-          onProgress(Math.min(99, (done / total) * 100));
-        }
-      } catch {
-        // не вышло — просто не будет шкалы, движок скачает файлы сам
-      }
-    }),
-  );
-  onProgress(100);
+  const tick = (bytes) => {
+    done += bytes / 1024;
+    onProgress(Math.min(99, (done / total) * 100));
+  };
+
+  try {
+    const [wasm, data] = await Promise.all([
+      readWithProgress("pglite.wasm", tick),
+      readWithProgress("pglite.data", tick),
+    ]);
+    onProgress(100);
+    return {
+      pgliteWasmModule: await WebAssembly.compile(await wasm.arrayBuffer()),
+      fsBundle: data,
+    };
+  } catch {
+    onProgress(100);
+    return {}; // не вышло — движок скачает файлы сам
+  }
 }
 
 function setProgress(percent) {
@@ -172,13 +198,13 @@ async function seed(key) {
   }
 }
 
-async function openDb() {
+async function openDb(artifacts) {
   try {
-    return await PGlite.create({ dataDir: STORE });
+    return await PGlite.create({ dataDir: STORE, ...artifacts });
   } catch {
     // Хранилище недоступно (приватный режим, кончилась квота) — работаем в
     // памяти. Тренажёр важнее сохранности учебной песочницы.
-    return await PGlite.create();
+    return await PGlite.create({ ...artifacts });
   }
 }
 
@@ -596,10 +622,10 @@ async function init() {
   const wanted = chooseDataset();
   try {
     setStatus("Загружаю PostgreSQL (16 МБ)…");
-    await warmUp(setProgress);
+    const artifacts = await preload(setProgress);
     setStatus("Запускаю сервер…");
 
-    db = await openDb();
+    db = await openDb(artifacts);
     const existing = await currentDataset();
     if (existing === wanted) {
       dataset = existing;
