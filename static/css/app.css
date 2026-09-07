@@ -373,6 +373,22 @@ summary:focus-visible,
   font-size: 13px;
 }
 
+/* Доля в ячейке таблицы. Число рядом остаётся: полоса даёт сравнить строки
+   взглядом, число — назвать величину, и одно другое не заменяет. */
+.share-bar {
+  width: 90px;
+  height: 4px;
+  margin-bottom: 3px;
+  border-radius: 2px;
+  background: var(--surface-3);
+  overflow: hidden;
+}
+.share-bar i {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+}
+
 .back-link,
 .link-plain {
   display: inline-block;
@@ -461,10 +477,22 @@ summary:focus-visible,
   color: var(--text-strong);
 }
 
+/* Меню прокручивается внутри своей коробки, а не вылезает из неё. У `.header-left`
+   стоит `min-width: 0` — без этого длинное меню (у преподавателя пунктов больше)
+   не давало шапке сжиматься. Но переполнение при этом рисовалось поверх соседей:
+   на ноутбучной ширине пункты наезжали на имя и кнопку выхода. Прокрутка держит
+   их внутри; полоса скрыта, потому что на такой ширине она занимает больше
+   места, чем экономит. */
 .nav {
   display: flex;
   align-items: center;
   gap: 24px;
+  min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.nav::-webkit-scrollbar {
+  display: none;
 }
 .nav a {
   position: relative;
@@ -658,6 +686,27 @@ summary:focus-visible,
   border-color: var(--muted-soft);
   background: var(--surface-2);
   color: var(--text-strong);
+}
+
+.btn-small {
+  padding: 5px 11px;
+  font-size: 13px;
+}
+
+/* Кнопка, которая выглядит ссылкой: действие внутри строки текста («выгрузить
+   CSV», «добавить строк»). Ссылкой её делать нельзя — она никуда не ведёт. */
+.link-button {
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--accent);
+  font: inherit;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+.link-button:hover {
+  color: var(--accent-hover);
 }
 
 .btn-danger {
@@ -2032,18 +2081,224 @@ select {
   font-variant-numeric: tabular-nums;
 }
 
-/* План запроса. Отступы значимы — по ним читается вложенность узлов, поэтому
-   `pre-wrap`, а не обычный перенос. */
-.trainer-plan {
-  padding: 16px;
-  overflow-x: auto;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  background: var(--surface-2);
+/* План запроса деревом.
+
+   Текстовый EXPLAIN здесь больше не выводится: вложенность в нём задана
+   отступами, а время — накопительное, и студент неизбежно читает корень как
+   самый дорогой узел. В дереве у каждого узла своя полоса, и её длина — это
+   собственное время, без вложенных. */
+.plan-tree,
+.plan-children {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.plan-children {
+  margin-top: 8px;
+  padding-left: 18px;
+  border-left: 2px solid var(--border);
+}
+.plan-node {
+  margin-bottom: 10px;
+}
+.plan-bar {
+  height: 4px;
+  margin-bottom: 6px;
+  border-radius: 2px;
+  background: var(--surface-3);
+  overflow: hidden;
+}
+.plan-bar i {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+}
+.plan-hot > .plan-bar i {
+  background: var(--danger);
+}
+.plan-head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  font-size: 14px;
+}
+.plan-head b {
+  color: var(--text-strong);
+  font-weight: 600;
+}
+.plan-rel {
+  color: var(--muted);
   font-size: 13px;
-  line-height: 1.6;
-  white-space: pre-wrap;
-  tab-size: 2;
+}
+.plan-share {
+  margin-left: auto;
+  color: var(--muted);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+.plan-hot > .plan-head .plan-share {
+  color: var(--danger);
+  font-weight: 600;
+}
+.plan-meta {
+  color: var(--muted);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+.plan-cond {
+  margin-top: 3px;
+  font-size: 12px;
+  color: var(--text);
+  overflow-x: auto;
+  white-space: nowrap;
+}
+.plan-cond span {
+  margin-right: 6px;
+  color: var(--muted-soft);
+}
+/* Замечание — единственное место в плане, где написано «почему медленно».
+   Поэтому оно выделено, а не растворено в общем сером тексте. */
+.plan-flag {
+  margin-top: 6px;
+  padding: 7px 11px;
+  border-left: 3px solid var(--warning);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  background: var(--warning-soft);
+  color: var(--text);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+/* Замер: было и стало. */
+.measure {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.measure-now b {
+  color: var(--text-strong);
+  font-family: var(--font-mono);
+  font-size: 20px;
+  font-variant-numeric: tabular-nums;
+}
+.measure-wall {
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 400;
+}
+.measure-plan {
+  color: var(--muted);
+  font-size: 12px;
+}
+.measure-delta {
+  padding: 10px 13px;
+  border-radius: var(--radius-sm);
+  background: var(--surface-3);
+  font-size: 14px;
+  font-weight: 600;
+}
+.measure-delta.ok {
+  background: var(--success-soft);
+  color: var(--success);
+}
+.measure-delta.warn {
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+.measure-note {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.55;
+}
+.measure-note.ok {
+  color: var(--success);
+}
+
+/* Шкала загрузки движка. Показывается только до готовности базы. */
+.trainer-boot {
+  margin-bottom: 4px;
+}
+.boot-track {
+  height: 3px;
+  border-radius: 2px;
+  background: var(--surface-3);
+  overflow: hidden;
+}
+.boot-track i {
+  display: block;
+  width: 0;
+  height: 100%;
+  background: var(--accent);
+  transition: width 0.2s linear;
+}
+
+.trainer-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+/* ER-диаграмма. Цвета — токенами, чтобы следовать теме: картинкой пришлось бы
+   держать два файла, а SVG в разметке подчиняется тем же переменным. */
+.trainer-schema.is-diagram {
+  font-family: var(--font-sans);
+}
+.er-scroll {
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+.er {
+  max-width: 100%;
+  height: auto;
+}
+.er-box {
+  fill: var(--surface);
+  stroke: var(--border);
+  stroke-width: 1;
+}
+.er-head {
+  fill: var(--accent-soft);
+  stroke: var(--border);
+  stroke-width: 1;
+}
+.er-title {
+  fill: var(--text-strong);
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-weight: 600;
+}
+.er-col {
+  fill: var(--text);
+  font-family: var(--font-mono);
+  font-size: 11px;
+}
+.er-key {
+  fill: var(--text-strong);
+  font-weight: 600;
+}
+.er-mark {
+  fill: var(--muted-soft);
+  font-family: var(--font-sans);
+  font-size: 9px;
+  font-weight: 700;
+  text-anchor: end;
+}
+.er-link {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 1.5;
+}
+.er-dot {
+  fill: var(--accent);
+}
+/* Сторона «один» — полая точка: у ссылающегося столбца заливка, у ключа контур.
+   Кардинальность видно, не подписывая её словами. */
+.er-dot-one {
+  fill: var(--bg);
+  stroke: var(--accent);
+  stroke-width: 1.5;
 }
 
 .trainer-history summary {

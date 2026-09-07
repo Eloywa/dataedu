@@ -50,14 +50,30 @@ def site_scripts():
     не ведётся руками: иначе он разойдётся с действительностью при первом же
     новом файле.
     """
-    referenced = set()
+    entry = set()
     for path in site_templates():
         text = path.read_text(encoding="utf-8")
         for name in re.findall(r"js/([\w.-]+\.js)", text):
-            referenced.add(name)
-    for script in SCRIPTS.glob("*.js"):
-        if script.name in referenced:
-            yield script
+            entry.add(SCRIPTS / name)
+
+    # Модули, подключённые не из разметки, а импортом из другого модуля, тоже
+    # рисуют разметку. Обход по импортам добавлен после того, как классы вывода
+    # тренажёра переехали в static/js/sql/ и выпали из проверки: список,
+    # собранный по одним лишь тегам <script>, снова разошёлся бы с делом.
+    seen = set()
+    queue = [path for path in entry if path.exists()]
+    while queue:
+        script = queue.pop()
+        if script in seen:
+            continue
+        seen.add(script)
+        text = script.read_text(encoding="utf-8")
+        for target in re.findall(r'from\s+"([./][\w./-]+\.js)"', text):
+            child = (script.parent / target).resolve()
+            if child.exists() and SCRIPTS.resolve() in child.parents:
+                queue.append(child)
+
+    yield from sorted(seen)
 
 
 class TokenTests(SimpleTestCase):

@@ -3,40 +3,22 @@
 // Библиотека вшита в static/vendor/pglite — ни один внешний запрос не уходит:
 // тренажёр работает без интернета, и IP студента не утекает в зарубежный CDN.
 import { PGlite } from "../vendor/pglite/index.js";
-import { rowsLabel } from "./plural.js";
+import { pluralRu, rowsLabel } from "./plural.js";
+import { DATASETS, DEFAULT_DATASET, WIPE } from "./sql/datasets.js";
+import { classify } from "./sql/errors.js";
+import { parsePlan, renderPlan, scanNodes } from "./sql/plan.js";
+import { readSchema, renderList, renderDiagram } from "./sql/schema.js";
 
-// Фиксированный учебный набор — одинаковый для всех. Пересоздаётся при сбросе.
-const SEED = `
-DROP TABLE IF EXISTS students;
-DROP TABLE IF EXISTS groups;
-CREATE TABLE groups (
-  id      integer PRIMARY KEY,
-  name    text NOT NULL,
-  curator text
-);
-INSERT INTO groups (id, name, curator) VALUES
-  (1, 'ПИ-101', 'Иванов И. И.'),
-  (2, 'ПИ-102', 'Петрова О. И.'),
-  (3, 'МО-201', 'Сидоров С. С.');
-CREATE TABLE students (
-  id        integer PRIMARY KEY,
-  full_name text NOT NULL,
-  group_id  integer REFERENCES groups(id),
-  xp        integer NOT NULL DEFAULT 0
-);
-INSERT INTO students (id, full_name, group_id, xp) VALUES
-  (1,  'Анна Соколова',     1, 320),
-  (2,  'Дмитрий Соколов',   1, 180),
-  (3,  'Мария Иванова',     1, 240),
-  (4,  'Павел Кузнецов',    2, 90),
-  (5,  'Ольга Попова',      2, 410),
-  (6,  'Артём Михайлов',    2, 0),
-  (7,  'Полина Захарова',   2, 150),
-  (8,  'Денис Григорьев',   3, 200),
-  (9,  'Виктория Иванова',  3, 365),
-  (10, 'Глеб Тимофеев',     3, 130),
-  (11, 'Егор Новиков',      1, 275),
-  (12, 'Софья Морозова',    3, 55);
+// База живёт в IndexedDB, а не в памяти вкладки. Дело не только в том, что
+// созданные студентом таблицы переживают перезагрузку: создание кластера с нуля
+// занимает около 1,8 с, и раньше эта секунда с лишним набегала на каждый заход.
+const STORE = "idb://dataedu-trainer";
+
+// Служебная таблица лежит в отдельной схеме: в public она попадала бы в список
+// таблиц и на диаграмму, и студент считал бы её частью учебных данных.
+const META = `
+CREATE SCHEMA IF NOT EXISTS dataedu;
+CREATE TABLE IF NOT EXISTS dataedu.meta (dataset text NOT NULL);
 `;
 
 // Сколько строк рисовать. Ограничение не косметическое: студент, изучающий
@@ -48,28 +30,26 @@ const RENDER_LIMIT = 200;
 // шаг-другой назад, а не журнал за всё занятие.
 const HISTORY_LIMIT = 20;
 
+// Замер повторяет запрос несколько раз и берёт медиану: первый прогон греет
+// кеш буферов, а разброс между соседними запусками в WebAssembly заметный.
+const MEASURE_RUNS = 5;
+
+// Ниже этого числа строк индекс не нужен, и планировщик его не возьмёт —
+// на таком объёме сравнивать «до и после» бессмысленно.
+const SMALL_TABLE = 5000;
+
 const $ = (id) => document.getElementById(id);
 let db = null;
-let history = [];
+let dataset = DEFAULT_DATASET;
+let restored = false;
+let schema = { tables: [], links: [] };
+let schemaView = "list";
+let queries = [];
 let historyPos = -1;
+let lastResult = null; // для выгрузки в CSV
+const measured = new Map(); // нормализованный SQL → последний замер
 
-// Отметка об удачном запуске: серверу уходит только факт (для аналитики и
-// достижения «Первый запрос»), сам SQL остаётся в браузере.
-async function logRun() {
-  const root = $("trainer");
-  const url = root && root.dataset.logUrl;
-  if (!url) return; // гость — не логируем
-  try {
-    const res = await fetch(url, {
-      method: "POST",
-      headers: { "X-CSRFToken": root.dataset.csrf },
-    });
-    const data = await res.json();
-    if (data.achievement) setStatus("Достижение: «" + data.achievement + "»", "ok");
-  } catch {
-    // молча: аналитика не должна мешать работе тренажёра
-  }
-}
+// --- Мелочи ------------------------------------------------------------------
 
 function esc(v) {
   return String(v).replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" })[c]);
@@ -90,84 +70,141 @@ function ms(value) {
   return value < 10 ? value.toFixed(1) : Math.round(value);
 }
 
-async function makeDb() {
-  const d = await PGlite.create();
-  await d.exec(SEED);
-  return d;
+/** Запрос без лишних пробелов и регистра — чтобы узнать «тот же самый» при замере. */
+function normalize(sql) {
+  return sql.replace(/\s+/g, " ").trim().toLowerCase().replace(/;$/, "");
 }
 
-// --- Разбор ошибок PostgreSQL ------------------------------------------------
-//
-// Сообщения приходят по-английски и в терминах движка: «relation does not exist»
-// ничего не говорит второкурснику, который ищет опечатку в названии таблицы.
-// Здесь — перевод самых частых на язык учебной задачи. Оригинал остаётся рядом:
-// умение читать вывод СУБД — тоже часть курса, прятать его нельзя.
-const ERROR_HINTS = [
-  [/relation "(.+?)" does not exist/i, (m) => `Таблицы «${m[1]}» в базе нет. Проверьте название — список таблиц слева.`],
-  [/column "(.+?)" does not exist/i, (m) => `Столбца «${m[1]}» нет. Разверните таблицу в списке слева, чтобы увидеть её столбцы.`],
-  [/column (.+?) must appear in the GROUP BY/i, (m) => `Столбец ${m[1]} не агрегирован: при GROUP BY каждый столбец из SELECT либо перечислен в группировке, либо обёрнут в агрегат — count, sum, avg.`],
-  [/syntax error at or near "(.+?)"/i, (m) => `Синтаксическая ошибка около «${m[1]}». Обычно причина раньше этого места: пропущенная запятая, скобка или ключевое слово.`],
-  [/operator does not exist: (.+)/i, (m) => `Несовместимые типы в сравнении (${m[1]}). Число со строкой напрямую сравнивать нельзя — приведите тип через CAST или ::.`],
-  [/division by zero/i, () => "Деление на ноль. Отсеките нулевой делитель через NULLIF или условие в WHERE."],
-  [/duplicate key value violates unique constraint/i, () => "Такое значение уже есть, а столбец объявлен уникальным. Это и есть ограничение целостности в работе."],
-  [/null value in column "(.+?)".*not-null/i, (m) => `Столбец «${m[1]}» объявлен NOT NULL — значение обязательно.`],
-  [/violates foreign key constraint/i, () => "Внешний ключ ссылается на несуществующую строку. Сначала добавьте запись в таблицу, на которую ссылаетесь."],
-  [/permission denied|must be owner/i, () => "Операция запрещена. В песочнице доступны обычные запросы и работа с таблицами, но не администрирование сервера."],
+/** Только читающие запросы можно выполнять повторно.
+ *  EXPLAIN ANALYZE на INSERT действительно вставляет строки, а замер повторил бы
+ *  вставку пять раз — «показать план» тихо менял бы данные студента. */
+function readOnly(sql) {
+  return /^\s*(select|with|table|values)\b/i.test(sql);
+}
+
+function quoteIdent(name) {
+  return '"' + String(name).replace(/"/g, '""') + '"';
+}
+
+// --- Учёт на сервере ---------------------------------------------------------
+
+// Серверу уходит только факт: запуск запроса и класс ошибки. Ни SQL, ни текст
+// ошибки не передаются — в них попадают и данные, которые студент придумал сам.
+async function report(payload) {
+  const root = $("trainer");
+  const url = root && root.dataset.logUrl;
+  if (!url) return; // гость — не логируем
+  try {
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-CSRFToken": root.dataset.csrf },
+      body: JSON.stringify(payload),
+    });
+    const data = await res.json();
+    if (data.achievement) setStatus("Достижение: «" + data.achievement + "»", "ok");
+  } catch {
+    // молча: аналитика не должна мешать работе тренажёра
+  }
+}
+
+// --- Загрузка движка ---------------------------------------------------------
+
+// PGlite скачивает 16 МБ и о ходе загрузки не сообщает. На быстрой машине это
+// незаметно, в аудитории с общим каналом — секунд восемь пустой строки
+// «загрузка…». Файлы запрашиваются заранее ради шкалы: движок берёт их из кеша.
+const HEAVY = [
+  ["pglite.wasm", 9851],
+  ["pglite.data", 6146],
 ];
 
-function explainError(message) {
-  for (const [pattern, build] of ERROR_HINTS) {
-    const m = pattern.exec(message);
-    if (m) return build(m);
+async function warmUp(onProgress) {
+  const total = HEAVY.reduce((sum, [, kb]) => sum + kb, 0);
+  let done = 0;
+  await Promise.all(
+    HEAVY.map(async ([file]) => {
+      try {
+        const res = await fetch(new URL(`../vendor/pglite/${file}`, import.meta.url));
+        const reader = res.body.getReader();
+        for (;;) {
+          const chunk = await reader.read();
+          if (chunk.done) break;
+          done += chunk.value.length / 1024;
+          onProgress(Math.min(99, (done / total) * 100));
+        }
+      } catch {
+        // не вышло — просто не будет шкалы, движок скачает файлы сам
+      }
+    }),
+  );
+  onProgress(100);
+}
+
+function setProgress(percent) {
+  const bar = $("boot-bar");
+  if (bar) bar.style.width = percent.toFixed(0) + "%";
+}
+
+// --- База --------------------------------------------------------------------
+
+async function currentDataset() {
+  try {
+    const res = await db.query("SELECT dataset FROM dataedu.meta LIMIT 1");
+    return res.rows.length ? res.rows[0].dataset : null;
+  } catch {
+    return null; // схемы ещё нет — база пустая
   }
-  return null;
 }
 
-function showError(message) {
-  const hint = explainError(message);
-  $("output").innerHTML =
-    `<div class="trainer-error mono">${esc(message)}</div>` +
-    (hint ? `<div class="diag-hint">${esc(hint)}</div>` : "");
+async function seed(key) {
+  await db.exec(WIPE);
+  await db.exec(DATASETS[key].sql);
+  await db.exec(META);
+  await db.exec("DELETE FROM dataedu.meta;");
+  await db.query("INSERT INTO dataedu.meta (dataset) VALUES ($1)", [key]);
+  // Без статистики планировщик считает любую таблицу крошечной, и план на
+  // раздутых данных получается неправдоподобным.
+  await db.exec("ANALYZE;");
+  dataset = key;
+  try {
+    localStorage.setItem("trainer-dataset", key);
+  } catch {
+    // приватный режим — просто не запомним выбор
+  }
 }
 
-// --- Схема из самой базы -----------------------------------------------------
+async function openDb() {
+  try {
+    return await PGlite.create({ dataDir: STORE });
+  } catch {
+    // Хранилище недоступно (приватный режим, кончилась квота) — работаем в
+    // памяти. Тренажёр важнее сохранности учебной песочницы.
+    return await PGlite.create();
+  }
+}
+
+// --- Схема -------------------------------------------------------------------
 
 async function refreshSchema() {
   const body = $("schema").querySelector(".schema-body");
   try {
-    // Столбцы и таблицы одним запросом: отдельный запрос на таблицу дал бы
-    // столько же обращений, сколько таблиц, ради одного и того же соединения.
-    const res = await db.query(`
-      SELECT table_name, column_name, data_type
-      FROM information_schema.columns
-      WHERE table_schema = 'public'
-      ORDER BY table_name, ordinal_position
-    `);
-    const tables = new Map();
-    for (const r of res.rows) {
-      if (!tables.has(r.table_name)) tables.set(r.table_name, []);
-      tables.get(r.table_name).push(r.column_name);
-    }
-    if (!tables.size) {
-      body.innerHTML = "<div class='schema-empty'>Таблиц нет. Создайте их или нажмите «Сбросить базу».</div>";
-      return;
-    }
-    body.innerHTML = [...tables]
-      .map(
-        ([name, cols]) =>
-          `<div class="schema-table"><b>${esc(name)}</b>` +
-          `<span class="schema-cols">(${cols.map(esc).join(", ")})</span></div>`,
-      )
-      .join("");
+    schema = await readSchema(db);
+    body.innerHTML = schemaView === "list" ? renderList(schema) : renderDiagram(schema);
   } catch {
     body.textContent = "Не удалось прочитать схему.";
   }
 }
 
+function toggleSchemaView() {
+  schemaView = schemaView === "list" ? "diagram" : "list";
+  $("schema-view").textContent = schemaView === "list" ? "Диаграмма" : "Списком";
+  $("schema").classList.toggle("is-diagram", schemaView === "diagram");
+  refreshSchema();
+}
+
 // --- История -----------------------------------------------------------------
 
 function remember(sql) {
-  history = [sql, ...history.filter((q) => q !== sql)].slice(0, HISTORY_LIMIT);
+  queries = [sql, ...queries.filter((q) => q !== sql)].slice(0, HISTORY_LIMIT);
   historyPos = -1;
   renderHistory();
 }
@@ -175,16 +212,29 @@ function remember(sql) {
 function renderHistory() {
   const box = $("history");
   const list = $("history-list");
-  box.hidden = history.length === 0;
-  list.innerHTML = history
-    .map((q, i) => `<li><button type="button" class="history-item mono" data-i="${i}">${esc(q)}</button></li>`)
+  box.hidden = queries.length === 0;
+  list.innerHTML = queries
+    .map(
+      (q, i) =>
+        `<li><button type="button" class="history-item mono" data-i="${i}">${esc(q)}</button></li>`,
+    )
     .join("");
 }
 
-// --- Выполнение --------------------------------------------------------------
+// --- Вывод -------------------------------------------------------------------
+
+function showError(message) {
+  const { code, hint } = classify(message);
+  $("output").innerHTML =
+    `<div class="trainer-error mono">${esc(message)}</div>` +
+    (hint ? `<div class="diag-hint">${esc(hint)}</div>` : "");
+  lastResult = null;
+  report({ event: "error", error: code });
+}
 
 function renderResult(res, elapsed) {
   const out = $("output");
+  lastResult = null;
   if (!res) {
     out.innerHTML = "";
     return;
@@ -193,13 +243,16 @@ function renderResult(res, elapsed) {
 
   if (!res.fields || res.fields.length === 0) {
     const n = res.affectedRows;
-    out.innerHTML =
-      `<div class="trainer-note">Выполнено${n != null ? ` · строк затронуто: ${n}` : ""} ${timing}</div>`;
+    out.innerHTML = `<div class="trainer-note">Выполнено${
+      n != null ? ` · строк затронуто: ${n}` : ""
+    } ${timing}</div>`;
     return;
   }
 
   const cols = res.fields.map((f) => f.name);
   const shown = res.rows.slice(0, RENDER_LIMIT);
+  lastResult = { cols, rows: res.rows };
+
   let html = '<div class="trainer-table-wrap"><table class="trainer-table"><thead><tr>';
   html += cols.map((c) => `<th>${esc(c)}</th>`).join("");
   html += "</tr></thead><tbody>";
@@ -208,84 +261,366 @@ function renderResult(res, elapsed) {
   }
   html += "</tbody></table></div>";
   html += `<div class="trainer-note">${rowsLabel(res.rows.length)} ${timing}`;
-  if (res.rows.length > RENDER_LIMIT) {
-    html += ` · показаны первые ${RENDER_LIMIT}`;
-  }
+  if (res.rows.length > RENDER_LIMIT) html += ` · показаны первые ${RENDER_LIMIT}`;
+  html += ' · <button type="button" class="link-button" id="csv">выгрузить CSV</button>';
   html += "</div>";
   out.innerHTML = html;
 }
 
-// План запроса выводится как есть, моноширинным блоком: это текст, у которого
-// значим каждый отступ — по ним и читается вложенность узлов плана.
-function renderPlan(rows, elapsed) {
-  const text = rows.map((r) => Object.values(r)[0]).join("\n");
-  $("output").innerHTML =
-    `<div class="trainer-plan mono">${esc(text)}</div>` +
-    `<div class="trainer-note">План построен за <span class="trainer-timing">${ms(elapsed)} мс</span>. ` +
-    "Читается снизу вверх: нижние узлы выполняются первыми.</div>";
+// --- Выполнение --------------------------------------------------------------
+
+function busy(state) {
+  for (const id of ["run", "explain", "measure", "reset"]) $(id).disabled = state;
 }
 
-async function execute({ plan = false } = {}) {
+async function execute() {
   const sql = $("sql").value.trim();
   if (!sql || !db) return;
-  $("run").disabled = true;
-  $("explain").disabled = true;
+  busy(true);
   try {
     const started = performance.now();
-    if (plan) {
-      // ANALYZE действительно выполняет запрос — иначе в плане не будет
-      // фактического числа строк, а именно расхождение оценки с фактом и
-      // объясняет, почему запрос медленный.
-      const res = await db.query(`EXPLAIN (ANALYZE, BUFFERS) ${sql}`);
-      renderPlan(res.rows, performance.now() - started);
-    } else {
-      const results = await db.exec(sql);
-      const elapsed = performance.now() - started;
-      const withRows = [...results].reverse().find((r) => r.fields && r.fields.length);
-      renderResult(withRows || results[results.length - 1], elapsed);
-    }
+    const results = await db.exec(sql);
+    const elapsed = performance.now() - started;
+    const withRows = [...results].reverse().find((r) => r.fields && r.fields.length);
+    renderResult(withRows || results[results.length - 1], elapsed);
     remember(sql);
     await refreshSchema();
-    logRun();
+    report({ event: "run" });
   } catch (e) {
     showError(e && e.message ? e.message : String(e));
   } finally {
-    $("run").disabled = false;
-    $("explain").disabled = false;
+    busy(false);
   }
 }
 
-async function reset() {
-  $("reset").disabled = true;
-  setStatus("Сброс базы…");
-  db = await makeDb();
+async function planFor(sql) {
+  // ANALYZE выполняет запрос по-настоящему — иначе в плане не будет фактического
+  // числа строк, а именно расхождение оценки с фактом объясняет, почему запрос
+  // медленный. Для изменяющих запросов ANALYZE не годится: план обошёлся бы
+  // студенту лишними вставленными строками.
+  const analyze = readOnly(sql);
+  const options = analyze ? "ANALYZE, BUFFERS, FORMAT JSON" : "FORMAT JSON";
+  const res = await db.query(`EXPLAIN (${options}) ${sql}`);
+  return { plan: parsePlan(res.rows), analyzed: analyze };
+}
+
+async function explain() {
+  const sql = $("sql").value.trim();
+  if (!sql || !db) return;
+  busy(true);
+  try {
+    const { plan, analyzed } = await planFor(sql);
+    $("output").innerHTML =
+      renderPlan(plan) +
+      (analyzed
+        ? ""
+        : "<div class='diag-hint'>Запрос изменяет данные, поэтому план построен без " +
+          "ANALYZE: фактического времени в нём нет. Выполнять запрос ради замера " +
+          "тренажёр не станет — это изменило бы вашу базу.</div>");
+    remember(sql);
+  } catch (e) {
+    showError(e && e.message ? e.message : String(e));
+  } finally {
+    busy(false);
+  }
+}
+
+// --- Замер: что даёт индекс --------------------------------------------------
+
+async function listIndexes() {
+  const res = await db.query(
+    "SELECT indexname FROM pg_indexes WHERE schemaname = 'public' ORDER BY indexname",
+  );
+  return res.rows.map((r) => r.indexname);
+}
+
+async function rowCounts(names) {
+  const out = new Map();
+  for (const name of new Set(names.filter(Boolean))) {
+    try {
+      const res = await db.query(`SELECT count(*) AS n FROM ${quoteIdent(name)}`);
+      out.set(name, Number(res.rows[0].n));
+    } catch {
+      // таблицы могло не стать между планом и подсчётом — не беда
+    }
+  }
+  return out;
+}
+
+/** «в 2,5 раза», «в 200 раз» — при дробном числе форма всегда «раза». */
+function times(ratio) {
+  if (ratio < 10) return `в ${ratio.toFixed(1).replace(".", ",")} раза`;
+  const whole = Math.round(ratio);
+  return `в ${whole} ${pluralRu(whole, "раз", "раза", "раз")}`;
+}
+
+function scanSummary(scans) {
+  if (!scans.length) return "просмотров таблиц нет";
+  return scans
+    .map((s) => `${s.type}${s.relation ? " по " + s.relation : ""}${s.index ? ` (${s.index})` : ""}`)
+    .join(", ");
+}
+
+function renderMeasure(now, before, counts) {
+  let html = "<div class='measure'>";
+  html += `<div class="measure-now"><b>${ms(now.median)} мс</b> — медиана ${MEASURE_RUNS} прогонов`;
+  html += `<span class="measure-wall"> · ${ms(now.wall)} мс вместе с обменом с браузером</span></div>`;
+  html += `<div class="measure-plan mono">${esc(scanSummary(now.scans))}</div>`;
+
+  if (before) {
+    // Пол в сотую миллисекунды: запрос по индексу к трём строкам укладывается в
+    // ноль, и отношение выродилось бы в бесконечность.
+    const ratio = Math.max(before.median, 0.01) / Math.max(now.median, 0.01);
+    const faster = ratio >= 1.15;
+    const slower = ratio <= 0.87;
+    const added = now.indexes.filter((i) => !before.indexes.includes(i));
+    const dropped = before.indexes.filter((i) => !now.indexes.includes(i));
+
+    html += `<div class="measure-delta ${faster ? "ok" : slower ? "warn" : ""}">`;
+    html += `Было ${ms(before.median)} мс → стало ${ms(now.median)} мс`;
+    if (faster) html += ` — быстрее ${times(ratio)}`;
+    else if (slower) html += ` — медленнее ${times(1 / ratio)}`;
+    else html += " — разница в пределах разброса";
+    html += "</div>";
+
+    if (added.length) {
+      html += `<div class="measure-note">Появился индекс: ${esc(added.join(", "))}.</div>`;
+    }
+    if (dropped.length) {
+      html += `<div class="measure-note">Индекс удалён: ${esc(dropped.join(", "))}.</div>`;
+    }
+    const wasSeq = before.scans.some((s) => s.type === "Seq Scan");
+    const nowIndex = now.scans.some((s) => /Index/.test(s.type));
+    if (wasSeq && nowIndex) {
+      html +=
+        "<div class='measure-note ok'>Планировщик сменил последовательный просмотр на " +
+        "поиск по индексу — ровно то, ради чего индекс и создавался.</div>";
+    }
+    if (added.length && !faster) {
+      html +=
+        "<div class='measure-note'>Индекс есть, а быстрее не стало. Обычные причины: " +
+        "строк слишком мало, условие не совпадает с индексируемым выражением, или " +
+        "запрос всё равно читает почти всю таблицу.</div>";
+    }
+  } else {
+    html +=
+      "<div class='measure-note'>Это первый замер. Создайте индекс и нажмите " +
+      "«Замерить» ещё раз — покажу разницу.</div>";
+  }
+
+  const small = [...counts].filter(([, n]) => n < SMALL_TABLE);
+  if (small.length && DATASETS[dataset]) {
+    html +=
+      `<div class="measure-note">В таблице ${esc(small[0][0])} всего ${small[0][1]} строк. ` +
+      "На таком объёме индекс не нужен, и планировщик его не возьмёт — он прав. " +
+      '<button type="button" class="link-button" id="bulk">Добавить 200 000 строк</button></div>';
+  }
+
+  html += "</div>";
+  return html;
+}
+
+async function measure() {
+  const sql = $("sql").value.trim();
+  if (!sql || !db) return;
+  if (!readOnly(sql)) {
+    $("output").innerHTML =
+      "<div class='diag-hint'>Замерять можно только читающие запросы: повторный прогон " +
+      "INSERT или UPDATE изменил бы данные пять раз подряд.</div>";
+    return;
+  }
+  busy(true);
+  setStatus(`Замер: ${MEASURE_RUNS} прогонов…`);
+  try {
+    await db.query(sql); // прогрев: первый прогон читает мимо кеша буферов
+
+    // Меряется время самой базы (Execution Time из плана), а не время до ответа
+    // в JavaScript. Обмен с WebAssembly стоит около полутора десятков
+    // миллисекунд независимо от запроса, и на таком фоне выигрыш от индекса
+    // выглядит двукратным там, где на деле он десятикратный: постоянное
+    // слагаемое одинаково подмешано и в «до», и в «после». Общее время рядом
+    // остаётся — студент ждёт именно его.
+    const runs = [];
+    for (let i = 0; i < MEASURE_RUNS; i++) {
+      const started = performance.now();
+      const { plan } = await planFor(sql);
+      runs.push({ exec: plan["Execution Time"] || 0, wall: performance.now() - started, plan });
+    }
+    runs.sort((a, b) => a.exec - b.exec);
+
+    const middle = runs[Math.floor(MEASURE_RUNS / 2)];
+    const scans = scanNodes(middle.plan);
+    const now = {
+      median: middle.exec,
+      wall: middle.wall,
+      scans,
+      indexes: await listIndexes(),
+    };
+    const key = normalize(sql);
+    const before = measured.get(key);
+    measured.set(key, now);
+
+    const counts = await rowCounts(scans.map((s) => s.relation));
+    $("output").innerHTML = renderMeasure(now, before, counts);
+    setStatus("Готово — выполняйте запросы", "ok");
+    remember(sql);
+  } catch (e) {
+    showError(e && e.message ? e.message : String(e));
+    setStatus("Готово — выполняйте запросы", "ok");
+  } finally {
+    busy(false);
+  }
+}
+
+// --- Выгрузка и ссылка -------------------------------------------------------
+
+function toCsv({ cols, rows }) {
+  const cell = (v) => {
+    const s = v === null || v === undefined ? "" : fmt(v);
+    return /[";\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+  };
+  // Разделитель — точка с запятой, и файл начинается с BOM: русский Excel читает
+  // запятую как десятичный знак, а без BOM показывает кириллицу кракозябрами.
+  const lines = [cols.map(cell).join(";")];
+  for (const row of rows) lines.push(cols.map((c) => cell(row[c])).join(";"));
+  return "﻿" + lines.join("\r\n");
+}
+
+function downloadCsv() {
+  if (!lastResult) return;
+  const blob = new Blob([toCsv(lastResult)], { type: "text/csv;charset=utf-8" });
+  const link = document.createElement("a");
+  link.href = URL.createObjectURL(blob);
+  link.download = "result.csv";
+  link.click();
+  setTimeout(() => URL.revokeObjectURL(link.href), 1000);
+}
+
+/** Запрос в адресной строке: преподаватель отвечает ссылкой, а не пересказом. */
+async function shareLink() {
+  const sql = $("sql").value.trim();
+  if (!sql) return;
+  const url = new URL(location.href);
+  url.hash = `d=${dataset}&q=${encodeURIComponent(sql)}`;
+  window.history.replaceState(null, "", url.toString());
+  try {
+    await navigator.clipboard.writeText(url.toString());
+    setStatus("Ссылка на запрос скопирована", "ok");
+  } catch {
+    // Буфер обмена требует разрешения и защищённого соединения — но ссылка уже
+    // в адресной строке, скопировать её можно руками.
+    setStatus("Ссылка в адресной строке — скопируйте её", "ok");
+  }
+}
+
+function readHash() {
+  const hash = location.hash.replace(/^#/, "");
+  if (!hash) return {};
+  const params = new URLSearchParams(hash);
+  return { sql: params.get("q"), dataset: params.get("d") };
+}
+
+// --- Запуск ------------------------------------------------------------------
+
+function chooseDataset() {
+  const fromHash = readHash().dataset;
+  if (fromHash && DATASETS[fromHash]) return fromHash;
+  try {
+    const saved = localStorage.getItem("trainer-dataset");
+    if (saved && DATASETS[saved]) return saved;
+  } catch {
+    // приватный режим
+  }
+  return DEFAULT_DATASET;
+}
+
+function fillDatasetSelect() {
+  const select = $("dataset");
+  select.innerHTML = Object.entries(DATASETS)
+    .map(([key, d]) => `<option value="${key}">${esc(d.title)} — ${esc(d.note)}</option>`)
+    .join("");
+  select.value = dataset;
+}
+
+async function switchDataset(key) {
+  busy(true);
+  setStatus("Меняю набор данных…");
+  await seed(key);
   $("output").innerHTML = "";
+  measured.clear();
+  await refreshSchema();
+  setStatus(`Набор «${DATASETS[key].title}» готов`, "ok");
+  busy(false);
+}
+
+async function reset() {
+  busy(true);
+  setStatus("Сброс базы…");
+  await seed(dataset);
+  $("output").innerHTML = "";
+  measured.clear();
   await refreshSchema();
   setStatus("База сброшена — готово", "ok");
-  $("reset").disabled = false;
+  busy(false);
 }
 
 async function init() {
+  const wanted = chooseDataset();
   try {
-    db = await makeDb();
+    setStatus("Загружаю PostgreSQL (16 МБ)…");
+    await warmUp(setProgress);
+    setStatus("Запускаю сервер…");
+
+    db = await openDb();
+    const existing = await currentDataset();
+    if (existing === wanted) {
+      dataset = existing;
+      restored = true;
+    } else {
+      await seed(wanted);
+    }
+
+    fillDatasetSelect();
     await refreshSchema();
-    setStatus("Готово — выполняйте запросы", "ok");
-    $("run").disabled = false;
-    $("explain").disabled = false;
-    $("reset").disabled = false;
+
+    const { sql } = readHash();
+    if (sql) $("sql").value = sql;
+
+    $("boot").hidden = true;
+    setStatus(
+      restored ? "База восстановлена — выполняйте запросы" : "Готово — выполняйте запросы",
+      "ok",
+    );
+    busy(false);
   } catch (e) {
+    $("boot").hidden = true;
     setStatus("Не удалось загрузить PGlite: " + (e && e.message ? e.message : e), "err");
   }
 }
 
-$("run").addEventListener("click", () => execute());
-$("explain").addEventListener("click", () => execute({ plan: true }));
+// --- События -----------------------------------------------------------------
+
+$("run").addEventListener("click", execute);
+$("explain").addEventListener("click", explain);
+$("measure").addEventListener("click", measure);
 $("reset").addEventListener("click", reset);
+$("share").addEventListener("click", shareLink);
+$("schema-view").addEventListener("click", toggleSchemaView);
+$("dataset").addEventListener("change", (e) => switchDataset(e.target.value));
+
+$("output").addEventListener("click", (e) => {
+  if (e.target.id === "csv") downloadCsv();
+  if (e.target.id === "bulk") {
+    $("sql").value = DATASETS[dataset].bulk;
+    $("sql").focus();
+    setStatus("Выполните вставку, затем ANALYZE; и снова «Замерить»", "ok");
+  }
+});
 
 $("history-list").addEventListener("click", (e) => {
   const item = e.target.closest(".history-item");
   if (!item) return;
-  $("sql").value = history[Number(item.dataset.i)];
+  $("sql").value = queries[Number(item.dataset.i)];
   $("sql").focus();
 });
 
@@ -298,13 +633,13 @@ $("sql").addEventListener("keydown", (e) => {
   // Ctrl+↑/↓ листает историю. Именно с модификатором: голые стрелки нужны для
   // перемещения по многострочному запросу, и перехватывать их нельзя.
   if ((e.ctrlKey || e.metaKey) && (e.key === "ArrowUp" || e.key === "ArrowDown")) {
-    if (!history.length) return;
+    if (!queries.length) return;
     e.preventDefault();
     historyPos =
       e.key === "ArrowUp"
-        ? Math.min(historyPos + 1, history.length - 1)
+        ? Math.min(historyPos + 1, queries.length - 1)
         : Math.max(historyPos - 1, -1);
-    $("sql").value = historyPos === -1 ? "" : history[historyPos];
+    $("sql").value = historyPos === -1 ? "" : queries[historyPos];
   }
 });
 

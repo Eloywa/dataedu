@@ -3,12 +3,12 @@
 {% block title %}SQL-тренажёр — DataEdu{% endblock %}
 
 {% block content %}
-<main class="container page" style="max-width: 900px">
+<main class="container page" style="max-width: 980px">
   <h1 class="page-title">SQL-тренажёр</h1>
   <p class="page-sub">
-    Песочница PostgreSQL прямо в браузере (PGlite). База у каждого своя — можно
-    <code>SELECT</code>, <code>INSERT</code>, <code>UPDATE</code>, <code>CREATE</code>;
-    что-то сломалось — нажмите «Сбросить базу».
+    Песочница PostgreSQL прямо в браузере (PGlite). База у каждого своя и живёт между
+    заходами — можно <code>SELECT</code>, <code>INSERT</code>, <code>UPDATE</code>,
+    <code>CREATE</code>; что-то сломалось — нажмите «Сбросить базу».
   </p>
 
   <div
@@ -16,6 +16,21 @@
     id="trainer"
     {% if user.is_authenticated %}data-log-url="{% url 'core:trainer_log' %}" data-csrf="{{ csrf_token }}"{% endif %}
 >
+    {% comment %}
+    Шкала загрузки. Движок весит 16 МБ и о ходе загрузки не сообщает: на общем
+    канале студент несколько секунд смотрел на слово «загрузка» и решал, что
+    страница сломалась.
+    {% endcomment %}
+    <div class="trainer-boot" id="boot">
+      <div class="boot-track"><i id="boot-bar"></i></div>
+    </div>
+
+    <div class="trainer-bar">
+      <label class="visually-hidden" for="dataset">Набор данных</label>
+      <select id="dataset" class="toolbar-select"></select>
+      <button type="button" class="btn btn-ghost btn-small" id="schema-view">Диаграмма</button>
+    </div>
+
     {% comment %}
     Схема заполняется скриптом из information_schema, а не вписана в шаблон:
     раньше здесь был список из двух таблиц, и созданная студентом третья в нём
@@ -34,13 +49,19 @@
     <div class="trainer-actions">
       <button id="run" class="btn btn-primary" disabled>Выполнить</button>
       {% comment %}
-      «Показать план» — тот же запрос через EXPLAIN ANALYZE. Курс «Индексы и
-      производительность» про это и написан, а потрогать план было негде.
+      «Показать план» — тот же запрос через EXPLAIN ANALYZE, разобранный в дерево.
+      «Замерить» повторяет запрос пять раз и сравнивает с прошлым замером: между
+      ними студент успевает создать индекс, и разница — это и есть урок.
       {% endcomment %}
       <button id="explain" class="btn btn-ghost" disabled
               title="EXPLAIN ANALYZE: как база собирается выполнять запрос">
         Показать план
       </button>
+      <button id="measure" class="btn btn-ghost" disabled
+              title="Повторить запрос несколько раз и сравнить с прошлым замером">
+        Замерить
+      </button>
+      <button id="share" class="btn btn-ghost" title="Ссылка на этот запрос">Ссылка</button>
       <button id="reset" class="btn btn-ghost" disabled>Сбросить базу</button>
       <span id="status" class="trainer-status mono">Загрузка PGlite…</span>
     </div>
