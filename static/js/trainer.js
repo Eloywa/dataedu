@@ -7,7 +7,7 @@ import { pluralRu, rowsLabel } from "./plural.js";
 import { DATASETS, DEFAULT_DATASET, WIPE } from "./sql/datasets.js";
 import { classify } from "./sql/errors.js";
 import { parsePlan, renderPlan, scanNodes } from "./sql/plan.js";
-import { readSchema, renderList, renderDiagram } from "./sql/schema.js";
+import { readSchema, renderList, renderDiagram, bindDiagram } from "./sql/schema.js";
 
 // База живёт в IndexedDB, а не в памяти вкладки. Дело не только в том, что
 // созданные студентом таблицы переживают перезагрузку: создание кластера с нуля
@@ -184,11 +184,39 @@ async function openDb() {
 
 // --- Схема -------------------------------------------------------------------
 
+// Расположение таблиц на диаграмме — на каждый набор данных своё: разложив
+// «Магазин», студент не должен обнаружить эту же раскладку натянутой на
+// «Библиотеку», где и таблицы другие.
+function layoutKey() {
+  return `trainer-er-${dataset}`;
+}
+
+function savedLayout() {
+  try {
+    return JSON.parse(localStorage.getItem(layoutKey()) || "{}");
+  } catch {
+    return {}; // приватный режим или испорченная запись — раскладываем заново
+  }
+}
+
+function saveLayout(positions) {
+  try {
+    localStorage.setItem(layoutKey(), JSON.stringify(positions));
+  } catch {
+    // не сохранилось — расположение проживёт до перезагрузки, и только
+  }
+}
+
 async function refreshSchema() {
   const body = $("schema").querySelector(".schema-body");
   try {
     schema = await readSchema(db);
-    body.innerHTML = schemaView === "list" ? renderList(schema) : renderDiagram(schema);
+    if (schemaView === "list") {
+      body.innerHTML = renderList(schema);
+      return;
+    }
+    body.innerHTML = renderDiagram(schema, savedLayout());
+    bindDiagram(body, saveLayout);
   } catch {
     body.textContent = "Не удалось прочитать схему.";
   }
@@ -607,6 +635,16 @@ $("reset").addEventListener("click", reset);
 $("share").addEventListener("click", shareLink);
 $("schema-view").addEventListener("click", toggleSchemaView);
 $("dataset").addEventListener("change", (e) => switchDataset(e.target.value));
+
+$("schema").addEventListener("click", (e) => {
+  if (e.target.id !== "er-reset") return;
+  try {
+    localStorage.removeItem(layoutKey());
+  } catch {
+    // нечего удалять — раскладка и так только в разметке
+  }
+  refreshSchema();
+});
 
 $("output").addEventListener("click", (e) => {
   if (e.target.id === "csv") downloadCsv();

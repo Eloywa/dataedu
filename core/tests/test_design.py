@@ -154,6 +154,25 @@ class RuntimeClassTests(SimpleTestCase):
         self.assertEqual(missing, {}, f"классы без стилей: {missing}")
 
 
+class HiddenAttributeTests(SimpleTestCase):
+    """`hidden` в разметке должен действительно прятать элемент.
+
+    Правило браузера `[hidden] { display: none }` лежит в его собственной
+    таблице стилей, и любое авторское правило с `display` перебивает его
+    независимо от специфичности. Значок непрочитанных сообщений из-за этого
+    висел в шапке с нулём: разметка ставила ему `hidden`, а `display:
+    inline-block` из `app.css` возвращал его на экран.
+    """
+
+    def test_stylesheet_enforces_hidden(self):
+        css = CSS.read_text(encoding="utf-8")
+        self.assertRegex(
+            css,
+            r"\[hidden\][^{]*\{[^}]*display:\s*none\s*!important",
+            "в app.css нет правила, которое делает атрибут hidden сильнее display",
+        )
+
+
 class StylesheetTests(SimpleTestCase):
     def test_old_stylesheet_is_gone(self):
         self.assertFalse(

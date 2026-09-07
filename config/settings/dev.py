@@ -53,3 +53,27 @@ WHITENOISE_AUTOREFRESH = True
 # жёсткого обновления страницы, и время уходит на поиск ошибки, которой нет:
 # на сервере уже новый файл, в браузере — старый.
 WHITENOISE_MAX_AGE = 0
+
+
+def _no_store(headers, path, url):
+    """Запрещаем хранить статику совсем.
+
+    Одного `max-age=0` не хватает: браузер понимает его как «хранить можно, но
+    перепроверь», и в пределах сессии отдаёт файл из памяти без обращения к
+    серверу. С ES-модулями это особенно неприятно — правка модуля не видна, а
+    страница падает на несуществующем экспорте, которого в новой версии файла
+    уже нет. В эксплуатации заголовок другой (см. prod), там статика неизменяемая.
+    """
+    headers["Cache-Control"] = "no-store, max-age=0"
+
+
+WHITENOISE_ADD_HEADERS_FUNCTION = _no_store
+
+# Без этой строки заголовок выше не применяется: при DEBUG статику отдаёт
+# собственный обработчик runserver, а не WhiteNoise, и до заголовков WhiteNoise
+# дело не доходит. `runserver_nostatic` снимает обработчик — раздачей в
+# разработке занимается тот же WhiteNoise, что и в эксплуатации. Приложение
+# обязано стоять перед `django.contrib.staticfiles`.
+INSTALLED_APPS = ["whitenoise.runserver_nostatic"] + [
+    app for app in INSTALLED_APPS if app != "whitenoise.runserver_nostatic"  # noqa: F405
+]

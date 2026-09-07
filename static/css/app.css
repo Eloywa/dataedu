@@ -160,6 +160,15 @@
   box-sizing: border-box;
 }
 
+/* Атрибут `hidden` должен побеждать любой `display` из этой таблицы стилей.
+   Правило браузера `[hidden] { display: none }` живёт в его собственной таблице,
+   а любое авторское правило с `display` перебивает её независимо от
+   специфичности. Из-за этого значок непрочитанных с `display: inline-block`
+   оставался на экране с нулём, хотя разметка честно ставила ему `hidden`. */
+[hidden] {
+  display: none !important;
+}
+
 html,
 body {
   margin: 0;
@@ -2252,6 +2261,28 @@ select {
 .er {
   max-width: 100%;
   height: auto;
+  /* Перетаскивание пальцем: без этого браузер считает жест прокруткой и
+     забирает событие себе на первом же движении. */
+  touch-action: none;
+  user-select: none;
+}
+
+/* Таблицу можно двигать — курсор об этом и говорит. */
+.er-table {
+  cursor: grab;
+}
+.er-table.is-dragging {
+  cursor: grabbing;
+}
+.er-table.is-dragging .er-box {
+  stroke: var(--accent);
+  stroke-width: 1.5;
+}
+
+/* Наведение подсвечивает связь целиком: на схеме с десятком таблиц взглядом
+   проследить одну линию до конца тяжело. */
+.er-edge:hover .er-link {
+  stroke-width: 2.6;
 }
 .er-box {
   fill: var(--surface);
