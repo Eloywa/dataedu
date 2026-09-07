@@ -8,6 +8,7 @@ import { DATASETS, DEFAULT_DATASET, WIPE } from "./sql/datasets.js";
 import { classify } from "./sql/errors.js";
 import { parsePlan, renderPlan, scanNodes } from "./sql/plan.js";
 import { readSchema, renderList, renderDiagram, bindDiagram } from "./sql/schema.js";
+import { dumpDatabase } from "./sql/dump.js";
 
 // База живёт в IndexedDB, а не в памяти вкладки. Дело не только в том, что
 // созданные студентом таблицы переживают перезагрузку: создание кластера с нуля
@@ -183,7 +184,8 @@ async function currentDataset() {
 
 async function seed(key) {
   await db.exec(WIPE);
-  await db.exec(DATASETS[key].sql);
+  // У пустого набора данных нет — выполнять пустую строку нельзя.
+  if (DATASETS[key].sql.trim()) await db.exec(DATASETS[key].sql);
   await db.exec(META);
   await db.exec("DELETE FROM dataedu.meta;");
   await db.query("INSERT INTO dataedu.meta (dataset) VALUES ($1)", [key]);
@@ -238,7 +240,7 @@ async function refreshSchema() {
   try {
     schema = await readSchema(db);
     if (schemaView === "list") {
-      body.innerHTML = renderList(schema);
+      body.innerHTML = renderList(schema, DATASETS[dataset] && DATASETS[dataset].emptyHint);
       return;
     }
     body.innerHTML = renderDiagram(schema, savedLayout());
@@ -463,7 +465,7 @@ function renderMeasure(now, before, counts) {
   }
 
   const small = [...counts].filter(([, n]) => n < SMALL_TABLE);
-  if (small.length && DATASETS[dataset]) {
+  if (small.length && DATASETS[dataset] && DATASETS[dataset].bulk) {
     html +=
       `<div class="measure-note">В таблице ${esc(small[0][0])} всего ${small[0][1]} строк. ` +
       "На таком объёме индекс не нужен, и планировщик его не возьмёт — он прав. " +
@@ -542,12 +544,38 @@ function toCsv({ cols, rows }) {
 
 function downloadCsv() {
   if (!lastResult) return;
-  const blob = new Blob([toCsv(lastResult)], { type: "text/csv;charset=utf-8" });
+  saveFile("result.csv", toCsv(lastResult), "text/csv;charset=utf-8");
+}
+
+function saveFile(name, text, type) {
   const link = document.createElement("a");
-  link.href = URL.createObjectURL(blob);
-  link.download = "result.csv";
+  link.href = URL.createObjectURL(new Blob([text], { type }));
+  link.download = name;
   link.click();
   setTimeout(() => URL.revokeObjectURL(link.href), 1000);
+}
+
+async function downloadDump() {
+  if (!db) return;
+  $("dump").disabled = true;
+  setStatus("Собираю скрипт…");
+  try {
+    const { sql, tables, rows, truncated } = await dumpDatabase(db);
+    if (!tables) {
+      setStatus("Таблиц нет — выгружать нечего", "err");
+      return;
+    }
+    saveFile(`dataedu-${dataset}.sql`, sql, "application/sql;charset=utf-8");
+    setStatus(
+      `Выгружено: ${tables} ${pluralRu(tables, "таблица", "таблицы", "таблиц")}, ${rowsLabel(rows)}` +
+        (truncated.length ? " (часть данных усечена)" : ""),
+      "ok",
+    );
+  } catch (e) {
+    setStatus("Не удалось выгрузить: " + (e && e.message ? e.message : e), "err");
+  } finally {
+    $("dump").disabled = false;
+  }
 }
 
 /** Запрос в адресной строке: преподаватель отвечает ссылкой, а не пересказом. */
@@ -603,6 +631,10 @@ async function switchDataset(key) {
   $("output").innerHTML = "";
   measured.clear();
   await refreshSchema();
+  // Пустое поле на пустой базе не подсказывает ничего. Заготовка ставится
+  // только если студент ещё ничего не написал — затирать его текст нельзя.
+  const starter = DATASETS[key].starter;
+  if (starter && !$("sql").value.trim()) $("sql").value = starter;
   setStatus(`Набор «${DATASETS[key].title}» готов`, "ok");
   busy(false);
 }
@@ -660,6 +692,7 @@ $("measure").addEventListener("click", measure);
 $("reset").addEventListener("click", reset);
 $("share").addEventListener("click", shareLink);
 $("schema-view").addEventListener("click", toggleSchemaView);
+$("dump").addEventListener("click", downloadDump);
 $("dataset").addEventListener("change", (e) => switchDataset(e.target.value));
 
 $("schema").addEventListener("click", (e) => {

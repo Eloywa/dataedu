@@ -71,9 +71,11 @@ export async function readSchema(db) {
 
 // --- Список -----------------------------------------------------------------
 
-export function renderList(schema) {
+export function renderList(schema, hint) {
   if (!schema.tables.length) {
-    return "<div class='schema-empty'>Таблиц нет. Создайте их или нажмите «Сбросить базу».</div>";
+    // В пустом режиме совет «сбросьте базу» бессмыслен — сброс вернёт ту же
+    // пустоту. Там подсказывать надо первый шаг, а не выход из положения.
+    return `<div class="schema-empty">${esc(hint || "Таблиц нет. Создайте их или нажмите «Сбросить базу».")}</div>`;
   }
   return schema.tables
     .map(

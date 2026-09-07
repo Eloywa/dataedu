@@ -29,6 +29,12 @@
       <label class="visually-hidden" for="dataset">Набор данных</label>
       <select id="dataset" class="toolbar-select"></select>
       <button type="button" class="btn btn-ghost btn-small" id="schema-view">Диаграмма</button>
+      {% comment %}
+      Своя схема живёт в IndexedDB браузера — забрать её оттуда иначе нельзя ни
+      сдать преподавателю, ни перенести на другую машину.
+      {% endcomment %}
+      <button type="button" class="btn btn-ghost btn-small" id="dump"
+              title="Сохранить схему и данные скриптом SQL">Выгрузить SQL</button>
     </div>
 
     {% comment %}
