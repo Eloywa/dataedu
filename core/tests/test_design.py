@@ -19,6 +19,8 @@ SCRIPTS = Path(settings.BASE_DIR) / "static" / "js"
 
 VAR_USE = re.compile(r"var\(\s*(--[\w-]+)")
 VAR_DECL = re.compile(r"^\s*(--[\w-]+)\s*:", re.M)
+COMMENT = re.compile(r"/\*.*?\*/", re.S)
+COLOUR_LITERAL = re.compile(r"#[0-9a-fA-F]{3,8}|(?:rgb|rgba|hsl|hsla)\(")
 
 
 def declared_tokens():
@@ -85,6 +87,37 @@ class TokenTests(SimpleTestCase):
                 if name not in declared:
                     missing.setdefault(name, []).append(path.name)
         self.assertEqual(missing, {}, f"не объявлены токены: {missing}")
+
+    def test_no_colour_literals_outside_tokens(self):
+        """Цвет задаётся только токеном.
+
+        Редизайн держится на том, что палитру можно поменять в одном месте — хоть
+        под цвета вуза. Любой `#fff` или `rgba(...)` в обычном правиле выпадает из
+        этой замены: при смене темы он остаётся прежним и даёт белое пятно на
+        тёмном фоне или нечитаемую подпись. Так уже случилось со звёздами рейтинга
+        (`#e2a33c`) и подписью на кнопке удаления.
+
+        Исключения два: объявления самих токенов (`--name: #hex`) и блок `@media
+        print` — там чёрное по белому задаётся намеренно, бумага не знает тем.
+        """
+        # Комментарии вырезаются, но переводы строк в них сохраняются: иначе
+        # номера строк в сообщении об ошибке разойдутся с файлом.
+        css = COMMENT.sub(lambda m: "\n" * m.group(0).count("\n"), CSS.read_text(encoding="utf-8"))
+
+        offenders, depth, print_depth = [], 0, None
+        for number, line in enumerate(css.splitlines(), 1):
+            if print_depth is None and line.strip().startswith("@media print"):
+                print_depth = depth
+            depth += line.count("{") - line.count("}")
+            if print_depth is not None and depth <= print_depth:
+                print_depth = None
+                continue
+            if print_depth is not None or VAR_DECL.match(line):
+                continue
+            if COLOUR_LITERAL.search(line):
+                offenders.append(f"{number}: {line.strip()}")
+
+        self.assertEqual(offenders, [], "цвет задан мимо токена")
 
     def test_dark_theme_redefines_every_colour(self):
         """Тёмная тема обязана переопределить все цвета, а не часть.

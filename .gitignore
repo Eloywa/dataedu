@@ -26,3 +26,6 @@ tmp_*
 Thumbs.db
 .vscode/
 .idea/
+
+# Снимки и дампы страниц от playwright-mcp
+.playwright-mcp/
