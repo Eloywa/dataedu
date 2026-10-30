@@ -1075,6 +1075,324 @@ select {
   letter-spacing: 1px;
 }
 
+/* ===== 5a. Компоненты редизайна ========================================== */
+
+/* Набор из §6 брифа. Часть компонентов в платформе уже была — кнопки, карточки,
+   бейджи, варианты ответа, — поэтому здесь не второй набор, а то, чего не
+   хватало, плюс общие правила для того, что раньше жило по месту.
+   Все вместе они показаны на /styleguide/ (страница открыта только в разработке). */
+
+/* Блок «Обратите внимание»: мягкая подложка акцента и тонкая полоса слева.
+   Тени нет — вес даёт фон, а не подъём над страницей. */
+.note {
+  margin: 0 0 18px;
+  padding: 14px 18px;
+  border-left: 3px solid var(--accent);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  background: var(--accent-soft);
+}
+.note-title {
+  margin: 0 0 6px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-strong);
+}
+.note p:last-child {
+  margin-bottom: 0;
+}
+
+/* Подсказка — свёрнутый <details>, а не самодельная раскрывашка: нативный
+   элемент сам работает с клавиатуры и читается скринридером, и открыт он
+   остаётся при печати. */
+.hint {
+  margin: 0 0 18px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+}
+.hint > summary {
+  padding: 11px 16px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--accent);
+  cursor: pointer;
+  list-style: none;
+}
+.hint > summary::-webkit-details-marker {
+  display: none;
+}
+/* Треугольник рисуем сами: у встроенного маркера нельзя задать цвет и отступ. */
+.hint > summary::before {
+  content: "";
+  display: inline-block;
+  width: 0;
+  height: 0;
+  margin-right: 10px;
+  border-top: 5px solid transparent;
+  border-bottom: 5px solid transparent;
+  border-left: 6px solid currentColor;
+  vertical-align: 1px;
+  transition: transform 0.15s;
+}
+.hint[open] > summary::before {
+  transform: rotate(90deg);
+}
+.hint-body {
+  padding: 0 16px 14px;
+  color: var(--text);
+}
+.hint-body > :last-child {
+  margin-bottom: 0;
+}
+
+/* Блок кода вне теории: SQL в задании, пример схемы, вывод команды. Прокрутка
+   своя — страница от длинной строки вбок не едет (бриф §4). */
+.code-block {
+  margin: 0 0 18px;
+  padding: 14px 16px;
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  font-family: var(--font-mono);
+  font-size: 15px;
+  line-height: 1.6;
+  white-space: pre;
+  tab-size: 2;
+}
+.code-inline {
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: var(--surface-2);
+  font-family: var(--font-mono);
+  font-size: 0.9em;
+}
+
+/* Аккордеон: список <details> с общей рамкой. Используется в программе курса на
+   узких экранах и везде, где длинный перечень нужно свернуть. */
+.accordion {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  overflow: hidden;
+}
+.accordion > details + details {
+  border-top: 1px solid var(--hairline);
+}
+.accordion summary {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  /* 44 px по высоте — минимальная зона нажатия на телефоне (бриф §4). */
+  min-height: 44px;
+  padding: 11px 16px;
+  font-weight: 600;
+  cursor: pointer;
+  list-style: none;
+}
+.accordion summary::-webkit-details-marker {
+  display: none;
+}
+.accordion summary::after {
+  content: "";
+  width: 8px;
+  height: 8px;
+  margin-left: auto;
+  border-right: 1.5px solid var(--muted);
+  border-bottom: 1.5px solid var(--muted);
+  transform: rotate(45deg) translate(-2px, -2px);
+  transition: transform 0.15s;
+}
+.accordion details[open] > summary::after {
+  transform: rotate(-135deg) translate(-2px, -2px);
+}
+.accordion summary:hover {
+  background: var(--bg-soft);
+}
+.accordion-body {
+  padding: 0 16px 14px;
+  color: var(--text);
+}
+.accordion-count {
+  color: var(--muted);
+  font-weight: 400;
+  font-size: 14px;
+}
+
+/* Метка статуса. Цвет здесь вспомогательный: слово обязательно, значок рисуется
+   фигурой, а не цветной точкой, — состояние должно читаться и в чёрно-белой
+   печати, и человеком, который цвета не различает (бриф §7). */
+.status {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 14px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+.status::before {
+  content: "";
+  width: 12px;
+  height: 12px;
+  flex: none;
+  border: 1.5px solid currentColor;
+  border-radius: 50%;
+}
+.status-done {
+  color: var(--success);
+}
+/* Пройдено — галочка: заливка кружка сама по себе значением не является. */
+.status-done::before {
+  width: 11px;
+  height: 6px;
+  border-width: 0 0 1.5px 1.5px;
+  border-radius: 0;
+  transform: rotate(-45deg);
+  margin-bottom: 3px;
+}
+.status-progress {
+  color: var(--warning);
+}
+.status-progress::before {
+  background: linear-gradient(to right, currentColor 50%, transparent 50%);
+}
+.status-locked {
+  color: var(--muted);
+}
+.status-locked::before {
+  width: 10px;
+  height: 8px;
+  border-radius: 2px;
+  border-width: 1.5px;
+  margin-top: 3px;
+  box-shadow: 0 -4px 0 -1.5px transparent;
+}
+.status-error {
+  color: var(--danger);
+}
+
+/* Таблица данных. Заголовок на подложке, линии в 1 px, цифры моноширинными
+   знаками одинаковой ширины — иначе колонка баллов пляшет. */
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 15px;
+}
+.data-table caption {
+  padding: 0 0 10px;
+  color: var(--muted);
+  font-size: 14px;
+  text-align: left;
+}
+.data-table th,
+.data-table td {
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--hairline);
+  text-align: left;
+  vertical-align: top;
+}
+.data-table thead th {
+  background: var(--surface-2);
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.data-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+.data-table .num {
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+/* Полоса прогресса. Старое имя (.bar-wrap) оставлено рядом с новым: страницы
+   отчётов используют его, а вид должен быть один. */
+.progress,
+.bar-wrap {
+  height: 6px;
+  overflow: hidden;
+  border-radius: 3px;
+  background: var(--surface-3);
+}
+.progress > span,
+.bar-fill {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+}
+
+/* Кнопка в состоянии загрузки. Текст остаётся на месте — подменять его на
+   «Загрузка…» значит менять ширину кнопки и дёргать раскладку. */
+.btn[aria-busy="true"] {
+  pointer-events: none;
+  opacity: 0.75;
+}
+.btn[aria-busy="true"]::before {
+  content: "";
+  width: 14px;
+  height: 14px;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: btn-spin 0.7s linear infinite;
+}
+@keyframes btn-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+/* Без движения кольцо просто стоит: оно и так читается как «идёт работа». */
+@media (prefers-reduced-motion: reduce) {
+  .btn[aria-busy="true"]::before {
+    animation: none;
+  }
+}
+
+/* Ссылка в тексте: подчёркивание обязательно — цвета мало, если человек не
+   различает синий и чёрный (бриф §7). */
+.text-link,
+.prose a,
+.note a,
+.hint-body a {
+  color: var(--accent);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  text-decoration-thickness: 1px;
+}
+.text-link:hover,
+.prose a:hover {
+  color: var(--accent-hover);
+}
+
+/* Раскладка страницы-примера /styleguide/. Держится здесь, а не в отдельном
+   файле: лишняя таблица стилей — ещё один запрос и ещё одно место, где цвета
+   разойдутся с токенами. */
+.sg-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin: 0 0 24px;
+}
+.sg-row-tight {
+  gap: 18px;
+  margin-top: 14px;
+}
+.sg-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+.sg-pad {
+  padding: 18px;
+}
+.sg-help {
+  max-width: 68ch;
+  margin: 0 0 14px;
+}
+
 /* ===== 6. Главная ======================================================== */
 
 .hero {

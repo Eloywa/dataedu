@@ -1,13 +1,14 @@
 import json
 
 from django.conf import settings
-from django.http import JsonResponse
+from django.db.models import Count
+from django.http import Http404, JsonResponse
 from django.shortcuts import render
 from django.views.decorators.http import require_POST
 
 from accounts import legal
-from assessments.models import Test
-from courses.models import Course, Lesson
+from assessments.models import Assignment, Question, Test
+from courses.models import Course, Lesson, Module
 from gamification import services
 from learning import reports
 from learning.models import Enrollment, LessonProgress
@@ -122,3 +123,62 @@ def privacy(request):
 def terms(request):
     """Пользовательское соглашение."""
     return render(request, "legal/terms.html", {"version": legal.TERMS_VERSION})
+
+
+def styleguide(request):
+    """Страница-пример: все базовые компоненты редизайна в одном месте.
+
+    Нужна по двум причинам. Первая — дизайн правится здесь, а не на семи разных
+    экранах: видно сразу, что кнопка, метка статуса и таблица сделаны в одной
+    системе. Вторая — обе темы и узкая ширина проверяются одним открытием
+    страницы, а не обходом платформы.
+
+    Открыта только в разработке и сотрудникам: это внутренний инструмент, и
+    в каталоге страниц платформы ему места нет.
+    """
+    if not settings.DEBUG and not request.user.is_staff:
+        raise Http404
+
+    # Содержимое берётся из базы, а не выдумывается: пример компонента на
+    # придуманном тексте врёт о длине строк и о том, как раскладка держит
+    # настоящие названия вроде «Проектирование БД и ER-модель».
+    course = Course.objects.filter(is_published=True).order_by("title").first()
+    lessons = (
+        list(
+            Lesson.objects.filter(module__course=course)
+            .select_related("module")
+            .order_by("module__order_index", "order_index")[:3]
+        )
+        if course
+        else []
+    )
+    modules = (
+        list(
+            Module.objects.filter(course=course)
+            .annotate(lesson_count=Count("lessons"))
+            .order_by("order_index")[:3]
+        )
+        if course
+        else []
+    )
+    assignment = (
+        Assignment.objects.filter(type="sql").exclude(setup_sql="").order_by("title").first()
+    )
+    question = (
+        Question.objects.filter(test__lesson__module__course=course)
+        .prefetch_related("options")
+        .order_by("order_index")
+        .first()
+    )
+
+    return render(
+        request,
+        "core/styleguide.html",
+        {
+            "course": course,
+            "lessons": lessons,
+            "modules": modules,
+            "assignment": assignment,
+            "question": question,
+        },
+    )
