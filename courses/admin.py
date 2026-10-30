@@ -50,9 +50,9 @@ class CourseAdmin(OwnedAdmin):
         студенту доступ к аналитике по курсу — вместе с чужими баллами.
         """
         if db_field.name == "coauthors":
-            kwargs["queryset"] = User.objects.filter(
-                role__code__in=("teacher", "admin")
-            ).order_by("username")
+            kwargs["queryset"] = User.objects.filter(role__code__in=("teacher", "admin")).order_by(
+                "username"
+            )
         return super().formfield_for_manytomany(db_field, request, **kwargs)
 
     @admin.display(description="соавторы")

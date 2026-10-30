@@ -143,5 +143,11 @@
     <script src="{% static 'js/nav.js' %}" defer></script>
     <script src="{% static 'js/theme.js' %}" defer></script>
     {% if user.is_authenticated %}<script src="{% static 'js/chat.js' %}" defer></script>{% endif %}
+    {% comment %}
+    Скрипты отдельных страниц. Общие лежат выше и грузятся везде; то, что нужно
+    одному экрану (выдвижная программа курса на уроке), подключается здесь, чтобы
+    не возить его по всей платформе.
+    {% endcomment %}
+    {% block scripts %}{% endblock %}
   </body>
 </html>

@@ -52,6 +52,8 @@
   --on-accent: #ffffff;
   /* Подпись поверх обложки курса: заливка там тёмная в обеих темах. */
   --on-cover: #ffffff;
+  /* Затемнение под выдвижной панелью на узких экранах. */
+  --backdrop: rgba(15, 18, 22, 0.45);
 
   --border: #d9d6cf;
   --hairline: #e7e5e0;
@@ -116,6 +118,7 @@
   --accent-line: rgba(138, 180, 232, 0.32);
   --on-accent: #10151c;
   --on-cover: #ffffff;
+  --backdrop: rgba(0, 0, 0, 0.62);
 
   --border: #2e343c;
   --hairline: rgba(232, 234, 237, 0.08);
@@ -159,7 +162,7 @@
     --accent-line: rgba(138, 180, 232, 0.32);
     --on-accent: #10151c;
     --on-cover: #ffffff;
-  --on-cover: #ffffff;
+    --backdrop: rgba(0, 0, 0, 0.62);
 
     --border: #2e343c;
     --hairline: rgba(232, 234, 237, 0.08);
@@ -1846,9 +1849,6 @@ select {
 
 /* Боковая колонка */
 .course-side,
-.lesson-foot {
-  min-width: 0;
-}
 .side-card {
   position: sticky;
   top: calc(var(--header-h) + 20px);
@@ -1960,20 +1960,361 @@ select {
 
 /* ===== 9. Урок =========================================================== */
 
-.lesson-eyebrow {
-  margin-bottom: 6px;
-  color: var(--muted);
-  font-size: 14px;
+/* Раскладка «как в технической документации» (бриф §3.3): слева дерево курса,
+   по центру текст, справа оглавление урока. Три колонки живут от 1024 px — ниже
+   дерево уезжает в выдвижную панель, а оглавление сворачивается над текстом. */
+.lesson-shell {
+  display: grid;
+  grid-template-columns: 264px minmax(0, 1fr) 236px;
+  grid-template-areas:
+    "tree main side"
+    "tree pager side";
+  grid-template-rows: 1fr auto;
+  align-items: start;
+  gap: 0 36px;
+  max-width: 1360px;
+  margin: 0 auto;
+  padding: 24px 24px 56px;
 }
-.lesson-nav {
+.lesson-main {
+  grid-area: main;
+  min-width: 0;
+}
+.lesson-side {
+  grid-area: side;
+  position: sticky;
+  top: calc(var(--header-h) + 20px);
+  display: grid;
+  gap: 16px;
+}
+.lesson-pager {
+  grid-area: pager;
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
   gap: 12px;
   margin-top: 36px;
   padding-top: 22px;
   border-top: 1px solid var(--border);
+}
+.lesson-pager-btn {
+  flex: 1 1 0;
+}
+/* Пустая половина держит «Следующий урок» справа, когда предыдущего урока нет. */
+.lesson-pager-btn.is-empty {
+  display: block;
+}
+
+.lesson-eyebrow {
+  margin: 0 0 6px;
+  color: var(--muted);
+  font-size: 14px;
+}
+.lesson-title {
+  margin: 0 0 10px;
+}
+.lesson-time-top {
+  margin: 0 0 28px;
+  color: var(--muted);
+  font-size: 14px;
+}
+.lesson-done-form,
+.lesson-done-mark {
+  margin-top: 28px;
+}
+
+/* Дерево курса. Своя прокрутка и липкая позиция: список из восемнадцати уроков
+   не должен уезжать вместе с текстом, но и тянуть страницу вниз ему незачем. */
+.lesson-tree {
+  grid-area: tree;
+  position: sticky;
+  top: calc(var(--header-h) + 20px);
+  max-height: calc(100vh - var(--header-h) - 40px);
+  overflow-y: auto;
+  padding-right: 16px;
+  border-right: 1px solid var(--border);
+}
+.lesson-tree-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+.lesson-tree-course {
+  color: var(--text-strong);
+  font-weight: 600;
+  font-size: 15px;
+  line-height: 1.3;
+  text-decoration: none;
+}
+.lesson-tree-course:hover {
+  color: var(--accent);
+}
+.lesson-tree-close {
+  display: none;
+  width: 44px;
+  height: 44px;
+  flex: none;
+  margin-left: auto;
+  border: 0;
+  background: none;
+  color: var(--muted);
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+}
+.lesson-tree-modules {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: lesson-module;
+}
+.lesson-tree-module + .lesson-tree-module {
+  margin-top: 18px;
+}
+.lesson-tree-module-title {
+  margin: 0 0 6px;
+  counter-increment: lesson-module;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.lesson-tree-module-title::before {
+  content: counter(lesson-module) ". ";
+}
+.lesson-tree-module-title .status {
+  margin-left: 8px;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
+}
+.lesson-tree-lessons {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+/* Текущий урок отмечен полосой слева (бриф §3.3). У остальных полоса прозрачная,
+   иначе при переходе строка прыгала бы на два пикселя. */
+.lesson-tree-link {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 10px;
+  border-left: 2px solid transparent;
+  color: var(--text);
+  font-size: 14.5px;
+  line-height: 1.35;
+  text-decoration: none;
+}
+a.lesson-tree-link:hover {
+  background: var(--bg-soft);
+  color: var(--accent);
+}
+.lesson-tree-link.is-current {
+  border-left-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-weight: 600;
+}
+.lesson-tree-link.is-locked {
+  color: var(--muted-soft);
+}
+.lesson-tree-done {
+  width: 11px;
+  height: 6px;
+  flex: none;
+  margin: -3px 0 0 auto;
+  border-left: 1.5px solid var(--success);
+  border-bottom: 1.5px solid var(--success);
+  transform: rotate(-45deg);
+}
+
+/* Оглавление урока. В правой колонке — список, над текстом (на узких экранах) —
+   свёрнутый блок; разметка одна, показывается то одно, то другое. */
+.lesson-toc-list {
+  display: grid;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.lesson-toc-list a {
+  display: block;
+  padding: 5px 0;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.35;
+  text-decoration: none;
+}
+.lesson-toc-list a:hover {
+  color: var(--accent);
+}
+.lesson-toc-l3 a {
+  padding-left: 14px;
+  font-size: 13.5px;
+}
+.lesson-toc-inline {
+  display: none;
+  margin: 0 0 24px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+}
+.lesson-toc-inline > summary {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 16px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.lesson-toc-inline > .lesson-toc-list {
+  padding: 0 16px 12px;
+}
+
+/* Заголовок, на который ведёт якорь, не должен уезжать под липкую шапку. */
+.prose :is(h2, h3)[id] {
+  scroll-margin-top: calc(var(--header-h) + 16px);
+}
+
+/* Кнопка и подложка выдвижной панели. По умолчанию их нет: они появляются
+   только когда скрипт загрузился (класс js-lesson) и экран узкий. */
+.lesson-drawer-toggle {
+  display: none;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  margin-bottom: 18px;
+  padding: 0 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.lesson-drawer-toggle-icon {
+  position: relative;
+  width: 16px;
+  height: 2px;
+  background: currentColor;
+}
+.lesson-drawer-toggle-icon::before,
+.lesson-drawer-toggle-icon::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  width: 16px;
+  height: 2px;
+  background: currentColor;
+}
+.lesson-drawer-toggle-icon::before {
+  top: -5px;
+}
+.lesson-drawer-toggle-icon::after {
+  top: 5px;
+}
+.lesson-drawer-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  background: var(--backdrop);
+}
+
+/* 1023px — тот же порог, что в lesson.js. Значение продублировано сознательно:
+   matchMedia не читает медиазапросы из таблицы стилей. */
+@media (max-width: 1023px) {
+  .lesson-shell {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+      "toggle"
+      "main"
+      "side"
+      "pager";
+    gap: 0;
+    padding: 20px 20px 40px;
+  }
+  .lesson-drawer-toggle {
+    grid-area: toggle;
+    justify-self: start;
+  }
+  .lesson-side {
+    position: static;
+    margin-top: 32px;
+  }
+  /* Оглавление из правой колонки прячется, вместо него — свёрнутый блок над
+     текстом урока (бриф §4). Литература остаётся внизу. */
+  .lesson-toc {
+    display: none;
+  }
+  .lesson-toc-inline {
+    display: block;
+  }
+
+  /* Пока скрипт не загрузился, дерево — обычный список над уроком. */
+  .js-lesson .lesson-tree {
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 31;
+    width: min(320px, 86vw);
+    max-height: none;
+    padding: 20px;
+    border-right: 1px solid var(--border);
+    background: var(--surface);
+    transform: translateX(-100%);
+    transition: transform 0.2s ease;
+  }
+  .js-lesson .lesson-tree.is-open {
+    transform: translateX(0);
+  }
+  .js-lesson .lesson-drawer-toggle {
+    display: inline-flex;
+  }
+  .js-lesson .lesson-tree-close {
+    display: block;
+  }
+  body.is-drawer-open {
+    overflow: hidden;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .js-lesson .lesson-tree {
+    transition: none;
+  }
+}
+
+/* На телефоне переход между уроками закреплён внизу экрана (бриф §4): иначе до
+   «Следующего урока» нужно пролистать весь текст обратно. */
+@media (max-width: 640px) {
+  .lesson-shell {
+    padding: 16px 16px 92px;
+  }
+  .lesson-pager {
+    position: fixed;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 20;
+    margin: 0;
+    padding: 10px 16px calc(10px + env(safe-area-inset-bottom));
+    border-top: 1px solid var(--border);
+    background: var(--surface);
+  }
+  .lesson-pager-btn.is-empty {
+    display: none;
+  }
+}
+
+.lesson-eyebrow {
+  margin-bottom: 6px;
+  color: var(--muted);
+  font-size: 14px;
 }
 
 /* Теория. Ширина строки ограничена: длинная строка на широком экране читается
@@ -2060,17 +2401,6 @@ select {
   background: var(--surface-2);
 }
 
-.done-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 14px;
-  border-radius: 999px;
-  background: var(--success-soft);
-  color: var(--success);
-  font-size: 14px;
-  font-weight: 600;
-}
 
 .locked-card {
   max-width: 560px;

@@ -16,6 +16,7 @@ from messaging import services as chat
 
 from .models import Course, CourseRating, Lesson, Topic
 from .resources import get_course_resources
+from .theory import render_theory
 
 
 def _progress(user, course):
@@ -311,6 +312,36 @@ def lesson_detail(request, lesson_id):
             user=request.user, lesson=lesson, status="completed"
         ).exists()
 
+    # Дерево курса для боковой колонки: модули с уроками, отметками о прохождении
+    # и состоянием доступа. Данные те же, что на странице курса, — иначе в двух
+    # местах платформы один курс выглядел бы по-разному.
+    tree = []
+    completed_ids = set()
+    if request.user.is_authenticated:
+        completed_ids = set(
+            LessonProgress.objects.filter(
+                user=request.user, lesson__module__course=course, status="completed"
+            ).values_list("lesson_id", flat=True)
+        )
+    for module in course.modules.prefetch_related("lessons").all():
+        gate_info = gating.get(module.id, {"unlocked": True})
+        tree.append(
+            {
+                "module": module,
+                "unlocked": gate_info.get("unlocked", True),
+                "lessons": [
+                    {
+                        "lesson": item,
+                        "done": item.id in completed_ids,
+                        "current": item.id == lesson.id,
+                    }
+                    for item in module.lessons.all()
+                ],
+            }
+        )
+
+    theory_html, toc = render_theory(lesson.theory_content)
+
     test = lesson.tests.first()
     best_attempt = None
     if test and request.user.is_authenticated:
@@ -327,6 +358,9 @@ def lesson_detail(request, lesson_id):
         {
             "lesson": lesson,
             "course": course,
+            "tree": tree,
+            "theory_html": theory_html,
+            "toc": toc,
             "prev_lesson": prev_lesson,
             "next_lesson": next_lesson,
             "done": done,
