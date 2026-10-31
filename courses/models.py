@@ -140,7 +140,16 @@ class Lesson(models.Model):
         Module, on_delete=models.CASCADE, related_name="lessons", verbose_name="модуль"
     )
     title = models.CharField(verbose_name="название", max_length=200)
-    theory_content = models.TextField(verbose_name="теория", blank=True, null=True)
+    theory_content = models.TextField(
+        verbose_name="теория",
+        blank=True,
+        null=True,
+        help_text=(
+            "Markdown. Заголовки ## и ### попадают в «Содержание урока» на странице. "
+            'Врезка: строка «!!! note "Обратите внимание"», следующий абзац — '
+            "с отступом в четыре пробела. Вместо note бывает warning и danger."
+        ),
+    )
     order_index = models.IntegerField(
         verbose_name="порядок",
     )

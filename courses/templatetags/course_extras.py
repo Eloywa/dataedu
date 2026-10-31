@@ -1,4 +1,3 @@
-import markdown as md
 from django import template
 from django.utils.safestring import mark_safe
 
@@ -63,9 +62,3 @@ def is_http_url(value):
     оно защищает текст, а не схему адреса.
     """
     return str(value or "").strip().lower().startswith(("http://", "https://"))
-
-
-@register.filter
-def md_to_html(text):
-    # Контент уроков авторский (создаётся преподавателем/админом в админке).
-    return mark_safe(md.markdown(text or "", extensions=["extra", "sane_lists"]))

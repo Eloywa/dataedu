@@ -9,6 +9,7 @@ from django.views.decorators.http import require_POST
 from accounts import legal
 from assessments.models import Assignment, Question, Test
 from courses.models import Course, Lesson, Module
+from courses.theory import render_theory
 from gamification import services
 from learning import reports
 from learning.models import Enrollment, LessonProgress
@@ -171,6 +172,15 @@ def styleguide(request):
         .first()
     )
 
+    # Врезка показывается прогнанной через тот же рендер, что и теория урока:
+    # иначе страница-пример доказывала бы только то, что CSS написан, а не то,
+    # что разметка из markdown доходит до него.
+    sample_html, _ = render_theory(
+        '!!! note "Обратите внимание"\n'
+        "    Запрос выполняется в браузере: база PostgreSQL собрана в WebAssembly\n"
+        "    и живёт на вашем устройстве. Сервер её не видит.\n"
+    )
+
     return render(
         request,
         "core/styleguide.html",
@@ -180,5 +190,6 @@ def styleguide(request):
             "modules": modules,
             "assignment": assignment,
             "question": question,
+            "sample_html": sample_html,
         },
     )

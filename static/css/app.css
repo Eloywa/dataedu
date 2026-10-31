@@ -418,12 +418,6 @@ summary:focus-visible,
   color: var(--text-strong);
 }
 
-.small-label {
-  color: var(--muted);
-  font-size: 12px;
-  letter-spacing: 0.02em;
-}
-
 .cell-sub {
   color: var(--muted);
   font-size: 13px;
@@ -2474,6 +2468,35 @@ a.lesson-tree-link:hover {
 }
 .reflection-textarea {
   min-height: 90px;
+}
+
+/* Врезка в теории урока. Разметку даёт расширение admonition (`!!! note`),
+   поэтому классы здесь чужие — они подключены к компоненту .note из раздела 5a,
+   а не оформлены заново. */
+.prose .admonition {
+  margin: 0 0 18px;
+  padding: 14px 18px;
+  border-left: 3px solid var(--accent);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  background: var(--accent-soft);
+}
+.prose .admonition-title {
+  margin: 0 0 6px;
+  color: var(--text-strong);
+  font-size: 15px;
+  font-weight: 600;
+}
+.prose .admonition > :last-child {
+  margin-bottom: 0;
+}
+/* Предупреждение и опасность — те же семантические цвета, что у меток статуса. */
+.prose .admonition.warning {
+  border-left-color: var(--warning);
+  background: var(--warning-soft);
+}
+.prose .admonition.danger {
+  border-left-color: var(--danger);
+  background: var(--danger-soft);
 }
 
 /* ===== 10. Тесты, тренажёр, задания ====================================== */
