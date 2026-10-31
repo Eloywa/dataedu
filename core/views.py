@@ -15,21 +15,64 @@ from learning import reports
 from learning.models import Enrollment, LessonProgress
 
 
+def main_course():
+    """Курс, который платформа показывает на главной.
+
+    Берётся по настройке MAIN_COURSE_SLUG. Если такого курса нет (перенесли
+    данные, переименовали, не опубликовали) — самый объёмный опубликованный:
+    пустая главная выглядит как поломка платформы, а не как отсутствие настройки.
+    """
+    published = Course.objects.filter(is_published=True)
+    course = published.filter(slug=settings.MAIN_COURSE_SLUG).first()
+    if course is None:
+        course = published.annotate(n=Count("modules__lessons")).order_by("-n").first()
+    return course
+
+
+def lines(text):
+    """Строки поля в список: цели и умения хранятся по пункту на строку."""
+    return [line.strip() for line in (text or "").splitlines() if line.strip()]
+
+
 def home(request):
     user = request.user
     if not user.is_authenticated:
-        # Цифры на лендинге берутся из базы, а не вписываются в шаблон руками:
-        # прежние «9 недель · 18 уроков» разошлись с содержимым и обещали меньше,
-        # чем платформа на самом деле даёт.
+        # Главная — витрина основного курса (бриф §3.1): заголовок, цели, чему
+        # научится студент и программа. Всё из базы: прежние «9 недель · 18
+        # уроков» были вписаны в шаблон руками и разошлись с содержимым.
+        course = main_course()
+        modules = []
+        first_lesson = None
+        if course:
+            modules = list(
+                course.modules.prefetch_related("lessons")
+                .annotate(lesson_count=Count("lessons"))
+                .order_by("order_index")
+            )
+            first_lesson = (
+                Lesson.objects.filter(module__course=course)
+                .order_by("module__order_index", "order_index")
+                .first()
+            )
+
         return render(
             request,
             "core/home.html",
             {
-                "course_count": Course.objects.filter(is_published=True).count(),
-                "lesson_count": Lesson.objects.filter(module__course__is_published=True).count(),
-                "test_count": Test.objects.filter(
-                    lesson__module__course__is_published=True
-                ).count(),
+                "course": course,
+                "modules": modules,
+                "first_lesson": first_lesson,
+                "goals": lines(course.goals if course else ""),
+                "outcomes": lines(course.learning_outcomes if course else ""),
+                "lesson_count": Lesson.objects.filter(module__course=course).count()
+                if course
+                else 0,
+                "test_count": Test.objects.filter(lesson__module__course=course).count()
+                if course
+                else 0,
+                "other_courses": Course.objects.filter(is_published=True)
+                .exclude(pk=course.pk if course else None)
+                .count(),
             },
         )
 

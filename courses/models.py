@@ -71,6 +71,21 @@ class Course(models.Model):
     is_published = models.BooleanField(verbose_name="опубликован", default=False)
     created_at = models.DateTimeField(verbose_name="создан", default=timezone.now)
     level = models.CharField(verbose_name="уровень", max_length=50, choices=LEVEL_CHOICES)
+    # Два списка для витрины курса (бриф §3.1). Хранятся строками, по пункту на
+    # строку: отдельная таблица на три-четыре фразы, которые правят раз в семестр,
+    # — лишняя сущность, а markdown здесь не нужен, список и так список.
+    goals = models.TextField(
+        verbose_name="цели курса",
+        blank=True,
+        null=True,
+        help_text="По одной цели на строку. Показывается на главной.",
+    )
+    learning_outcomes = models.TextField(
+        verbose_name="чему научится студент",
+        blank=True,
+        null=True,
+        help_text="По одному умению на строку. Показывается на главной.",
+    )
     cover_url = models.TextField(verbose_name="обложка", blank=True, null=True)
 
     objects = CourseQuerySet.as_manager()

@@ -1392,107 +1392,182 @@ select {
 
 /* ===== 6. Главная ======================================================== */
 
-.hero {
+/* Главная — витрина основного курса (бриф §3.1). Прежний лендинг с пилюлей
+   «Учебная платформа», рядом цифр 8 / 79 / 27 и нарисованным «скриншотом»
+   тренажёра убран целиком: ни одна из этих частей не отвечала на вопрос, чему
+   здесь учат. */
+.home {
+  width: 100%;
+  max-width: 1160px;
+  margin: 0 auto;
+  padding: 32px 24px 64px;
+}
+.home-hero {
   display: grid;
-  grid-template-columns: 1.05fr 0.95fr;
+  grid-template-columns: minmax(0, 1fr) 420px;
   align-items: center;
-  gap: 56px;
-  padding-top: 72px;
-  padding-bottom: 80px;
+  gap: 40px;
+  padding-bottom: 40px;
+  border-bottom: 1px solid var(--border);
 }
-
-.eyebrow {
-  display: inline-flex;
-  align-items: center;
-  padding: 5px 12px;
-  margin-bottom: 20px;
-  border-radius: 999px;
-  background: var(--accent-soft);
-  color: var(--accent);
-  font-size: 13px;
-  font-weight: 600;
+.home-title {
+  margin: 0 0 14px;
+  font-size: 40px;
+  line-height: 1.15;
 }
-
-.hero h1 {
-  font-size: 46px;
-  line-height: 1.22;
-}
-
-.lead {
-  max-width: 52ch;
-  margin: 18px 0 0;
+.home-lead {
+  max-width: 54ch;
+  margin: 0 0 24px;
   color: var(--muted);
   font-size: 18px;
   line-height: 1.6;
 }
-
-.hero-actions {
+.home-actions {
   display: flex;
   flex-wrap: wrap;
-  align-items: center;
-  gap: 14px;
-  margin-top: 28px;
+  gap: 12px;
+  margin-bottom: 20px;
 }
-.hero-actions .btn {
-  padding: 12px 24px;
-  font-size: 16px;
-}
-
-.meta {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 18px;
-  margin-top: 32px;
-  padding-top: 24px;
-  border-top: 1px solid var(--hairline);
+.home-facts {
+  margin: 0;
   color: var(--muted);
   font-size: 14px;
 }
-.meta b {
-  display: block;
-  color: var(--text-strong);
-  font-family: var(--font-sans);
-  font-size: 22px;
-  font-weight: 700;
-  line-height: 1.2;
+
+/* Линейная ER-диаграмма: тонкие рамки, никакой заливки и теней. Цвета берутся
+   из токенов, поэтому в тёмной теме рисунок не светится белым прямоугольником. */
+.home-er {
+  width: 100%;
+  height: auto;
+}
+.home-er-box rect {
+  fill: var(--surface);
+  stroke: var(--border);
+  stroke-width: 1;
+}
+.home-er-box line {
+  stroke: var(--border);
+  stroke-width: 1;
+}
+.home-er-name {
+  fill: var(--text-strong);
+  font-family: var(--font-mono);
+  font-size: 14px;
+  font-weight: 500;
+}
+.home-er-field {
+  fill: var(--muted);
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+.home-er-line {
+  fill: none;
+  stroke: var(--accent-line);
+  stroke-width: 1.5;
+}
+.home-er-dot {
+  fill: var(--accent);
 }
 
-/* Превью SQL-тренажёра. Раньше это был макет окна терминала с «светофором» —
-   украшение, изображавшее чужое приложение. Теперь это карточка с настоящим
-   запросом и его результатом: она показывает, что платформа делает. */
-.terminal {
-  overflow: hidden;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  background: var(--surface);
-  box-shadow: var(--shadow-2);
-}
-.terminal-bar {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 12px 18px;
+.home-cols {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 32px;
+  padding: 36px 0;
   border-bottom: 1px solid var(--border);
-  background: var(--surface-2);
 }
-.terminal-title {
-  color: var(--muted);
-  font-family: var(--font-mono);
-  font-size: 13px;
+.home-cols .section-title {
+  margin-top: 0;
 }
-.terminal-body {
-  padding: 18px;
-  font-family: var(--font-mono);
-  font-size: 13.5px;
-  line-height: 1.7;
+
+.home-modules {
+  padding-top: 36px;
 }
-.terminal-body .pr {
+/* Программа в три колонки: девять модулей столбиком заняли бы экран, а
+   отношения между ними всё равно нет — это список, а не последовательность
+   шагов, которую нужно читать сверху вниз. */
+.module-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 2px 28px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: module;
+}
+.module-item {
+  counter-increment: module;
+  border-bottom: 1px solid var(--hairline);
+}
+.module-item a {
+  display: grid;
+  gap: 2px;
+  padding: 12px 0 12px 32px;
+  position: relative;
+  color: var(--text);
+  text-decoration: none;
+}
+.module-item a::before {
+  content: counter(module) ".";
+  position: absolute;
+  left: 0;
+  top: 12px;
+  color: var(--muted-soft);
+  font-variant-numeric: tabular-nums;
+}
+.module-item a:hover {
   color: var(--accent);
-  font-weight: 600;
 }
-.terminal-body .cmd {
-  color: var(--text-strong);
+.module-item-title {
+  font-weight: 500;
 }
+.module-item-meta {
+  color: var(--muted);
+  font-size: 13.5px;
+}
+.home-more {
+  margin: 28px 0 0;
+  color: var(--muted);
+}
+
+.home-empty {
+  width: 100%;
+  max-width: 60ch;
+  margin: 0 auto;
+  padding: 64px 0;
+  text-align: center;
+}
+
+@media (max-width: 900px) {
+  .home-hero {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 28px;
+  }
+  .home-title {
+    font-size: 32px;
+  }
+  /* Диаграмма уезжает под кнопки (бриф §3.1) и ужимается: на телефоне она
+     иллюстрация, а не схема, по которой работают. */
+  .home-er {
+    max-width: 420px;
+  }
+}
+
+@media (max-width: 640px) {
+  .home {
+    padding: 20px 16px 40px;
+  }
+  .home-title {
+    font-size: 28px;
+  }
+  .home-lead {
+    font-size: 17px;
+  }
+  .home-actions .btn {
+    flex: 1 1 100%;
+  }
+}
+
 .t-table {
   margin: 14px 0 8px;
   border: 1px solid var(--hairline);
