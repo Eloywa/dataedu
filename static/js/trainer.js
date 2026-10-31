@@ -9,6 +9,7 @@ import { classify } from "./sql/errors.js";
 import { parsePlan, renderPlan, scanNodes } from "./sql/plan.js";
 import { readSchema, renderList, renderDiagram, bindDiagram } from "./sql/schema.js";
 import { dumpDatabase } from "./sql/dump.js";
+import { setupEditor } from "./sql/editor.js";
 
 // База живёт в IndexedDB, а не в памяти вкладки. Дело не только в том, что
 // созданные студентом таблицы переживают перезагрузку: создание кластера с нуля
@@ -40,6 +41,14 @@ const MEASURE_RUNS = 5;
 const SMALL_TABLE = 5000;
 
 const $ = (id) => document.getElementById(id);
+
+/** Подставить запрос в поле. Через событие, а не присваиванием: подсветка и
+ *  номера строк обновляются по `input`, и прямое присваивание их не трогает. */
+function setSql(value) {
+  const field = $("sql");
+  field.value = value;
+  field.dispatchEvent(new Event("input", { bubbles: true }));
+}
 let db = null;
 let dataset = DEFAULT_DATASET;
 let restored = false;
@@ -634,12 +643,20 @@ async function switchDataset(key) {
   // Пустое поле на пустой базе не подсказывает ничего. Заготовка ставится
   // только если студент ещё ничего не написал — затирать его текст нельзя.
   const starter = DATASETS[key].starter;
-  if (starter && !$("sql").value.trim()) $("sql").value = starter;
+  if (starter && !$("sql").value.trim()) setSql(starter);
   setStatus(`Набор «${DATASETS[key].title}» готов`, "ok");
   busy(false);
 }
 
 async function reset() {
+  // Единственное необратимое действие в тренажёре: созданные студентом таблицы
+  // после сброса не восстановить ничем. Спрашиваем прямо — «Выгрузить SQL»
+  // рядом как раз для тех, кому есть что сохранить.
+  const confirmed = window.confirm(
+    "Сбросить базу? Набор данных вернётся к исходному виду, созданные вами таблицы пропадут.",
+  );
+  if (!confirmed) return;
+
   busy(true);
   setStatus("Сброс базы…");
   await seed(dataset);
@@ -650,7 +667,47 @@ async function reset() {
   busy(false);
 }
 
+/** Вкладки «База» и «Запрос» для узких экранов (бриф §5).
+ *
+ *  На широком экране обе панели стоят рядом, и вкладки не нужны — кнопки
+ *  показываются только когда раскладка схлопнулась в одну колонку. Порог тот же,
+ *  что в app.css; matchMedia не читает медиазапросы из таблицы стилей.
+ */
+function setupTabs() {
+  const tabs = $("trainer-tabs");
+  const buttons = [$("tab-db"), $("tab-sql")];
+  const panes = { "tab-db": $("pane-db"), "tab-sql": $("pane-sql") };
+  if (!tabs || buttons.some((b) => !b)) return;
+
+  const narrow = window.matchMedia("(max-width: 1023px)");
+  let active = "tab-sql";
+
+  function apply() {
+    const on = narrow.matches;
+    tabs.hidden = !on;
+    for (const button of buttons) {
+      const selected = button.id === active;
+      button.setAttribute("aria-selected", selected ? "true" : "false");
+      button.classList.toggle("is-active", selected);
+      // На широком экране обе панели видны, и прятать нечего.
+      panes[button.id].hidden = on && !selected;
+    }
+  }
+
+  for (const button of buttons) {
+    button.addEventListener("click", () => {
+      active = button.id;
+      apply();
+    });
+  }
+  narrow.addEventListener("change", apply);
+  apply();
+}
+
 async function init() {
+  setupEditor($("sql"), { symbolsHost: $("symbols") });
+  setupTabs();
+
   const wanted = chooseDataset();
   try {
     setStatus("Загружаю PostgreSQL (16 МБ)…");
@@ -670,7 +727,7 @@ async function init() {
     await refreshSchema();
 
     const { sql } = readHash();
-    if (sql) $("sql").value = sql;
+    if (sql) setSql(sql);
 
     $("boot").hidden = true;
     setStatus(
@@ -708,7 +765,7 @@ $("schema").addEventListener("click", (e) => {
 $("output").addEventListener("click", (e) => {
   if (e.target.id === "csv") downloadCsv();
   if (e.target.id === "bulk") {
-    $("sql").value = DATASETS[dataset].bulk;
+    setSql(DATASETS[dataset].bulk);
     $("sql").focus();
     setStatus("Выполните вставку, затем ANALYZE; и снова «Замерить»", "ok");
   }
@@ -717,7 +774,7 @@ $("output").addEventListener("click", (e) => {
 $("history-list").addEventListener("click", (e) => {
   const item = e.target.closest(".history-item");
   if (!item) return;
-  $("sql").value = queries[Number(item.dataset.i)];
+  setSql(queries[Number(item.dataset.i)]);
   $("sql").focus();
 });
 
@@ -736,7 +793,7 @@ $("sql").addEventListener("keydown", (e) => {
       e.key === "ArrowUp"
         ? Math.min(historyPos + 1, queries.length - 1)
         : Math.max(historyPos - 1, -1);
-    $("sql").value = historyPos === -1 ? "" : queries[historyPos];
+    setSql(historyPos === -1 ? "" : queries[historyPos]);
   }
 });
 

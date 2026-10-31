@@ -3,13 +3,20 @@
 {% block title %}SQL-тренажёр — DataEdu{% endblock %}
 
 {% block content %}
-<main class="container page" style="max-width: 980px">
-  <h1 class="page-title">SQL-тренажёр</h1>
-  <p class="page-sub">
-    Песочница PostgreSQL прямо в браузере (PGlite). База у каждого своя и живёт между
-    заходами — можно <code>SELECT</code>, <code>INSERT</code>, <code>UPDATE</code>,
-    <code>CREATE</code>; что-то сломалось — нажмите «Сбросить базу».
-  </p>
+<main class="trainer-shell">
+  {% comment %}
+  Рабочий экран, а не страница с формой: слева база (набор данных и его таблицы),
+  справа запрос и результат. На экранах уже 1024 px стороны становятся вкладками
+  «База» и «Запрос» — две колонки по 300 px не дают работать ни с той, ни с другой.
+  {% endcomment %}
+  <header class="trainer-head">
+    <h1 class="trainer-title">SQL-тренажёр</h1>
+    <p class="trainer-lead">
+      PostgreSQL работает прямо в браузере. База своя у каждого и сохраняется между
+      заходами: можно создавать таблицы, менять данные и ломать — всё чинится
+      кнопкой «Сбросить базу».
+    </p>
+  </header>
 
   <div
     class="trainer"
@@ -25,63 +32,95 @@
       <div class="boot-track"><i id="boot-bar"></i></div>
     </div>
 
-    <div class="trainer-bar">
-      <label class="visually-hidden" for="dataset">Набор данных</label>
-      <select id="dataset" class="toolbar-select"></select>
-      <button type="button" class="btn btn-ghost btn-small" id="schema-view">Диаграмма</button>
+    <div class="trainer-tabs" id="trainer-tabs" role="tablist" hidden>
+      <button type="button" class="trainer-tab" id="tab-db" role="tab"
+              aria-controls="pane-db" aria-selected="false">База</button>
+      <button type="button" class="trainer-tab" id="tab-sql" role="tab"
+              aria-controls="pane-sql" aria-selected="true">Запрос</button>
+    </div>
+
+    <section class="trainer-pane trainer-db" id="pane-db" role="tabpanel" aria-labelledby="tab-db">
+      <div class="trainer-db-top">
+        <label class="small-label" for="dataset">Набор данных</label>
+        <select id="dataset" class="toolbar-select"></select>
+      </div>
+
       {% comment %}
-      Своя схема живёт в IndexedDB браузера — забрать её оттуда иначе нельзя ни
-      сдать преподавателю, ни перенести на другую машину.
+      Схема заполняется скриптом из information_schema, а не вписана в шаблон:
+      раньше здесь был список из двух таблиц, и созданная студентом третья в нём
+      не появлялась — панель врала ровно тогда, когда становилась нужна.
       {% endcomment %}
-      <button type="button" class="btn btn-ghost btn-small" id="dump"
-              title="Сохранить схему и данные скриптом SQL">Выгрузить SQL</button>
-    </div>
+      <div class="trainer-schema" id="schema">
+        <span class="schema-title">Таблицы в базе</span>
+        <div class="schema-body">загрузка…</div>
+      </div>
 
-    {% comment %}
-    Схема заполняется скриптом из information_schema, а не вписана в шаблон:
-    раньше здесь был список из двух таблиц, и созданная студентом третья в нём
-    не появлялась — панель врала ровно тогда, когда становилась нужна.
-    {% endcomment %}
-    <div class="trainer-schema" id="schema">
-      <span class="schema-title">Таблицы в базе</span>
-      <div class="schema-body">загрузка…</div>
-    </div>
+      <div class="trainer-db-actions">
+        <button type="button" class="btn btn-ghost btn-small" id="schema-view">Диаграмма</button>
+        {% comment %}
+        Своя схема живёт в IndexedDB браузера — забрать её оттуда иначе нельзя ни
+        сдать преподавателю, ни перенести на другую машину.
+        {% endcomment %}
+        <button type="button" class="btn btn-ghost btn-small" id="dump"
+                title="Сохранить схему и данные скриптом SQL">Выгрузить SQL</button>
+      </div>
 
-    <label class="visually-hidden" for="sql">SQL-запрос</label>
-    <textarea id="sql" class="trainer-input mono" rows="6" spellcheck="false"
-              autocapitalize="off" autocorrect="off" autocomplete="off"
-              placeholder="SELECT * FROM students ORDER BY xp DESC;"></textarea>
-
-    <div class="trainer-actions">
-      <button id="run" class="btn btn-primary" disabled>Выполнить</button>
       {% comment %}
-      «Показать план» — тот же запрос через EXPLAIN ANALYZE, разобранный в дерево.
-      «Замерить» повторяет запрос пять раз и сравнивает с прошлым замером: между
-      ними студент успевает создать индекс, и разница — это и есть урок.
+      «Сбросить базу» стоит отдельно от рабочих действий и под чертой: это
+      единственная кнопка на экране, которая уничтожает работу студента, и
+      соседство с «Выполнить» ей не по чину.
       {% endcomment %}
-      <button id="explain" class="btn btn-ghost" disabled
-              title="EXPLAIN ANALYZE: как база собирается выполнять запрос">
-        Показать план
-      </button>
-      <button id="measure" class="btn btn-ghost" disabled
-              title="Повторить запрос несколько раз и сравнить с прошлым замером">
-        Замерить
-      </button>
-      <button id="share" class="btn btn-ghost" title="Ссылка на этот запрос">Ссылка</button>
-      <button id="reset" class="btn btn-ghost" disabled>Сбросить базу</button>
-      <span id="status" class="trainer-status mono">Загрузка PGlite…</span>
-    </div>
+      <div class="trainer-danger">
+        <button type="button" class="btn btn-ghost btn-small trainer-reset" id="reset" disabled>
+          Сбросить базу
+        </button>
+        <p class="help">Вернёт набор данных к исходному виду. Созданные вами таблицы пропадут.</p>
+      </div>
+    </section>
 
-    {% comment %}
-    История запросов. Нужна не для красоты: без неё повторить предыдущий запрос
-    можно только набрав его заново, а в тренажёре запросы правят по одной строке.
-    {% endcomment %}
-    <details class="trainer-history" id="history" hidden>
-      <summary>История запросов</summary>
-      <ol class="history-list" id="history-list"></ol>
-    </details>
+    <section class="trainer-pane trainer-work" id="pane-sql" role="tabpanel" aria-labelledby="tab-sql">
+      <label class="visually-hidden" for="sql">SQL-запрос</label>
+      <textarea id="sql" class="trainer-input mono" rows="8" spellcheck="false"
+                autocapitalize="off" autocorrect="off" autocomplete="off"
+                placeholder="SELECT * FROM students ORDER BY xp DESC;"></textarea>
 
-    <div id="output" class="trainer-output"></div>
+      {% comment %}
+      Строка быстрых символов (бриф §5). Кнопки добавляет скрипт: без него
+      вставлять нечем, и пустая полоса на экране только занимала бы место.
+      {% endcomment %}
+      <div class="symbol-row" id="symbols" aria-label="Быстрый ввод символов"></div>
+
+      <div class="trainer-actions">
+        <button id="run" class="btn btn-primary" disabled>Выполнить</button>
+        {% comment %}
+        «Показать план» — тот же запрос через EXPLAIN ANALYZE, разобранный в дерево.
+        «Замерить» повторяет запрос пять раз и сравнивает с прошлым замером: между
+        ними студент успевает создать индекс, и разница — это и есть урок.
+        {% endcomment %}
+        <button id="explain" class="btn btn-ghost" disabled
+                title="EXPLAIN ANALYZE: как база собирается выполнять запрос">
+          Показать план
+        </button>
+        <button id="measure" class="btn btn-ghost" disabled
+                title="Повторить запрос несколько раз и сравнить с прошлым замером">
+          Замерить
+        </button>
+        <button id="share" class="btn btn-ghost" title="Ссылка на этот запрос">Ссылка</button>
+      </div>
+
+      <p id="status" class="trainer-status mono" role="status">Загрузка PGlite…</p>
+
+      {% comment %}
+      История запросов. Нужна не для красоты: без неё повторить предыдущий запрос
+      можно только набрав его заново, а в тренажёре запросы правят по одной строке.
+      {% endcomment %}
+      <details class="trainer-history" id="history" hidden>
+        <summary>История запросов</summary>
+        <ol class="history-list" id="history-list"></ol>
+      </details>
+
+      <div id="output" class="trainer-output"></div>
+    </section>
   </div>
 </main>
 

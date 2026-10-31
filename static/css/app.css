@@ -1966,6 +1966,7 @@ select {
   grid-template-rows: 1fr auto;
   align-items: start;
   gap: 0 36px;
+  width: 100%;
   max-width: 1360px;
   margin: 0 auto;
   padding: 24px 24px 56px;
@@ -2594,23 +2595,83 @@ a.lesson-tree-link:hover {
   font-variant-numeric: tabular-nums;
 }
 
-/* Тренажёр.
-   Простая колонка, а не две: в разметке схема таблиц, поле запроса, кнопки и
-   вывод идут друг за другом одним потоком, и сеткой из двух колонок они
-   разъезжаются — схема оказывается слева, а редактор справа от неё. */
-.trainer {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
+/* Тренажёр — рабочий экран, а не страница с формой (бриф §3.4).
+   Слева база: набор данных, его таблицы и действия над ней. Справа запрос,
+   кнопки и результат. На экранах уже 1024 px стороны становятся вкладками. */
+.trainer-shell {
+  width: 100%;
+  max-width: 1360px;
+  margin: 0 auto;
+  padding: 24px 24px 48px;
 }
-.trainer-schema {
-  padding: 16px 18px;
+.trainer-head {
+  margin-bottom: 20px;
+}
+.trainer-title {
+  margin: 0 0 8px;
+}
+.trainer-lead {
+  max-width: 68ch;
+  margin: 0;
+  color: var(--muted);
+}
+.trainer {
+  display: grid;
+  grid-template-columns: 300px minmax(0, 1fr);
+  align-items: start;
+  gap: 24px;
+}
+.trainer-pane {
+  min-width: 0;
+}
+.trainer-db {
+  display: grid;
+  gap: 14px;
+  padding: 16px;
   border: 1px solid var(--border);
   border-radius: var(--radius);
+  background: var(--surface);
+}
+.trainer-db-top {
+  display: grid;
+  gap: 4px;
+}
+.trainer-db-top .toolbar-select {
+  width: 100%;
+}
+.trainer-db-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+/* Разрушительное действие отделено чертой и стоит последним: рядом с «Выполнить»
+   оно выглядело таким же рабочим, как остальные. */
+.trainer-danger {
+  padding-top: 14px;
+  border-top: 1px solid var(--hairline);
+}
+.trainer-reset {
+  color: var(--danger);
+  border-color: var(--danger-soft);
+}
+.trainer-reset:hover:not(:disabled) {
+  background: var(--danger-soft);
+  border-color: var(--danger);
+  color: var(--danger);
+}
+.trainer-danger .help {
+  margin: 8px 0 0;
+}
+
+.trainer-schema {
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
   background: var(--surface-2);
   font-family: var(--font-mono);
   font-size: 13px;
   line-height: 1.8;
+  overflow-x: auto;
 }
 .schema-title {
   display: block;
@@ -2620,24 +2681,215 @@ a.lesson-tree-link:hover {
   font-size: 13px;
   font-weight: 600;
 }
-.trainer-input {
-  min-height: 130px;
-  font-family: var(--font-mono);
-  font-size: 14px;
-  line-height: 1.6;
-  resize: vertical;
+
+/* Поле запроса: номера строк, подложка с подсветкой и само поле лежат друг на
+   друге. Совпадение держится на одинаковых шрифте, кегле, интерлиньяже и
+   отступах — любое расхождение здесь сдвигает подсветку относительно текста,
+   поэтому значения вынесены в переменные и не задаются по месту. */
+.editor {
+  --editor-font-size: 15px;
+  --editor-line: 1.6;
+  --editor-pad: 14px;
+  --editor-gutter: 44px;
+
+  position: relative;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  overflow: hidden;
 }
+.editor:focus-within {
+  border-color: var(--accent);
+  outline: 2px solid var(--accent);
+  outline-offset: -1px;
+}
+.editor-gutter,
+.editor-layer,
+.trainer-input {
+  margin: 0;
+  padding: var(--editor-pad) 0;
+  font-family: var(--font-mono);
+  font-size: var(--editor-font-size);
+  line-height: var(--editor-line);
+  white-space: pre;
+  tab-size: 2;
+}
+.editor-gutter {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: var(--editor-gutter);
+  height: 100%;
+  overflow: hidden;
+  border-right: 1px solid var(--hairline);
+  background: var(--surface-2);
+  color: var(--muted-soft);
+  text-align: right;
+  padding-right: 10px;
+  user-select: none;
+}
+.editor-layer {
+  position: absolute;
+  inset: 0;
+  padding-left: calc(var(--editor-gutter) + 12px);
+  overflow: hidden;
+  color: var(--text);
+  pointer-events: none;
+}
+.trainer-input {
+  position: relative;
+  display: block;
+  width: 100%;
+  min-height: 200px;
+  padding-left: calc(var(--editor-gutter) + 12px);
+  padding-right: 14px;
+  border: 0;
+  background: none;
+  /* Текст прозрачный: видно подложку с подсветкой, а курсор и выделение —
+     настоящие, от поля. */
+  color: transparent;
+  caret-color: var(--text);
+  resize: vertical;
+  overflow: auto;
+}
+.trainer-input::selection {
+  background: var(--accent-line);
+  color: transparent;
+}
+.trainer-input:focus {
+  outline: none;
+}
+.trainer-input::placeholder {
+  color: var(--muted-soft);
+}
+
+/* Разбор запроса. Цвета — из палитры: своих «цветов синтаксиса» платформа не
+   заводит, иначе редактор выпадет из темы вместе с остальным экраном. */
+.tok-key {
+  color: var(--accent);
+  font-weight: 500;
+}
+.tok-string {
+  color: var(--success);
+}
+.tok-number {
+  color: var(--warning);
+}
+.tok-comment {
+  color: var(--muted-soft);
+  font-style: italic;
+}
+
+/* Строка быстрых символов (бриф §5). На широком экране не нужна: там есть
+   настоящая клавиатура. */
+.symbol-row {
+  display: none;
+  gap: 6px;
+  margin-top: 10px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+  scrollbar-width: thin;
+}
+.symbol-key {
+  flex: none;
+  min-width: 44px;
+  height: 44px;
+  padding: 0 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: 15px;
+  cursor: pointer;
+}
+.symbol-key:active {
+  background: var(--surface-2);
+}
+
 .trainer-actions {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 14px;
+  gap: 10px;
   margin-top: 14px;
 }
 .trainer-status {
+  margin: 12px 0 0;
   color: var(--muted);
   font-size: 13px;
 }
+
+/* Вкладки «База» и «Запрос» — только для узких экранов, показывает их скрипт. */
+.trainer-tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 14px;
+  padding: 4px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+}
+.trainer-tab {
+  flex: 1 1 0;
+  min-height: 40px;
+  border: 0;
+  border-radius: 4px;
+  background: none;
+  color: var(--muted);
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.trainer-tab.is-active {
+  background: var(--surface);
+  color: var(--text-strong);
+}
+
+/* 1023px — тот же порог, что в trainer.js. */
+@media (max-width: 1023px) {
+  .trainer-shell {
+    padding: 20px 20px 40px;
+  }
+  .trainer {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0;
+  }
+  .trainer-tabs {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 640px) {
+  .trainer-shell {
+    padding: 16px 16px 32px;
+  }
+  .editor {
+    /* 16 px — иначе iPhone приближает страницу при касании поля (бриф §4). */
+    --editor-font-size: 16px;
+    --editor-pad: 12px;
+    --editor-gutter: 36px;
+  }
+  .symbol-row {
+    display: flex;
+  }
+  .trainer-input {
+    min-height: 150px;
+  }
+  /* «Выполнить» на всю ширину и первым: на телефоне это единственное действие,
+     которым пользуются каждый раз. */
+  .trainer-actions {
+    gap: 8px;
+  }
+  .trainer-actions .btn-primary {
+    flex: 1 1 100%;
+  }
+  .trainer-actions .btn-ghost {
+    flex: 1 1 calc(50% - 4px);
+  }
+}
+
 .trainer-output {
   margin-top: 18px;
   padding: 16px;
@@ -2971,12 +3223,6 @@ a.lesson-tree-link:hover {
   transition: width 0.2s linear;
 }
 
-.trainer-bar {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 10px;
-}
 
 /* ER-диаграмма. Цвета — токенами, чтобы следовать теме: картинкой пришлось бы
    держать два файла, а SVG в разметке подчиняется тем же переменным. */
@@ -4044,7 +4290,6 @@ a.lesson-tree-link:hover {
     grid-template-columns: 1fr;
   }
   .course-actions .btn,
-  .trainer-actions .btn,
   .defend-form .btn,
   .sub-form .btn,
   .hero-actions .btn {
