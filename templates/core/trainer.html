@@ -6,8 +6,9 @@
 <main class="trainer-shell">
   {% comment %}
   Рабочий экран, а не страница с формой: слева база (набор данных и его таблицы),
-  справа запрос и результат. На экранах уже 1024 px стороны становятся вкладками
-  «База» и «Запрос» — две колонки по 300 px не дают работать ни с той, ни с другой.
+  справа запрос, ниже на всю ширину — вывод. На экранах уже 1024 px база и запрос
+  становятся вкладками «База» и «Запрос» — две колонки по 300 px не дают работать
+  ни с той, ни с другой.
   {% endcomment %}
   <header class="trainer-head">
     <h1 class="trainer-title">SQL-тренажёр</h1>
@@ -93,10 +94,15 @@
       <div class="trainer-actions">
         <button id="run" class="btn btn-primary" disabled>Выполнить</button>
         {% comment %}
+        «Как выполняется» показывает запрос по шагам на диаграмме и не меняет базу.
         «Показать план» — тот же запрос через EXPLAIN ANALYZE, разобранный в дерево.
         «Замерить» повторяет запрос пять раз и сравнивает с прошлым замером: между
         ними студент успевает создать индекс, и разница — это и есть урок.
         {% endcomment %}
+        <button id="trace" class="btn btn-ghost" disabled
+                title="Пошагово показать, что база делает с этим запросом">
+          Как выполняется
+        </button>
         <button id="explain" class="btn btn-ghost" disabled
                 title="EXPLAIN ANALYZE: как база собирается выполнять запрос">
           Показать план
@@ -118,8 +124,31 @@
         <summary>История запросов</summary>
         <ol class="history-list" id="history-list"></ol>
       </details>
+    </section>
 
-      <div id="output" class="trainer-output"></div>
+    {% comment %}
+    Вывод на всю ширину экрана. Диаграмма раньше стояла в левой колонке шириной 300 px
+    и ужималась до нечитаемого; теперь это отдельная вкладка, как и пошаговый показ
+    запроса: обоим нужно место, а результату запроса оно не мешает.
+    {% endcomment %}
+    <section class="trainer-stage" id="stage" aria-label="Вывод">
+      <div class="stage-bar">
+        <div class="trainer-tabs stage-tabs" role="tablist" aria-label="Что показать">
+          <button type="button" class="trainer-tab is-active" id="stage-tab-result" role="tab"
+                  data-stage="result" aria-controls="stage-result" aria-selected="true">Результат</button>
+          <button type="button" class="trainer-tab" id="stage-tab-trace" role="tab"
+                  data-stage="trace" aria-controls="stage-trace" aria-selected="false">Как выполняется</button>
+          <button type="button" class="trainer-tab" id="stage-tab-diagram" role="tab"
+                  data-stage="diagram" aria-controls="stage-diagram" aria-selected="false">Диаграмма</button>
+        </div>
+        <button type="button" class="btn btn-ghost btn-small" id="stage-full" hidden>На весь экран</button>
+      </div>
+
+      <div id="stage-result" class="stage-panel" role="tabpanel" aria-labelledby="stage-tab-result">
+        <div id="output" class="trainer-output"></div>
+      </div>
+      <div id="stage-trace" class="stage-panel" role="tabpanel" aria-labelledby="stage-tab-trace" hidden></div>
+      <div id="stage-diagram" class="stage-panel" role="tabpanel" aria-labelledby="stage-tab-diagram" hidden></div>
     </section>
   </div>
 </main>

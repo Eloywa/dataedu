@@ -16,7 +16,7 @@
       (function () {
         try {
           var saved = localStorage.getItem("dataedu-theme");
-          if (saved === "dark" || saved === "light") {
+          if (saved === "dark" || saved === "light" || saved === "warm") {
             document.documentElement.setAttribute("data-theme", saved);
           }
         } catch (e) {
@@ -92,22 +92,55 @@
         </div>
         <div class="header-actions">
           {% comment %}
-          Переключатель темы. Значок показывается тот, в который нажатие переведёт,
-          а подпись для скринридера ставит скрипт — до его загрузки состояние темы
-          в разметке неизвестно.
+          Выбор темы: значок показывает текущую, а нажатие открывает список. Перебирать
+          темы нажатиями по кругу было неудобно: чтобы вернуться к предыдущей, приходилось
+          проходить через все остальные. Значки заданы один раз и используются и на
+          кнопке, и в списке.
           {% endcomment %}
-          <button class="icon-btn" id="theme-toggle" type="button" title="Сменить тему">
-            <span class="visually-hidden">Сменить тему</span>
-            <svg class="icon-light" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                 stroke-width="1.8" stroke-linecap="round" aria-hidden="true">
+          <svg class="visually-hidden" aria-hidden="true">
+            <symbol id="theme-icon-light" viewBox="0 0 24 24">
               <circle cx="12" cy="12" r="4.2" />
               <path d="M12 2.6v2.2M12 19.2v2.2M4.2 12H2M22 12h-2.2M6.3 6.3 4.8 4.8M19.2 19.2l-1.5-1.5M17.7 6.3l1.5-1.5M4.8 19.2l1.5-1.5" />
-            </svg>
-            <svg class="icon-dark" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                 stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            </symbol>
+            <symbol id="theme-icon-warm" viewBox="0 0 24 24">
+              <path d="M9.4 17.5h5.2M10.2 21h3.6" />
+              <path d="M12 3a6.2 6.2 0 0 0-3.8 11.1c.8.6 1.2 1.5 1.2 2.4v1h5.2v-1c0-.9.4-1.8 1.2-2.4A6.2 6.2 0 0 0 12 3z" />
+            </symbol>
+            <symbol id="theme-icon-dark" viewBox="0 0 24 24">
               <path d="M20 13.4A8.2 8.2 0 1 1 10.6 4a6.6 6.6 0 0 0 9.4 9.4z" />
-            </svg>
-          </button>
+            </symbol>
+            <symbol id="theme-icon-system" viewBox="0 0 24 24">
+              <rect x="3" y="4.5" width="18" height="12" rx="1.5" />
+              <path d="M9 20.5h6M12 16.5v4" />
+            </symbol>
+          </svg>
+          <div class="theme-menu">
+            <button class="icon-btn" id="theme-toggle" type="button" title="Тема оформления"
+                    aria-haspopup="menu" aria-expanded="false" aria-controls="theme-list">
+              <span class="visually-hidden">Тема оформления</span>
+              <svg class="icon-light theme-icon" aria-hidden="true"><use href="#theme-icon-light" /></svg>
+              <svg class="icon-dark theme-icon" aria-hidden="true"><use href="#theme-icon-dark" /></svg>
+              <svg class="icon-warm theme-icon" aria-hidden="true"><use href="#theme-icon-warm" /></svg>
+            </button>
+            <div class="theme-list" id="theme-list" role="menu" aria-label="Тема оформления" hidden>
+              <button class="theme-option" type="button" role="menuitemradio" aria-checked="false"
+                      tabindex="-1" data-theme-choice="light">
+                <svg class="theme-icon" aria-hidden="true"><use href="#theme-icon-light" /></svg>Светлая
+              </button>
+              <button class="theme-option" type="button" role="menuitemradio" aria-checked="false"
+                      tabindex="-1" data-theme-choice="warm">
+                <svg class="theme-icon" aria-hidden="true"><use href="#theme-icon-warm" /></svg>Ламповая
+              </button>
+              <button class="theme-option" type="button" role="menuitemradio" aria-checked="false"
+                      tabindex="-1" data-theme-choice="dark">
+                <svg class="theme-icon" aria-hidden="true"><use href="#theme-icon-dark" /></svg>Тёмная
+              </button>
+              <button class="theme-option" type="button" role="menuitemradio" aria-checked="false"
+                      tabindex="-1" data-theme-choice="system">
+                <svg class="theme-icon" aria-hidden="true"><use href="#theme-icon-system" /></svg>Как в системе
+              </button>
+            </div>
+          </div>
 
           {% if user.is_authenticated %}
             <a class="link-muted" href="{% url 'accounts:settings' %}">{{ user.label }}</a>

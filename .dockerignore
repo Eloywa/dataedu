@@ -22,10 +22,13 @@ db.sqlite3
 # Собирается внутри образа командой collectstatic.
 staticfiles/
 
+# Выгрузка тестовых данных: в ней хеши паролей.
+export/
+dataedu_testdata_*.zip
+
 # Временные файлы и скриншоты этапов.
 tmp_*
 *.log
-.claude/
 .ruff_cache/
 
 # Сборочные файлы самого Docker.

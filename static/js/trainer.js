@@ -7,9 +7,19 @@ import { pluralRu, rowsLabel } from "./plural.js";
 import { DATASETS, DEFAULT_DATASET, WIPE } from "./sql/datasets.js";
 import { classify } from "./sql/errors.js";
 import { parsePlan, renderPlan, scanNodes } from "./sql/plan.js";
-import { readSchema, renderList, renderDiagram, bindDiagram } from "./sql/schema.js";
+import {
+  readSchema,
+  renderList,
+  renderDiagram,
+  bindDiagram,
+  highlightDiagram,
+  fitDiagram,
+  scaleDiagram,
+} from "./sql/schema.js";
 import { dumpDatabase } from "./sql/dump.js";
 import { setupEditor } from "./sql/editor.js";
+import { buildTrace, TraceError } from "./sql/trace.js";
+import { mountTrace } from "./sql/trace-view.js";
 
 // База живёт в IndexedDB, а не в памяти вкладки. Дело не только в том, что
 // созданные студентом таблицы переживают перезагрузку: создание кластера с нуля
@@ -53,7 +63,12 @@ let db = null;
 let dataset = DEFAULT_DATASET;
 let restored = false;
 let schema = { tables: [], links: [] };
-let schemaView = "list";
+let stage = "result"; // какая вкладка вывода открыта
+let diagramScale = null; // null — вписывать в размер, иначе выбранный масштаб
+let selectedTable = null;
+let traceView = null;
+let tracedSql = null; // для какого запроса показаны шаги
+let tracing = false;
 let queries = [];
 let historyPos = -1;
 let lastResult = null; // для выгрузки в CSV
@@ -248,22 +263,192 @@ async function refreshSchema() {
   const body = $("schema").querySelector(".schema-body");
   try {
     schema = await readSchema(db);
-    if (schemaView === "list") {
-      body.innerHTML = renderList(schema, DATASETS[dataset] && DATASETS[dataset].emptyHint);
-      return;
-    }
-    body.innerHTML = renderDiagram(schema, savedLayout());
-    bindDiagram(body, saveLayout);
+    body.innerHTML = renderList(schema, DATASETS[dataset] && DATASETS[dataset].emptyHint);
+    if (stage === "diagram") renderBigDiagram();
   } catch {
     body.textContent = "Не удалось прочитать схему.";
   }
 }
 
-function toggleSchemaView() {
-  schemaView = schemaView === "list" ? "diagram" : "list";
-  $("schema-view").textContent = schemaView === "list" ? "Диаграмма" : "Списком";
-  $("schema").classList.toggle("is-diagram", schemaView === "diagram");
-  refreshSchema();
+// --- Вкладки вывода ----------------------------------------------------------
+
+const STAGES = ["result", "trace", "diagram"];
+
+function showStage(name) {
+  stage = name;
+  for (const key of STAGES) {
+    const selected = key === name;
+    const tab = $(`stage-tab-${key}`);
+    tab.classList.toggle("is-active", selected);
+    tab.setAttribute("aria-selected", selected ? "true" : "false");
+    $(`stage-${key}`).hidden = !selected;
+  }
+  // На весь экран имеет смысл разворачивать рисунок: таблице результата это не нужно.
+  $("stage-full").hidden = name === "result" || !document.fullscreenEnabled;
+  if (name === "diagram") renderBigDiagram();
+}
+
+/** Сколько высоты можно отдать рисунку, чтобы рядом остались кнопки и подписи. */
+function stageHeight() {
+  return document.fullscreenElement
+    ? window.innerHeight - 200
+    : Math.max(420, window.innerHeight * 0.62);
+}
+
+function toggleFullscreen() {
+  if (document.fullscreenElement) {
+    document.exitFullscreen();
+  } else {
+    $("stage").requestFullscreen().catch(() => {
+      // Браузер может отказать — тогда просто остаёмся в обычном виде.
+    });
+  }
+}
+
+// --- Диаграмма ----------------------------------------------------------------
+
+function applyDiagramScale() {
+  const host = $("diagram-canvas");
+  if (!host) return;
+  const scale =
+    diagramScale === null ? fitDiagram(host, { maxHeight: stageHeight() }) : diagramScale;
+  if (diagramScale !== null) scaleDiagram(host, scale);
+  const label = $("er-scale");
+  if (label) label.textContent = `${Math.round(scale * 100)}%`;
+  host.dataset.scale = scale;
+}
+
+function renderBigDiagram() {
+  const host = $("stage-diagram");
+  if (!schema.tables.length) {
+    host.innerHTML = renderDiagram(schema, {});
+    return;
+  }
+  host.innerHTML =
+    '<div class="diagram-tools" role="group" aria-label="Масштаб диаграммы">' +
+    '<button type="button" class="btn btn-ghost btn-small" id="er-zoom-out" aria-label="Уменьшить">−</button>' +
+    '<span class="diagram-scale" id="er-scale" aria-live="polite"></span>' +
+    '<button type="button" class="btn btn-ghost btn-small" id="er-zoom-in" aria-label="Увеличить">+</button>' +
+    '<button type="button" class="btn btn-ghost btn-small" id="er-fit">По размеру</button>' +
+    "</div>" +
+    `<div id="diagram-canvas" class="diagram-canvas">${renderDiagram(schema, savedLayout())}</div>` +
+    '<p class="diagram-info" id="diagram-info"></p>';
+  const canvas = $("diagram-canvas");
+  bindDiagram(canvas, saveLayout, selectTable);
+  applyDiagramScale();
+  if (!schema.tables.some((t) => t.name === selectedTable)) selectedTable = null;
+  showTableInfo();
+}
+
+function selectTable(name) {
+  selectedTable = selectedTable === name ? null : name;
+  showTableInfo();
+}
+
+/** Выбранная таблица и её соседи: остальное приглушается, пока выбор не снят. */
+async function showTableInfo() {
+  const canvas = $("diagram-canvas");
+  const info = $("diagram-info");
+  if (!canvas || !info) return;
+
+  if (!selectedTable) {
+    highlightDiagram(canvas, null);
+    info.textContent = "Нажмите на таблицу, чтобы увидеть её связи и подставить запрос к ней.";
+    return;
+  }
+
+  const name = selectedTable;
+  const outgoing = schema.links.filter((l) => l.src === name);
+  const incoming = schema.links.filter((l) => l.dst === name);
+  const links = [...outgoing, ...incoming];
+  highlightDiagram(canvas, {
+    tables: [...links.map((l) => l.src), ...links.map((l) => l.dst)],
+    active: [name],
+    links: links.map((l) => ({
+      srcTable: l.src,
+      srcCol: l.srcCol,
+      dstTable: l.dst,
+      dstCol: l.dstCol,
+    })),
+  });
+
+  let rows = "";
+  try {
+    const res = await db.query(`SELECT count(*)::int AS n FROM ${quoteIdent(name)}`);
+    rows = `${rowsLabel(res.rows[0].n)}. `;
+  } catch {
+    // таблицы могло не стать между отрисовкой и подсчётом — обойдёмся без числа
+  }
+  if (selectedTable !== name) return; // пока считали, выбрали другую
+
+  const refs = outgoing.length
+    ? `Ссылается на: ${[...new Set(outgoing.map((l) => l.dst))].map(esc).join(", ")}. `
+    : "";
+  const backs = incoming.length
+    ? `На неё ссылаются: ${[...new Set(incoming.map((l) => l.src))].map(esc).join(", ")}. `
+    : "";
+  info.innerHTML =
+    `<b>${esc(name)}</b>: ${rows}${refs}${backs}` +
+    '<button type="button" class="link-button" id="er-fill">Подставить запрос</button>';
+}
+
+// --- Как выполняется ----------------------------------------------------------
+
+function dropTrace() {
+  if (traceView) traceView.destroy();
+  traceView = null;
+  tracedSql = null;
+}
+
+function traceHint(text) {
+  dropTrace();
+  $("stage-trace").innerHTML = `<div class="diag-hint">${esc(text)}</div>`;
+}
+
+async function openTrace() {
+  const sql = $("sql").value.trim();
+  showStage("trace");
+  // Разбор идёт в транзакции с откатом, и второй такой же, запущенный нажатием на
+  // вкладку, попал бы внутрь первой и откатил её.
+  if (!db || tracing) return;
+  if (!sql) {
+    traceHint(
+      "Напишите запрос и нажмите «Как выполняется»: здесь появится каждый его шаг — какие " +
+        "таблицы читаются, какие строки отбрасываются и как соединяются данные.",
+    );
+    return;
+  }
+  if (traceView && tracedSql === sql) return;
+
+  tracing = true;
+  busy(true);
+  dropTrace();
+  $("stage-trace").innerHTML = '<p class="trainer-note">Разбираю запрос…</p>';
+  try {
+    const trace = await buildTrace(db, sql, schema);
+    traceView = mountTrace($("stage-trace"), trace, {
+      schema,
+      saved: savedLayout(),
+      onMove: saveLayout,
+      maxHeight: stageHeight,
+    });
+    tracedSql = sql;
+    remember(sql);
+  } catch (e) {
+    const message = e && e.message ? e.message : String(e);
+    if (e instanceof TraceError) {
+      traceHint(message);
+    } else {
+      const { code, hint } = classify(message);
+      $("stage-trace").innerHTML =
+        `<div class="trainer-error mono">${esc(message)}</div>` +
+        (hint ? `<div class="diag-hint">${esc(hint)}</div>` : "");
+      report({ event: "error", error: code });
+    }
+  } finally {
+    tracing = false;
+    busy(false);
+  }
 }
 
 // --- История -----------------------------------------------------------------
@@ -290,6 +475,7 @@ function renderHistory() {
 
 function showError(message) {
   const { code, hint } = classify(message);
+  showStage("result");
   $("output").innerHTML =
     `<div class="trainer-error mono">${esc(message)}</div>` +
     (hint ? `<div class="diag-hint">${esc(hint)}</div>` : "");
@@ -328,6 +514,7 @@ function renderResult(res, elapsed) {
   html += `<div class="trainer-note">${rowsLabel(res.rows.length)} ${timing}`;
   if (res.rows.length > RENDER_LIMIT) html += ` · показаны первые ${RENDER_LIMIT}`;
   html += ' · <button type="button" class="link-button" id="csv">выгрузить CSV</button>';
+  html += ' · <button type="button" class="link-button" id="to-trace">как это выполнялось</button>';
   html += "</div>";
   out.innerHTML = html;
 }
@@ -335,13 +522,14 @@ function renderResult(res, elapsed) {
 // --- Выполнение --------------------------------------------------------------
 
 function busy(state) {
-  for (const id of ["run", "explain", "measure", "reset"]) $(id).disabled = state;
+  for (const id of ["run", "trace", "explain", "measure", "reset"]) $(id).disabled = state;
 }
 
 async function execute() {
   const sql = $("sql").value.trim();
   if (!sql || !db) return;
   busy(true);
+  let refreshTrace = false;
   try {
     const started = performance.now();
     const results = await db.exec(sql);
@@ -349,6 +537,12 @@ async function execute() {
     const withRows = [...results].reverse().find((r) => r.fields && r.fields.length);
     renderResult(withRows || results[results.length - 1], elapsed);
     remember(sql);
+    // Запрос мог изменить данные, и старые шаги стали бы неправдой.
+    refreshTrace = stage === "trace";
+    dropTrace();
+    // С диаграммы уводим, только если есть что показать: после CREATE TABLE человек
+    // как раз хочет увидеть на ней новую таблицу.
+    if (!refreshTrace && (stage !== "diagram" || withRows)) showStage("result");
     await refreshSchema();
     report({ event: "run" });
   } catch (e) {
@@ -356,6 +550,7 @@ async function execute() {
   } finally {
     busy(false);
   }
+  if (refreshTrace) await openTrace();
 }
 
 async function planFor(sql) {
@@ -373,6 +568,7 @@ async function explain() {
   const sql = $("sql").value.trim();
   if (!sql || !db) return;
   busy(true);
+  showStage("result");
   try {
     const { plan, analyzed } = await planFor(sql);
     $("output").innerHTML =
@@ -488,6 +684,7 @@ function renderMeasure(now, before, counts) {
 async function measure() {
   const sql = $("sql").value.trim();
   if (!sql || !db) return;
+  showStage("result");
   if (!readOnly(sql)) {
     $("output").innerHTML =
       "<div class='diag-hint'>Замерять можно только читающие запросы: повторный прогон " +
@@ -639,6 +836,9 @@ async function switchDataset(key) {
   await seed(key);
   $("output").innerHTML = "";
   measured.clear();
+  selectedTable = null;
+  dropTrace();
+  if (stage === "trace") showStage("result");
   await refreshSchema();
   // Пустое поле на пустой базе не подсказывает ничего. Заготовка ставится
   // только если студент ещё ничего не написал — затирать его текст нельзя.
@@ -662,6 +862,9 @@ async function reset() {
   await seed(dataset);
   $("output").innerHTML = "";
   measured.clear();
+  selectedTable = null;
+  dropTrace();
+  if (stage === "trace") showStage("result");
   await refreshSchema();
   setStatus("База сброшена — готово", "ok");
   busy(false);
@@ -744,26 +947,64 @@ async function init() {
 // --- События -----------------------------------------------------------------
 
 $("run").addEventListener("click", execute);
+$("trace").addEventListener("click", openTrace);
 $("explain").addEventListener("click", explain);
 $("measure").addEventListener("click", measure);
 $("reset").addEventListener("click", reset);
 $("share").addEventListener("click", shareLink);
-$("schema-view").addEventListener("click", toggleSchemaView);
+$("schema-view").addEventListener("click", () => {
+  showStage("diagram");
+  $("stage").scrollIntoView({ block: "nearest" });
+});
 $("dump").addEventListener("click", downloadDump);
 $("dataset").addEventListener("change", (e) => switchDataset(e.target.value));
 
-$("schema").addEventListener("click", (e) => {
-  if (e.target.id !== "er-reset") return;
-  try {
-    localStorage.removeItem(layoutKey());
-  } catch {
-    // нечего удалять — раскладка и так только в разметке
+for (const key of STAGES) {
+  $(`stage-tab-${key}`).addEventListener("click", () => {
+    if (key === "trace") openTrace();
+    else showStage(key);
+  });
+}
+$("stage-full").addEventListener("click", toggleFullscreen);
+document.addEventListener("fullscreenchange", () => {
+  $("stage-full").textContent = document.fullscreenElement ? "Свернуть" : "На весь экран";
+  $("stage").classList.toggle("is-full", Boolean(document.fullscreenElement));
+  if (stage === "diagram") applyDiagramScale();
+});
+
+// Вкладка могла открыться в одной ширине, а окно потом поменяли.
+window.addEventListener("resize", () => {
+  if (stage === "diagram" && diagramScale === null) applyDiagramScale();
+});
+
+$("stage-diagram").addEventListener("click", (e) => {
+  const id = e.target.id;
+  if (id === "er-reset") {
+    try {
+      localStorage.removeItem(layoutKey());
+    } catch {
+      // нечего удалять — раскладка и так только в разметке
+    }
+    renderBigDiagram();
   }
-  refreshSchema();
+  if (id === "er-zoom-in" || id === "er-zoom-out") {
+    const current = Number($("diagram-canvas").dataset.scale) || 1;
+    diagramScale = Math.min(2.5, Math.max(0.4, current * (id === "er-zoom-in" ? 1.2 : 1 / 1.2)));
+    applyDiagramScale();
+  }
+  if (id === "er-fit") {
+    diagramScale = null;
+    applyDiagramScale();
+  }
+  if (id === "er-fill" && selectedTable) {
+    setSql(`SELECT * FROM ${quoteIdent(selectedTable).replace(/^"([a-z_][a-z0-9_]*)"$/, "$1")} LIMIT 20;`);
+    $("sql").focus();
+  }
 });
 
 $("output").addEventListener("click", (e) => {
   if (e.target.id === "csv") downloadCsv();
+  if (e.target.id === "to-trace") openTrace();
   if (e.target.id === "bulk") {
     setSql(DATASETS[dataset].bulk);
     $("sql").focus();

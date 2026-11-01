@@ -85,5 +85,7 @@ WHITENOISE_ADD_HEADERS_FUNCTION = _no_store
 # разработке занимается тот же WhiteNoise, что и в эксплуатации. Приложение
 # обязано стоять перед `django.contrib.staticfiles`.
 INSTALLED_APPS = ["whitenoise.runserver_nostatic"] + [
-    app for app in INSTALLED_APPS if app != "whitenoise.runserver_nostatic"  # noqa: F405
+    app
+    for app in INSTALLED_APPS
+    if app != "whitenoise.runserver_nostatic"  # noqa: F405
 ]

@@ -50,6 +50,32 @@ class LoginTests(TestCase):
         self.client.post(reverse("accounts:logout"))
         self.assertNotIn("_auth_user_id", self.client.session)
 
+    def login_with_next(self, target):
+        return self.client.post(
+            f"{self.url}?next={target}", {"username": "ivanov", "password": f.PASSWORD}
+        )
+
+    def test_next_inside_the_platform_is_followed(self):
+        response = self.login_with_next("/catalog/")
+        self.assertEqual(response["Location"], "/catalog/")
+
+    def test_next_to_another_site_is_ignored(self):
+        """Иначе настоящая страница входа служит трамплином на чужой сайт."""
+        for target in (
+            "https://evil.example/steal",
+            "//evil.example/steal",
+            "javascript:alert(1)",
+        ):
+            with self.subTest(target=target):
+                self.client.logout()
+                response = self.login_with_next(target)
+                self.assertEqual(response.status_code, 302)
+                self.assertEqual(response["Location"], reverse("core:home"))
+
+    def test_next_that_only_looks_like_a_route_name_does_not_crash(self):
+        """`redirect` принял бы такое значение за имя маршрута и упал с NoReverseMatch."""
+        self.assertEqual(self.login_with_next("foo").status_code, 302)
+
 
 class RegisterTests(TestCase):
     def setUp(self):

@@ -1,8 +1,12 @@
 """Группа «Преподаватели» с правами на авторские модели и выдача её преподавателям.
 
 Преподаватели становятся is_staff и получают права add/change/delete/view на курсы,
-модули, уроки, тесты, вопросы, варианты ответов и задания. Видимость своих курсов
-ограничивает уже сама админка (OwnedAdmin). Админ — суперпользователь, видит всё.
+модули, уроки, тесты, вопросы, варианты ответов, задания и учебные группы. Видимость
+своих объектов ограничивает уже сама админка (OwnedAdmin). Админ — суперпользователь,
+видит всё.
+
+Команду можно запускать повторно: при появлении новой модели в списке она довыдаст
+права уже развёрнутой платформе, не трогая остальное.
 """
 
 from django.contrib.auth.models import Group, Permission
@@ -12,9 +16,10 @@ from django.core.management.base import BaseCommand
 from accounts.models import User
 from assessments.models import AnswerOption, Assignment, Question, Test
 from courses.models import Course, Lesson, Module
+from learning.models import StudyGroup
 
 GROUP_NAME = "Преподаватели"
-AUTHORING_MODELS = [Course, Module, Lesson, Test, Question, AnswerOption, Assignment]
+AUTHORING_MODELS = [Course, Module, Lesson, Test, Question, AnswerOption, Assignment, StudyGroup]
 
 
 class Command(BaseCommand):

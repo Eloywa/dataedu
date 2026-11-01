@@ -179,6 +179,47 @@
   }
 }
 
+/* Ламповая тема — между светлой и тёмной: приглушённый тёплый свет настольной лампы.
+   Для вечернего чтения, когда белый лист слепит, а чёрный фон в освещённой комнате
+   утомляет контрастом. Акцент янтарный, а не синий: холодный цвет на коричневом фоне
+   спорил бы с текстом. Включается только кнопкой: системной настройки для неё нет.
+   Контраст всех пар «текст — фон» сверяет тест WarmThemeTests. */
+[data-theme="warm"] {
+  color-scheme: dark;
+
+  --bg: #3a3129;
+  --bg-soft: #332b24;
+  --surface: #443a30;
+  --surface-2: #4e4338;
+  --surface-3: #5c4f41;
+
+  --text: #f6ecdc;
+  --text-strong: #fff8ec;
+  --muted: #e0d2bc;
+  --muted-soft: #d0c0a7;
+
+  --accent: #f7c784;
+  --accent-hover: #fbd8a6;
+  --accent-soft: rgba(247, 199, 132, 0.12);
+  --accent-line: rgba(247, 199, 132, 0.28);
+  --on-accent: #2a1f12;
+  --on-cover: #ffffff;
+  --backdrop: rgba(24, 18, 12, 0.6);
+
+  --border: #65574a;
+  --hairline: rgba(246, 236, 220, 0.12);
+
+  --success: #b6e3ac;
+  --success-soft: rgba(182, 227, 172, 0.12);
+  --warning: #ffc49c;
+  --warning-soft: rgba(255, 196, 156, 0.12);
+  --danger: #ffbcae;
+  --danger-soft: rgba(255, 188, 174, 0.12);
+
+  --shadow-1: none;
+  --shadow-2: none;
+}
+
 /* ===== 2. База и типографика ============================================= */
 
 *,
@@ -564,6 +605,18 @@ summary:focus-visible,
   gap: 14px;
 }
 
+/* На небольшом ноутбуке длинное имя преподавателя съедало место у меню, и последний
+   пункт — «Сообщения» со счётчиком — уезжал за край незаметно: полоса прокрутки у меню
+   скрыта. Имя и так открывается целиком в настройках, поэтому ужимается оно. */
+@media (max-width: 1200px) {
+  .nav {
+    gap: 16px;
+  }
+  .header-actions .link-muted {
+    max-width: 12ch;
+  }
+}
+
 .link-muted {
   max-width: 22ch;
   overflow: hidden;
@@ -618,14 +671,79 @@ summary:focus-visible,
   width: 18px;
   height: 18px;
 }
-/* Показываем ту иконку, которая соответствует теме, в которую переключит нажатие. */
-.icon-btn .icon-dark {
+
+/* Список тем под кнопкой в шапке. */
+.theme-menu {
+  position: relative;
+  display: flex;
+}
+.theme-icon {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.theme-list {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 40;
+  display: grid;
+  gap: 2px;
+  min-width: 190px;
+  padding: 4px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: var(--shadow-2);
+}
+.theme-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 44px;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--text);
+  font-family: inherit;
+  font-size: 14px;
+  text-align: left;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.theme-option:hover,
+.theme-option:focus-visible {
+  background: var(--surface-2);
+}
+/* Выбранная тема отмечена не только цветом, но и галочкой. */
+.theme-option[aria-checked="true"] {
+  color: var(--accent);
+  font-weight: 600;
+}
+.theme-option[aria-checked="true"]::after {
+  margin-left: auto;
+  padding-left: 12px;
+  content: "✓";
+}
+
+/* На кнопке — значок текущей темы. */
+.icon-btn .icon-dark,
+.icon-btn .icon-warm {
   display: none;
 }
-[data-theme="dark"] .icon-btn .icon-dark {
+[data-theme="dark"] .icon-btn .icon-dark,
+[data-theme="warm"] .icon-btn .icon-warm {
   display: block;
 }
-[data-theme="dark"] .icon-btn .icon-light {
+[data-theme="dark"] .icon-btn .icon-light,
+[data-theme="warm"] .icon-btn .icon-light {
   display: none;
 }
 @media (prefers-color-scheme: dark) {
@@ -914,7 +1032,8 @@ select {
   background-size: 16px;
   cursor: pointer;
 }
-[data-theme="dark"] select {
+[data-theme="dark"] select,
+[data-theme="warm"] select {
   background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23a8a196' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 6l4 4 4-4'/%3E%3C/svg%3E");
 }
 @media (prefers-color-scheme: dark) {
@@ -2090,6 +2209,18 @@ select {
 .lesson-done-mark {
   margin-top: 28px;
 }
+/* Предложение записаться: вместо кнопок прогресса у того, кто на курс не записан. */
+.lesson-enroll {
+  margin-top: 28px;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+.lesson-enroll p {
+  margin: 0 0 12px;
+  color: var(--muted);
+}
 
 /* Дерево курса. Своя прокрутка и липкая позиция: список из восемнадцати уроков
    не должен уезжать вместе с текстом, но и тянуть страницу вниз ему незачем. */
@@ -2696,8 +2827,136 @@ a.lesson-tree-link:hover {
   align-items: start;
   gap: 24px;
 }
+/* Шкала загрузки — на всю ширину: иначе она занимала первую ячейку сетки, и на время
+   загрузки панели разъезжались по чужим местам. */
+.trainer-boot {
+  grid-column: 1 / -1;
+}
 .trainer-pane {
   min-width: 0;
+}
+
+/* Вывод — на всю ширину под базой и запросом. Диаграмма и пошаговый показ занимают
+   место, и в правой колонке им его не хватало бы. */
+.trainer-stage {
+  grid-column: 1 / -1;
+  min-width: 0;
+}
+.stage-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+.trainer-tabs.stage-tabs {
+  flex: 0 1 560px;
+  min-width: 0;
+  margin-bottom: 0;
+}
+.stage-panel {
+  min-width: 0;
+}
+.trainer-stage.is-full {
+  overflow: auto;
+  padding: 20px;
+  background: var(--bg);
+}
+/* На телефоне разворачивать некуда: вывод и так занимает весь экран. */
+@media (max-width: 640px) {
+  #stage-full {
+    display: none;
+  }
+}
+
+/* Страница задания: одна колонка, без сетки тренажёра. */
+.assignment-work {
+  margin-top: 24px;
+}
+/* Таблицы задания: что есть в базе, прежде чем писать запрос. */
+.task-data {
+  margin-top: 24px;
+}
+.task-data .section-h {
+  margin: 0 0 12px;
+}
+.task-diagram {
+  margin-bottom: 14px;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface-2);
+}
+.task-tables {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  align-items: start;
+  gap: 16px;
+}
+.task-table {
+  min-width: 0;
+}
+.task-table-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 6px;
+}
+.task-table-name {
+  color: var(--text-strong);
+  font-family: var(--font-mono);
+  font-size: 15px;
+  font-weight: 600;
+}
+.task-table-count {
+  color: var(--muted);
+  font-size: 13px;
+}
+.task-type {
+  display: block;
+  color: var(--muted-soft);
+  font-size: 11.5px;
+  font-weight: 400;
+}
+.assignment-verdict {
+  margin-top: 14px;
+}
+.assignment-verdict:empty {
+  display: none;
+}
+
+/* Сдача работы преподавателю. */
+.work-state {
+  margin-top: 16px;
+}
+.work-form {
+  margin-top: 20px;
+}
+.work-answer {
+  min-height: 180px;
+  font-size: 14px;
+  line-height: 1.55;
+  resize: vertical;
+}
+.work-form input[type="file"] {
+  display: block;
+  max-width: 100%;
+  color: var(--muted);
+  font-family: inherit;
+  font-size: 14px;
+}
+.work-form input[type="file"]::file-selector-button {
+  margin-right: 12px;
+  padding: 8px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 14px;
+  cursor: pointer;
 }
 .trainer-db {
   display: grid;
@@ -2803,10 +3062,16 @@ a.lesson-tree-link:hover {
   padding-right: 10px;
   user-select: none;
 }
+/* Подложка и поле начинаются правее колонки с номерами, а не лежат под ней. Иначе при
+   прокрутке длинной строки вбок вместе с текстом уезжал и отступ, и запрос наезжал на
+   номера строк. */
 .editor-layer {
   position: absolute;
-  inset: 0;
-  padding-left: calc(var(--editor-gutter) + 12px);
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: var(--editor-gutter);
+  padding-left: 12px;
   overflow: hidden;
   color: var(--text);
   pointer-events: none;
@@ -2814,9 +3079,10 @@ a.lesson-tree-link:hover {
 .trainer-input {
   position: relative;
   display: block;
-  width: 100%;
+  width: calc(100% - var(--editor-gutter));
   min-height: 200px;
-  padding-left: calc(var(--editor-gutter) + 12px);
+  margin-left: var(--editor-gutter);
+  padding-left: 12px;
   padding-right: 14px;
   border: 0;
   background: none;
@@ -2934,6 +3200,9 @@ a.lesson-tree-link:hover {
   .trainer-tabs {
     grid-column: 1 / -1;
   }
+  .trainer-stage {
+    margin-top: 20px;
+  }
 }
 
 @media (max-width: 640px) {
@@ -2966,7 +3235,6 @@ a.lesson-tree-link:hover {
 }
 
 .trainer-output {
-  margin-top: 18px;
   padding: 16px;
   overflow-x: auto;
   border: 1px solid var(--border);
@@ -2974,6 +3242,19 @@ a.lesson-tree-link:hover {
   background: var(--surface-2);
   font-family: var(--font-mono);
   font-size: 13.5px;
+}
+/* Пустая полоса без подписи выглядела как сломанный блок. */
+#stage-result .trainer-output:empty::before {
+  content: "Результат появится здесь после запуска запроса.";
+  color: var(--muted);
+  font-family: var(--font-sans);
+  font-size: 14px;
+}
+.assignment-work .trainer-output {
+  margin-top: 18px;
+}
+.assignment-work .trainer-output:empty {
+  display: none;
 }
 .trainer-output table {
   border-collapse: collapse;
@@ -3301,25 +3582,54 @@ a.lesson-tree-link:hover {
 
 /* ER-диаграмма. Цвета — токенами, чтобы следовать теме: картинкой пришлось бы
    держать два файла, а SVG в разметке подчиняется тем же переменным. */
-.trainer-schema.is-diagram {
-  font-family: var(--font-sans);
-}
 .er-scroll {
-  overflow-x: auto;
+  overflow: auto;
   padding-bottom: 4px;
 }
 .er {
-  max-width: 100%;
-  height: auto;
-  /* Перетаскивание пальцем: без этого браузер считает жест прокруткой и
-     забирает событие себе на первом же движении. */
-  touch-action: none;
+  display: block;
+  margin: 0 auto;
   user-select: none;
+}
+.diagram-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.diagram-scale {
+  min-width: 48px;
+  color: var(--muted);
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+.diagram-canvas {
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface-2);
+}
+.diagram-info {
+  min-height: 24px;
+  margin: 12px 0 0;
+  color: var(--muted);
+  font-size: 14px;
+}
+.diagram-info b {
+  color: var(--text-strong);
+  font-family: var(--font-mono);
 }
 
 /* Таблицу можно двигать — курсор об этом и говорит. */
 .er-table {
   cursor: grab;
+  /* Перетаскивание пальцем: без этого браузер считает жест прокруткой и забирает
+     событие себе на первом же движении. Только на самих таблицах: иначе на телефоне
+     страницу нельзя было бы пролистать, когда палец попал на диаграмму. */
+  touch-action: none;
 }
 .er-table.is-dragging {
   cursor: grabbing;
@@ -3346,25 +3656,285 @@ a.lesson-tree-link:hover {
 }
 .er-title {
   fill: var(--text-strong);
-  font-family: var(--font-sans);
-  font-size: 12px;
+  font-family: var(--font-mono);
+  font-size: 14px;
   font-weight: 600;
 }
 .er-col {
   fill: var(--text);
   font-family: var(--font-mono);
-  font-size: 11px;
+  font-size: 13px;
 }
 .er-key {
   fill: var(--text-strong);
   font-weight: 600;
 }
+.er-type {
+  fill: var(--muted-soft);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  text-anchor: end;
+}
 .er-mark {
   fill: var(--muted-soft);
   font-family: var(--font-sans);
-  font-size: 9px;
+  font-size: 10px;
   font-weight: 700;
   text-anchor: end;
+}
+
+/* Выделение части схемы: шаг выполнения запроса или выбранная таблица. Остальное
+   приглушается, но остаётся на месте — по неподвижной картинке видно, какая её часть
+   сейчас работает. */
+.er.is-tracing .er-table:not(.is-used) {
+  opacity: 0.35;
+}
+.er.is-tracing .er-edge:not(.is-active) {
+  opacity: 0.25;
+}
+.er-table.is-used .er-box {
+  stroke: var(--accent-line);
+}
+.er-table.is-active .er-box {
+  stroke: var(--accent);
+  stroke-width: 2;
+}
+.er-table.is-active .er-head {
+  fill: var(--accent);
+  stroke: var(--accent);
+}
+.er-table.is-active .er-title {
+  fill: var(--on-accent);
+}
+.er-col.is-used {
+  fill: var(--accent);
+  font-weight: 700;
+}
+.er-edge.is-active .er-link {
+  stroke-width: 2.6;
+  stroke-dasharray: 7 5;
+  animation: er-flow 0.9s linear infinite;
+}
+/* Линии, которой нет в схеме: соединение идёт мимо внешнего ключа. */
+.er-virtual .er-link {
+  stroke: var(--warning);
+}
+.er-virtual .er-dot {
+  fill: var(--warning);
+}
+.er-virtual .er-dot-one {
+  fill: var(--bg);
+  stroke: var(--warning);
+}
+@keyframes er-flow {
+  to {
+    stroke-dashoffset: -24;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .er-edge.is-active .er-link {
+    animation: none;
+  }
+}
+
+/* Как выполняется запрос: текст запроса, шаги, диаграмма и строки. */
+.trace {
+  min-width: 0;
+}
+.trace-sql {
+  margin: 0;
+  padding: 14px 16px;
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface-2);
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+}
+.trace-mark {
+  padding: 1px 2px;
+  border-radius: 3px;
+  background: var(--accent-line);
+  color: var(--text-strong);
+}
+.trace-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+}
+.trace-counter {
+  margin-left: 8px;
+  color: var(--muted);
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+}
+.trace-steps {
+  display: flex;
+  gap: 8px;
+  margin: 12px 0 16px;
+  padding: 0 0 6px;
+  overflow-x: auto;
+  list-style: none;
+  scrollbar-width: thin;
+}
+.trace-steps li {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 8px;
+}
+/* Стрелка между шагами: данные текут слева направо. */
+.trace-steps li + li::before {
+  color: var(--muted-soft);
+  content: "→";
+}
+.trace-chip {
+  display: grid;
+  gap: 3px;
+  min-width: 112px;
+  min-height: 44px;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--text);
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.trace-chip:hover {
+  border-color: var(--accent-line);
+}
+.trace-chip.is-done {
+  background: var(--surface-2);
+}
+.trace-chip.is-active {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+.trace-chip-name {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.trace-chip-rows {
+  color: var(--muted);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.trace-chip-bar {
+  display: block;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--surface-3);
+  overflow: hidden;
+}
+.trace-chip-bar i {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+}
+.trace-body {
+  display: grid;
+  grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+  align-items: start;
+  gap: 20px;
+}
+/* Диаграмма остаётся на виду, пока рядом листают длинную таблицу строк. */
+.trace-map {
+  position: sticky;
+  top: calc(var(--header-h) + 12px);
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface-2);
+}
+.trace-detail {
+  min-width: 0;
+}
+.trace-title {
+  margin: 0 0 6px;
+  font-size: 18px;
+  line-height: 1.3;
+}
+.trace-text {
+  margin: 0;
+  color: var(--text);
+  font-size: 15px;
+  line-height: 1.55;
+}
+.trace-flow {
+  margin: 12px 0;
+  color: var(--muted);
+  font-size: 14px;
+}
+.trace-flow b {
+  color: var(--text-strong);
+  font-family: var(--font-mono);
+  font-size: 20px;
+  font-variant-numeric: tabular-nums;
+}
+.trace-plus {
+  margin: 0 2px;
+}
+.trace-arrow {
+  margin: 0 10px;
+  color: var(--accent);
+  font-size: 18px;
+}
+.trace-note {
+  margin: 0 0 12px;
+  padding: 10px 13px;
+  border-left: 3px solid var(--warning);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  background: var(--warning-soft);
+  color: var(--text);
+  font-size: 14px;
+  line-height: 1.5;
+}
+.trace-table th.is-used {
+  color: var(--accent);
+}
+.trace-table td {
+  max-width: 240px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.trace-state {
+  width: 28px;
+  text-align: center;
+}
+/* Состояние передаётся не только цветом: значком и зачёркиванием тоже. */
+.trace-table .is-kept td {
+  background: var(--success-soft);
+}
+.trace-table .is-kept .trace-state {
+  color: var(--success);
+  font-weight: 700;
+}
+.trace-table .is-dropped td {
+  color: var(--muted-soft);
+  text-decoration: line-through;
+}
+.trace-table .is-dropped .trace-state {
+  color: var(--danger);
+  font-weight: 700;
+  text-decoration: none;
+}
+@media (max-width: 1023px) {
+  .trace-body {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .trace-map {
+    position: static;
+  }
 }
 .er-link {
   fill: none;
@@ -3513,7 +4083,7 @@ a.lesson-tree-link:hover {
 
 .ach-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
   gap: 14px;
   margin-top: 14px;
 }
@@ -3526,8 +4096,8 @@ a.lesson-tree-link:hover {
   border-radius: var(--radius);
   background: var(--surface);
 }
-.ach-tile:not(.earned) {
-  opacity: 0.55;
+.ach-tile.earned {
+  border-color: var(--accent-line);
 }
 .ach-icon {
   display: flex;
@@ -3546,27 +4116,46 @@ a.lesson-tree-link:hover {
   color: var(--accent);
 }
 /* Текстовая колонка плитки должна уметь сжиматься: без `min-width: 0` элемент
-   флекса не становится уже своего содержимого и раздвигает сетку. */
-.ach-tile > div {
+   флекса не становится уже своего содержимого и раздвигает сетку. Переносится
+   только по словам (`break-word`, а не `anywhere`): иначе при нехватке места браузер
+   предпочитает ломать слова посимвольно. */
+.ach-body {
+  flex: 1 1 auto;
   min-width: 0;
 }
 .ach-title {
+  color: var(--text-strong);
   font-size: 15px;
   font-weight: 600;
-  overflow-wrap: anywhere;
+  line-height: 1.3;
+  overflow-wrap: break-word;
+}
+.ach-tile:not(.earned) .ach-title {
+  color: var(--muted);
 }
 .ach-desc {
-  margin-top: 2px;
-  overflow-wrap: anywhere;
+  margin-top: 4px;
+  overflow-wrap: break-word;
   color: var(--muted);
   font-size: 13px;
   line-height: 1.5;
 }
+.ach-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px 12px;
+  margin-top: 10px;
+}
 .ach-xp,
 .ach-date {
-  margin-top: 4px;
   color: var(--muted-soft);
   font-size: 12px;
+}
+.ach-tile.earned .ach-xp {
+  color: var(--accent);
+  font-weight: 600;
 }
 .ach-count {
   color: var(--muted);
@@ -4390,7 +4979,8 @@ a.lesson-tree-link:hover {
    принтере нечитаема и расходует тонер. */
 @media print {
   :root,
-  [data-theme="dark"] {
+  [data-theme="dark"],
+  [data-theme="warm"] {
     --bg: #fff;
     --bg-soft: #fff;
     --surface: #fff;

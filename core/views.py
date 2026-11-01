@@ -146,6 +146,9 @@ def trainer_log(request):
         payload = json.loads(request.body or b"{}")
     except (ValueError, TypeError):
         payload = {}
+    # Корректный JSON — ещё не объект: на теле `[]` вызов `.get` уронил бы запрос.
+    if not isinstance(payload, dict):
+        payload = {}
 
     if payload.get("event") == "error":
         services.record_sql_error(request.user, payload.get("error"))

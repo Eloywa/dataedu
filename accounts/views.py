@@ -4,12 +4,30 @@ from django.conf import settings
 from django.contrib.auth import authenticate, login, logout, update_session_auth_hash
 from django.contrib.auth.decorators import login_required
 from django.db import transaction
-from django.http import HttpResponse
+from django.http import HttpResponse, HttpResponseRedirect
 from django.shortcuts import redirect, render
 from django.utils import timezone
+from django.utils.http import url_has_allowed_host_and_scheme
 
 from .legal import VERSIONS
 from .models import USERNAME_HELP, Consent, Role, User, is_valid_username
+
+
+def _after_login(request):
+    """Куда отправить после входа: на `next`, но только в пределах платформы.
+
+    Без проверки ссылка `/login/?next=https://…` превращает настоящую страницу входа в
+    трамплин: человек вводит пароль у нас, а попадает на чужой сайт и не ждёт подвоха.
+
+    `HttpResponseRedirect`, а не `redirect`: тот сперва ищет маршрут с таким именем, и
+    значение вроде `next=foo` падало бы с `NoReverseMatch` вместо перехода.
+    """
+    target = request.GET.get("next") or ""
+    if target and url_has_allowed_host_and_scheme(
+        target, allowed_hosts={request.get_host()}, require_https=request.is_secure()
+    ):
+        return HttpResponseRedirect(target)
+    return redirect("core:home")
 
 
 def login_view(request):
@@ -23,7 +41,7 @@ def login_view(request):
         user = authenticate(request, username=username, password=password)
         if user is not None:
             login(request, user)
-            return redirect(request.GET.get("next") or "core:home")
+            return _after_login(request)
         error = "Неверный логин или пароль."
 
     return render(request, "accounts/login.html", {"error": error})
@@ -194,6 +212,7 @@ def _collect_user_data(user):
             {
                 "задание": s.assignment.title,
                 "sql": s.sql_query,
+                "ответ": s.text_answer,
                 "балл": str(s.score) if s.score is not None else None,
                 "статус": s.status,
                 "отправлено": s.submitted_at.isoformat() if s.submitted_at else None,

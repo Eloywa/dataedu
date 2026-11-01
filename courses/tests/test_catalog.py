@@ -7,7 +7,7 @@ from django.urls import reverse
 
 from core.tests import factories as f
 from courses.models import CourseRating
-from learning.models import Enrollment
+from learning.models import Enrollment, LessonProgress
 
 
 class CatalogTests(TestCase):
@@ -250,12 +250,105 @@ class LessonTests(TestCase):
         self.assertIsNone(response.context["prev_lesson"])
         self.assertEqual(response.context["next_lesson"], self.lessons[1])
 
+    def complete(self, lesson):
+        return self.client.post(reverse("courses:complete_lesson", args=[lesson.pk]))
+
+    def test_locked_lesson_cannot_be_completed_directly(self):
+        """Экран «урок закрыт» не защищает точку записи: запрос можно отправить напрямую."""
+        self.client.force_login(self.student)
+        self.assertEqual(self.complete(self.lessons[1]).status_code, 302)
+        self.assertFalse(LessonProgress.objects.exists())
+        self.student.refresh_from_db()
+        self.assertEqual(self.student.xp, 0)
+
+    def test_lesson_opens_for_completion_after_the_previous_week(self):
+        f.complete(self.student, self.lessons[0])
+        self.client.force_login(self.student)
+        self.complete(self.lessons[1])
+        self.assertTrue(
+            LessonProgress.objects.filter(user=self.student, lesson=self.lessons[1]).exists()
+        )
+
+    def test_teacher_bypasses_the_lock(self):
+        self.client.force_login(self.teacher)
+        self.complete(self.lessons[1])
+        self.assertTrue(LessonProgress.objects.filter(user=self.teacher).exists())
+
+    def test_student_outside_the_course_cannot_complete_a_lesson(self):
+        outsider = f.student()
+        self.client.force_login(outsider)
+        self.complete(self.lessons[0])
+        self.assertFalse(LessonProgress.objects.filter(user=outsider).exists())
+
+    def test_outsider_reads_the_lesson_and_is_offered_to_enroll(self):
+        self.client.force_login(f.student())
+        response = self.client.get(reverse("courses:lesson_detail", args=[self.lessons[0].pk]))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, reverse("courses:enroll", args=[self.course.slug]))
+        self.assertNotContains(
+            response, reverse("courses:complete_lesson", args=[self.lessons[0].pk])
+        )
+
+    def test_enrolled_student_sees_the_progress_buttons(self):
+        self.client.force_login(self.student)
+        response = self.client.get(reverse("courses:lesson_detail", args=[self.lessons[0].pk]))
+        self.assertContains(response, reverse("courses:complete_lesson", args=[self.lessons[0].pk]))
+        self.assertNotContains(response, reverse("courses:enroll", args=[self.course.slug]))
+
+
+class DraftCourseTests(TestCase):
+    """Неопубликованный курс виден только автору, соавтору и суперпользователю."""
+
+    def setUp(self):
+        self.author = f.teacher()
+        self.course, self.lessons = f.course_with_lessons(
+            author=self.author, lessons=1, published=False
+        )
+        self.lesson_url = reverse("courses:lesson_detail", args=[self.lessons[0].pk])
+        self.course_url = reverse("courses:course_detail", args=[self.course.slug])
+
+    def test_guest_cannot_open_a_lesson_by_direct_link(self):
+        self.assertEqual(self.client.get(self.lesson_url).status_code, 404)
+
+    def test_enrolled_student_cannot_open_it(self):
+        student = f.student()
+        f.enroll(student, self.course)
+        self.client.force_login(student)
+        self.assertEqual(self.client.get(self.lesson_url).status_code, 404)
+        self.assertEqual(self.client.get(self.course_url).status_code, 404)
+
+    def test_other_teacher_cannot_open_it(self):
+        self.client.force_login(f.teacher())
+        self.assertEqual(self.client.get(self.lesson_url).status_code, 404)
+
+    def test_author_previews_the_draft(self):
+        self.client.force_login(self.author)
+        self.assertEqual(self.client.get(self.lesson_url).status_code, 200)
+        self.assertEqual(self.client.get(self.course_url).status_code, 200)
+
+    def test_coauthor_previews_the_draft(self):
+        coauthor = f.teacher()
+        self.course.coauthors.add(coauthor)
+        self.client.force_login(coauthor)
+        self.assertEqual(self.client.get(self.lesson_url).status_code, 200)
+
+    def test_superuser_sees_everything(self):
+        self.client.force_login(f.admin())
+        self.assertEqual(self.client.get(self.lesson_url).status_code, 200)
+
+    def test_several_coauthors_do_not_duplicate_the_course(self):
+        """Соединение с соавторами задваивало бы строку и ломало `get`."""
+        self.course.coauthors.add(f.teacher(), f.teacher())
+        self.client.force_login(self.author)
+        self.assertEqual(self.client.get(self.course_url).status_code, 200)
+
 
 class ReflectionTests(TestCase):
     def setUp(self):
         self.course, self.lessons = f.course_with_lessons(lessons=1)
         self.lesson = self.lessons[0]
         self.student = f.student()
+        f.enroll(self.student, self.course)
         self.url = reverse("courses:submit_reflection", args=[self.lesson.pk])
 
     def test_reflection_is_saved(self):
@@ -279,6 +372,13 @@ class ReflectionTests(TestCase):
         from learning.models import Reflection
 
         self.client.force_login(f.teacher())
+        self.client.post(self.url, {"clarity": "5", "difficulty": "1"})
+        self.assertEqual(Reflection.objects.count(), 0)
+
+    def test_student_outside_the_course_does_not_fill_reflection(self):
+        from learning.models import Reflection
+
+        self.client.force_login(f.student())
         self.client.post(self.url, {"clarity": "5", "difficulty": "1"})
         self.assertEqual(Reflection.objects.count(), 0)
 

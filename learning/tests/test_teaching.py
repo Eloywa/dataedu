@@ -1,5 +1,8 @@
 """Страницы преподавателя: доступ, изоляция, проверка работ, карточка студента."""
 
+from io import StringIO
+
+from django.core.management import call_command
 from django.test import TestCase
 from django.urls import reverse
 
@@ -7,6 +10,7 @@ from assessments.models import Submission
 from core.tests import factories as f
 from gamification.models import UserAchievement
 from learning import grading
+from learning.models import StudyGroup
 
 
 class CleanGradeTests(TestCase):
@@ -322,3 +326,69 @@ class DefendProjectTests(TestCase):
         response = self.client.post(self.url)
         self.assertIn("error=", response["Location"])
         self.assertFalse(Submission.objects.exists())
+
+    def test_several_submissions_do_not_break_the_defence(self):
+        """Уникального ограничения на пару нет, и `update_or_create` падал бы здесь с 500."""
+        f.submission(self.final, self.student, sql_query="первая")
+        latest = f.submission(self.final, self.student, sql_query="вторая")
+
+        self.client.force_login(self.teacher)
+        self.assertEqual(self.client.post(self.url).status_code, 302)
+        latest.refresh_from_db()
+        self.assertEqual(latest.status, "graded")
+        self.assertEqual(latest.graded_by, self.teacher)
+
+
+class StudyGroupAdminTests(TestCase):
+    """Преподаватель сам ведёт свои группы — а без прав из группы получал 403."""
+
+    def setUp(self):
+        self.teacher = f.teacher()
+        self.other = f.teacher()
+        call_command("setup_teacher_admin", stdout=StringIO())
+        self.list_url = "/admin/learning/studygroup/"
+        self.add_url = f"{self.list_url}add/"
+        self.client.force_login(self.teacher)
+
+    def form(self, name):
+        # Дату создания браузер подставляет из значения по умолчанию.
+        return {
+            "name": name,
+            "note": "",
+            "students": [],
+            "created_at_0": "2026-01-15",
+            "created_at_1": "10:00:00",
+        }
+
+    def add(self, name):
+        return self.client.post(self.add_url, self.form(name))
+
+    def test_teacher_opens_the_section(self):
+        self.assertEqual(self.client.get(self.list_url).status_code, 200)
+
+    def test_new_group_belongs_to_its_creator(self):
+        self.assertEqual(self.add("ИСТ-21").status_code, 302)
+        self.assertEqual(StudyGroup.objects.get(name="ИСТ-21").teacher, self.teacher)
+
+    def test_other_teachers_group_stays_hidden(self):
+        foreign = f.group(self.other, name="Чужая")
+        self.assertNotContains(self.client.get(self.list_url), "Чужая")
+        response = self.client.get(f"{self.list_url}{foreign.pk}/change/", follow=True)
+        self.assertNotContains(response, 'value="Чужая"')
+
+    def test_repeated_name_is_a_form_error_not_a_crash(self):
+        """Поля «преподаватель» в форме нет, и ограничение дошло бы до базы."""
+        self.add("ИСТ-21")
+        response = self.add("ИСТ-21")
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "уже есть")
+        self.assertEqual(StudyGroup.objects.filter(name="ИСТ-21").count(), 1)
+
+    def test_same_name_is_allowed_for_another_teacher(self):
+        f.group(self.other, name="ИСТ-21")
+        self.assertEqual(self.add("ИСТ-21").status_code, 302)
+
+    def test_group_can_be_saved_again_without_a_clash(self):
+        group = f.group(self.teacher, name="ИСТ-21")
+        response = self.client.post(f"{self.list_url}{group.pk}/change/", self.form("ИСТ-21"))
+        self.assertEqual(response.status_code, 302)

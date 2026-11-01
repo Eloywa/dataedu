@@ -42,6 +42,21 @@ class CourseQuerySet(models.QuerySet):
             return self
         return self.filter(Q(author=user) | Q(coauthors=user)).distinct()
 
+    def visible_to(self, user):
+        """Курсы, которые пользователь вправе открыть: опубликованные и свои черновики.
+
+        Черновик автору нужен, чтобы посмотреть урок глазами студента до публикации;
+        всем остальным его содержимое показывать нельзя. Правило живёт в выборке, а не
+        в представлениях: урок, тест и задание открываются по прямому адресу, и забыть
+        проверку на одном из них значило бы открыть черновик гостю.
+        """
+        published = Q(is_published=True)
+        if not user.is_authenticated:
+            return self.filter(published)
+        if user.is_superuser:
+            return self
+        return self.filter(published | Q(author=user) | Q(coauthors=user)).distinct()
+
 
 class Course(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -149,6 +164,12 @@ class Module(models.Model):
         return self.title
 
 
+class LessonQuerySet(models.QuerySet):
+    def visible_to(self, user):
+        """Уроки курсов, которые пользователь вправе открыть (см. `visible_to` у курса)."""
+        return self.filter(module__course__in=Course.objects.visible_to(user))
+
+
 class Lesson(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     module = models.ForeignKey(
@@ -170,6 +191,8 @@ class Lesson(models.Model):
     )
     est_minutes = models.IntegerField(verbose_name="время, мин", blank=True, null=True)
     xp_reward = models.IntegerField(verbose_name="награда XP", default=0)
+
+    objects = LessonQuerySet.as_manager()
 
     class Meta:
         verbose_name = "урок"

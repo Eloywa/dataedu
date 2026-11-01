@@ -95,15 +95,27 @@
             {% endif %}
           </p>
         {% endif %}
-        {% if user.is_authenticated %}
+        {% if can_study %}
           <a class="btn btn-primary" href="{% url 'assessments:lesson_test' lesson.id %}">{% if best_attempt %}Пройти заново{% else %}Пройти тест{% endif %}</a>
-        {% else %}
+        {% elif not user.is_authenticated %}
           <a class="btn btn-primary" href="{% url 'accounts:login' %}?next={{ request.path }}">Войдите, чтобы пройти тест</a>
         {% endif %}
       </section>
     {% endif %}
 
-    {% if user.is_authenticated and not user.is_teacher %}
+    {% if user.is_authenticated and not can_study and course.is_published %}
+      {% comment %}
+      Читать урок можно без записи, а вот прогресс ведётся только у участников курса:
+      иначе он не попадёт ни в ведомость, ни в отчёты преподавателя.
+      {% endcomment %}
+      <form method="post" action="{% url 'courses:enroll' course.slug %}" class="lesson-enroll">
+        {% csrf_token %}
+        <p>Запишитесь на курс, чтобы проходить тесты и отмечать уроки пройденными.</p>
+        <button class="btn btn-primary" type="submit">Записаться на курс</button>
+      </form>
+    {% endif %}
+
+    {% if can_study and not user.is_teacher %}
       <section class="lesson-reflection-block" id="reflection" aria-labelledby="reflection-title">
         <p class="small-label">рефлексия</p>
         <h2 class="section-h" id="reflection-title">Как прошёл урок?</h2>
@@ -181,7 +193,7 @@
       </section>
     {% endif %}
 
-    {% if user.is_authenticated and not done %}
+    {% if can_study and not done %}
       <form method="post" action="{% url 'courses:complete_lesson' lesson.id %}" class="lesson-done-form">
         {% csrf_token %}
         <button class="btn btn-ghost" type="submit">Отметить пройденным</button>

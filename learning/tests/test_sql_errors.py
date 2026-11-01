@@ -47,6 +47,11 @@ class VocabularyTests(SimpleTestCase):
     def test_every_class_has_advice(self):
         self.assertEqual(set(ERROR_TITLES), set(ERROR_ADVICE))
 
+    def test_sort_direction_is_checked_before_the_general_syntax_rule(self):
+        """Правила перебираются по порядку: общее перехватило бы ошибку первым."""
+        text = ERRORS_JS.read_text(encoding="utf-8")
+        self.assertLess(text.index("(ASC|DESC)"), text.index('at or near "(.+?)"'))
+
 
 class RecordingTests(TestCase):
     def setUp(self):
@@ -93,6 +98,17 @@ class EndpointTests(TestCase):
         response = self.client.post(reverse("core:trainer_log"))
         self.assertEqual(response.status_code, 200)
         self.assertTrue(Activity.objects.filter(type="sql_run").exists())
+
+    def test_trainer_log_survives_json_of_the_wrong_shape(self):
+        """Корректный JSON — ещё не объект: на теле `[]` вызов `.get` уронил бы запрос."""
+        url = reverse("core:trainer_log")
+        self.assertEqual(
+            self.client.post(url, "[]", content_type="application/json").status_code, 200
+        )
+
+        response = self.post(url, {"event": "error", "error": ["no_table"]})
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(Activity.objects.filter(type="sql_error").exists())
 
     def test_assignment_error_is_tied_to_the_task(self):
         url = reverse("assessments:report_error", args=[self.task.id])
