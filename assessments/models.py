@@ -4,7 +4,7 @@ from django.conf import settings
 from django.db import models
 from django.utils import timezone
 
-from courses.models import LEVEL_CHOICES
+from courses.models import LEVEL_CHOICES, Course
 
 # Тип вопроса: набор из перечисления `question_type` исходной базы. Сейчас
 # платформа умеет только одиночный выбор, остальные оставлены как задел схемы.
@@ -194,6 +194,10 @@ class AssignmentQuerySet(models.QuerySet):
 
     def manual(self):
         return self.exclude(type="sql", expected_result__isnull=False)
+
+    def visible_to(self, user):
+        """Задания курсов, которые пользователь вправе открыть (см. `Course.visible_to`)."""
+        return self.filter(course__in=Course.objects.visible_to(user))
 
 
 class Assignment(models.Model):

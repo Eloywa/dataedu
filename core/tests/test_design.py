@@ -19,6 +19,8 @@ SCRIPTS = Path(settings.BASE_DIR) / "static" / "js"
 
 VAR_USE = re.compile(r"var\(\s*(--[\w-]+)")
 VAR_DECL = re.compile(r"^\s*(--[\w-]+)\s*:", re.M)
+COMMENT = re.compile(r"/\*.*?\*/", re.S)
+COLOUR_LITERAL = re.compile(r"#[0-9a-fA-F]{3,8}|(?:rgb|rgba|hsl|hsla)\(")
 
 
 def declared_tokens():
@@ -86,6 +88,37 @@ class TokenTests(SimpleTestCase):
                     missing.setdefault(name, []).append(path.name)
         self.assertEqual(missing, {}, f"не объявлены токены: {missing}")
 
+    def test_no_colour_literals_outside_tokens(self):
+        """Цвет задаётся только токеном.
+
+        Редизайн держится на том, что палитру можно поменять в одном месте — хоть
+        под цвета вуза. Любой `#fff` или `rgba(...)` в обычном правиле выпадает из
+        этой замены: при смене темы он остаётся прежним и даёт белое пятно на
+        тёмном фоне или нечитаемую подпись. Так уже случилось со звёздами рейтинга
+        (`#e2a33c`) и подписью на кнопке удаления.
+
+        Исключения два: объявления самих токенов (`--name: #hex`) и блок `@media
+        print` — там чёрное по белому задаётся намеренно, бумага не знает тем.
+        """
+        # Комментарии вырезаются, но переводы строк в них сохраняются: иначе
+        # номера строк в сообщении об ошибке разойдутся с файлом.
+        css = COMMENT.sub(lambda m: "\n" * m.group(0).count("\n"), CSS.read_text(encoding="utf-8"))
+
+        offenders, depth, print_depth = [], 0, None
+        for number, line in enumerate(css.splitlines(), 1):
+            if print_depth is None and line.strip().startswith("@media print"):
+                print_depth = depth
+            depth += line.count("{") - line.count("}")
+            if print_depth is not None and depth <= print_depth:
+                print_depth = None
+                continue
+            if print_depth is not None or VAR_DECL.match(line):
+                continue
+            if COLOUR_LITERAL.search(line):
+                offenders.append(f"{number}: {line.strip()}")
+
+        self.assertEqual(offenders, [], "цвет задан мимо токена")
+
     def test_dark_theme_redefines_every_colour(self):
         """Тёмная тема обязана переопределить все цвета, а не часть.
 
@@ -129,6 +162,184 @@ class TokenTests(SimpleTestCase):
             pairs(system.group(1)),
             "значения тёмной темы разошлись между выбором кнопкой и системной настройкой",
         )
+
+
+def _rgb(value):
+    """Цвет токена как (r, g, b, a). Понимает `#rrggbb` и `rgba(...)`."""
+    value = value.strip()
+    if value.startswith("#"):
+        return (*(int(value[i : i + 2], 16) for i in (1, 3, 5)), 1.0)
+    r, g, b, a = re.findall(r"[\d.]+", value)
+    return int(r), int(g), int(b), float(a)
+
+
+def _over(top, base):
+    """Полупрозрачный цвет поверх непрозрачного — так он и виден на экране."""
+    alpha = top[3]
+    return (
+        *(round(t * alpha + b * (1 - alpha)) for t, b in zip(top[:3], base[:3], strict=True)),
+        1.0,
+    )
+
+
+def _luminance(colour):
+    def channel(value):
+        value /= 255
+        return value / 12.92 if value <= 0.03928 else ((value + 0.055) / 1.055) ** 2.4
+
+    r, g, b = colour[:3]
+    return 0.2126 * channel(r) + 0.7152 * channel(g) + 0.0722 * channel(b)
+
+
+def contrast(first, second):
+    bright, dark = sorted((_luminance(first), _luminance(second)), reverse=True)
+    return (bright + 0.05) / (dark + 0.05)
+
+
+class WarmThemeTests(SimpleTestCase):
+    """Ламповая тема: третий набор цветов рядом со светлой и тёмной."""
+
+    def tokens(self):
+        css = CSS.read_text(encoding="utf-8")
+        block = re.search(r'\[data-theme="warm"\]\s*\{(.+?)\n\}', css, re.S)
+        self.assertIsNotNone(block, "не найден блок ламповой темы")
+        return block.group(1), dict(re.findall(r"(--[\w-]+)\s*:\s*([^;]+);", block.group(1)))
+
+    def test_redefines_every_colour(self):
+        """Пропущенный токен дал бы светлое пятно на тёплом фоне."""
+        css = CSS.read_text(encoding="utf-8")
+        light = re.search(r":root\s*\{(.+?)\n\}", css, re.S)
+        skip = ("--radius", "--font", "--header", "--chevron")
+        expected = {t for t in VAR_DECL.findall(light.group(1)) if not t.startswith(skip)}
+        block, _ = self.tokens()
+        self.assertEqual(expected - set(VAR_DECL.findall(block)), set())
+
+    def test_text_reaches_aa_contrast(self):
+        """Средняя яркость — самый трудный случай для контраста, поэтому он считается.
+
+        Тема намеренно светлее тёмной, и запас, который есть на почти чёрном фоне, здесь
+        быстро кончается: приглушённая подпись на карточке теряет читаемость первой.
+        """
+        _, tokens = self.tokens()
+        colour = {name: _rgb(value) for name, value in tokens.items() if "shadow" not in name}
+
+        text = ("--text", "--text-strong", "--muted", "--muted-soft", "--accent")
+        states = ("--success", "--warning", "--danger")
+        backgrounds = ("--bg", "--bg-soft", "--surface", "--surface-2")
+        pairs = [(fg, colour[fg], bg, colour[bg]) for fg in text + states for bg in backgrounds]
+        pairs.append(("--on-accent", colour["--on-accent"], "--accent", colour["--accent"]))
+        # Метка статуса: цветной текст на своей полупрозрачной подложке поверх карточки.
+        for state in ("--accent", *states):
+            soft = _over(colour[f"{state}-soft"], colour["--surface"])
+            pairs.append((state, colour[state], f"{state}-soft", soft))
+
+        for fg_name, fg, bg_name, bg in pairs:
+            with self.subTest(fg=fg_name, bg=bg_name):
+                self.assertGreaterEqual(contrast(fg, bg), 4.5)
+
+    def test_saved_choice_is_restored_before_first_paint(self):
+        """Иначе выбор не переживал бы перезагрузку: скрипт в <head> знает темы поимённо."""
+        base = (TEMPLATES / "base.html").read_text(encoding="utf-8")
+        self.assertIn('saved === "warm"', base)
+
+    def test_every_theme_can_be_chosen_from_the_menu(self):
+        base = (TEMPLATES / "base.html").read_text(encoding="utf-8")
+        for theme in ("light", "warm", "dark", "system"):
+            with self.subTest(theme=theme):
+                self.assertIn(f'data-theme-choice="{theme}"', base)
+
+    def test_menu_is_closed_and_tied_to_its_button(self):
+        """Открывает список скрипт: без него кнопке нечем управлять, а список не должен
+        висеть открытым поверх страницы."""
+        base = (TEMPLATES / "base.html").read_text(encoding="utf-8")
+        self.assertIn('aria-controls="theme-list"', base)
+        self.assertRegex(base, r'id="theme-list"[^>]*\bhidden\b')
+
+    def test_system_choice_forgets_the_saved_theme(self):
+        """Иначе после перезагрузки вернулась бы тема, от которой только что отказались."""
+        script = (SCRIPTS / "theme.js").read_text(encoding="utf-8")
+        self.assertIn("localStorage.removeItem(KEY)", script)
+        self.assertIn('removeAttribute("data-theme")', script)
+
+    def test_button_has_an_icon_for_the_theme(self):
+        base = (TEMPLATES / "base.html").read_text(encoding="utf-8")
+        self.assertRegex(base, r'class="icon-warm\b')
+
+    def test_printing_stays_light(self):
+        """Ведомость и сертификат — документы: тёплый фон на бумаге только расход тонера."""
+        css = CSS.read_text(encoding="utf-8")
+        printing = css[css.index("@media print") :]
+        self.assertIn('[data-theme="warm"]', printing[: printing.index("--bg:")])
+
+
+class EditorWiringTests(SimpleTestCase):
+    """Поле `.trainer-input` без обвязки редактором нечитаемо.
+
+    Его собственный текст прозрачный, а виден слой подсветки, который создаёт
+    `setupEditor`. Страницу задания перевели на этот стиль, не подключив скрипт, и
+    студент перестал видеть свой запрос. Сервер отдаёт такую страницу с кодом 200, и ни
+    один тест страниц этого не заметит.
+    """
+
+    def test_every_page_with_the_field_sets_up_the_editor(self):
+        checked = 0
+        for path in site_templates():
+            text = path.read_text(encoding="utf-8")
+            if "trainer-input" not in text:
+                continue
+            checked += 1
+            scripts = re.findall(r"js/([\w.-]+\.js)", text)
+            self.assertTrue(
+                any(
+                    "setupEditor(" in (SCRIPTS / name).read_text(encoding="utf-8")
+                    for name in scripts
+                ),
+                f"{path.name}: поле есть, а setupEditor не вызывается",
+            )
+        self.assertGreaterEqual(checked, 2, "проверка не нашла страниц с редактором")
+
+    def test_the_gutter_is_not_under_the_text(self):
+        """Иначе длинный запрос при прокрутке вбок наезжает на номера строк."""
+        css = CSS.read_text(encoding="utf-8")
+        layer = re.search(r"\.editor-layer \{(.+?)\n\}", css, re.S).group(1)
+        self.assertIn("left: var(--editor-gutter)", layer)
+
+
+class TrainerStageTests(SimpleTestCase):
+    """Вкладки вывода тренажёра: разметка и скрипт обязаны совпадать по именам."""
+
+    def test_every_stage_has_a_tab_and_a_panel(self):
+        html = (TEMPLATES / "core" / "trainer.html").read_text(encoding="utf-8")
+        script = (SCRIPTS / "trainer.js").read_text(encoding="utf-8")
+        stages = re.search(r"STAGES = \[(.+?)\]", script).group(1)
+        for name in re.findall(r'"(\w+)"', stages):
+            with self.subTest(stage=name):
+                self.assertIn(f'id="stage-tab-{name}"', html)
+                self.assertIn(f'id="stage-{name}"', html)
+
+    def test_output_is_outside_the_panes(self):
+        """На узком экране панель запроса скрывается вкладкой — вывод не должен пропасть с ней."""
+        html = (TEMPLATES / "core" / "trainer.html").read_text(encoding="utf-8")
+        self.assertGreater(html.index('id="stage"'), html.index('id="pane-sql"'))
+        self.assertLess(
+            html.index('id="pane-sql"'), html.index("</section>", html.index('id="pane-sql"'))
+        )
+        self.assertGreater(
+            html.index('id="output"'), html.index("</section>", html.index('id="pane-sql"'))
+        )
+
+
+class AchievementTileTests(SimpleTestCase):
+    def test_words_are_not_broken_letter_by_letter(self):
+        """`overflow-wrap: anywhere` в узкой колонке рвёт слова посимвольно."""
+        css = CSS.read_text(encoding="utf-8")
+        for selector in (".ach-title", ".ach-desc"):
+            block = re.search(re.escape(selector) + r" \{(.+?)\n\}", css, re.S).group(1)
+            self.assertNotIn("anywhere", block, selector)
+
+    def test_text_is_one_column_next_to_the_icon(self):
+        html = (TEMPLATES / "gamification" / "profile.html").read_text(encoding="utf-8")
+        self.assertIn('class="ach-body"', html)
 
 
 class RuntimeClassTests(SimpleTestCase):

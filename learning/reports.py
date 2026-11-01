@@ -362,7 +362,9 @@ def sql_error_rows(teacher, course=None, limit=12):
     by_code = errors.values("metadata__code").annotate(n=Count("id")).order_by("-n")
     counts = {}
     for row in by_code:
-        counts[row["metadata__code"] or "other"] = counts.get(row["metadata__code"] or "other", 0) + row["n"]
+        counts[row["metadata__code"] or "other"] = (
+            counts.get(row["metadata__code"] or "other", 0) + row["n"]
+        )
     total = sum(counts.values())
 
     classes = [

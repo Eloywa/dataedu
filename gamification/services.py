@@ -5,7 +5,7 @@
 from django.utils import timezone
 
 from courses.models import Lesson
-from learning.models import Activity, LessonProgress
+from learning.models import Activity, Enrollment, LessonProgress
 from learning.sqlerrors import ERROR_CODES
 
 from .gating import compute_gating
@@ -113,7 +113,8 @@ def record_submission(user, submission):
     assignment = submission.assignment
     log_activity(user, "submission", "assignment", assignment.id)
 
-    if submission.score >= 1:
+    # У работы, ушедшей преподавателю, балла ещё нет: она оценивается позже.
+    if submission.score is not None and submission.score >= 1:
         solved_before = (
             Submission.objects.filter(user=user, assignment=assignment, score__gte=1)
             .exclude(pk=submission.pk)
@@ -157,7 +158,9 @@ def record_sql_error(user, code, assignment_id=None):
     В запросе студента и в тексте ошибки PostgreSQL оказываются придуманные им
     данные, поэтому на сервер приходит только код класса.
     """
-    if code not in ERROR_CODES:
+    # Код приходит из JSON и может оказаться чем угодно, в том числе списком: проверка
+    # вхождения во множество упала бы на нём с TypeError.
+    if not isinstance(code, str) or code not in ERROR_CODES:
         return
     log_activity(
         user,
@@ -328,3 +331,24 @@ def course_gating(user, course, is_teacher):
         m.id: {**flags[i], "total": counts[i][0], "completed": counts[i][1]}
         for i, m in enumerate(modules)
     }
+
+
+def may_track_progress(user, course):
+    """Участвует ли пользователь в курсе: записан на него или преподаёт."""
+    if not user.is_authenticated:
+        return False
+    return user.is_teacher or Enrollment.objects.filter(user=user, course=course).exists()
+
+
+def may_study(user, lesson):
+    """Можно ли менять прогресс по уроку: сдавать тест, отмечать, оставлять рефлексию.
+
+    Экран «урок закрыт» сам по себе ничего не защищает: точки записи принимают POST
+    напрямую, и без этой проверки урок закрытой недели засчитывался вместе с XP, а
+    пройденные уроки дают 30% итоговой отметки в ведомости.
+    """
+    course = lesson.module.course
+    if not may_track_progress(user, course):
+        return False
+    gate = course_gating(user, course, user.is_teacher).get(lesson.module_id)
+    return gate is None or gate["unlocked"]

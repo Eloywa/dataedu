@@ -1,10 +1,10 @@
 /* DataEdu — система стилей.
  *
- * Светлый интерфейс образовательной платформы: белый лист, синий акцент, карточки
- * с мягкой тенью, много воздуха. Прежний «терминальный» вид (чёрный фон, лайм,
- * моноширинный шрифт в навигации) заменён целиком: он читался как оформление
- * инструмента для разработчика, а платформой пользуются студенты и преподаватели,
- * которым важнее спокойный длинный текст, чем стилизация под консоль.
+ * Академичный интерфейс университетской платформы: тёплый off-white фон, один
+ * основной цвет, тонкие линии в 1 px, скругление 6 px, теней нет. Вторая опора —
+ * логика технической документации: боковая навигация, много места под текст и код.
+ * Оформление по брифу редизайна, принятые решения и таблица токенов обеих тем —
+ * в docs/Редизайн_решения.md.
  *
  * Моноширинный шрифт остался ровно там, где он несёт смысл: SQL, код в теории,
  * коды и идентификаторы. Как приём оформления — нигде.
@@ -27,56 +27,63 @@
 :root {
   color-scheme: light;
 
-  /* Дневная тема — не белая. Чистый лист под текстом бьёт по глазам на длинном
-     чтении: теория урока занимает экран целиком, и белизна за ней светит ровно
-     столько, сколько человек читает. Здесь фон — тёплый серый, а карточки на
-     нём светлее фона. Разница между «подложкой» и «листом» заодно делает
-     структуру страницы видимой без единой рамки.
+  /* Палитра редизайна (бриф §2.1, решения — docs/Редизайн_решения.md).
+     Фон тёплый off-white, а не чистый белый: теория урока занимает экран целиком,
+     и белизна за текстом светит ровно столько, сколько человек читает. Лист
+     карточки — белый, и разница «подложка / лист» делает структуру страницы
+     видимой без единой рамки. */
+  --bg: #faf9f6;
+  --bg-soft: #f3f2ee;
+  --surface: #ffffff;
+  --surface-2: #f3f4f6;
+  --surface-3: #e9eaed;
 
-     Серый именно тёплый. Холодный серый на длинном тексте отдаёт больничным
-     кабинетом, тёплый читается как бумага. */
-  --bg: #edebe6;
-  --bg-soft: #e6e3dc;
-  --surface: #fbfaf8;
-  --surface-2: #f2f0ea;
-  --surface-3: #e4e1d9;
+  --text: #1b1f24;
+  --text-strong: #0f1216;
+  --muted: #4b5563;
+  --muted-soft: #6b7280;
 
-  --text: #23211d;
-  --text-strong: #131210;
-  --muted: #625e57;
-  --muted-soft: #96928a;
-
-  /* Синий остаётся: он в логотипе, и менять его — менять узнаваемость.
-     На тёплой подложке холодный акцент работает как чернила на бумаге. */
-  --accent: #0b57d0;
-  --accent-hover: #08409e;
-  --accent-soft: #e3ebfa;
-  --accent-line: #bcd0f2;
+  /* Основной цвет один — тёмно-синий. Он же цвет рамки фокуса: отдельный
+     «цвет фокуса» разошёлся бы с акцентом при первой же правке палитры. */
+  --accent: #1f3a5f;
+  --accent-hover: #16304f;
+  --accent-soft: #eef2f7;
+  --accent-line: #bcc9da;
   --on-accent: #ffffff;
+  /* Подпись поверх обложки курса: заливка там тёмная в обеих темах. */
+  --on-cover: #ffffff;
+  /* Затемнение под выдвижной панелью на узких экранах. */
+  --backdrop: rgba(15, 18, 22, 0.45);
 
-  --border: #dbd7ce;
-  --hairline: #e8e5de;
+  --border: #d9d6cf;
+  --hairline: #e7e5e0;
 
-  --success: #1c6b34;
-  --success-soft: #e1efe4;
+  /* Зелёный и красный — только состояния, не оформление. Жёлтый оставлен под
+     средний уровень риска в отчётах преподавателя: там три ступени, и две из
+     них неразличимы без третьего цвета. */
+  --success: #2e7d4f;
+  --success-soft: #e8f3ec;
   --warning: #8a5a00;
   --warning-soft: #f6ecd7;
   --danger: #b3261e;
-  --danger-soft: #f8e5e2;
+  --danger-soft: #fbeae9;
 
-  /* Тени тёплые: серая тень на тёплом фоне выглядит грязью. */
-  --shadow-1: 0 1px 2px rgba(48, 42, 32, 0.05), 0 1px 3px rgba(48, 42, 32, 0.08);
-  --shadow-2: 0 4px 14px rgba(48, 42, 32, 0.1);
+  /* Теней нет (бриф §2.4): глубину задают граница и фон. Токены оставлены,
+     чтобы компоненты не пришлось переписывать, если решение изменится. */
+  --shadow-1: none;
+  --shadow-2: none;
 
-  --radius: 10px;
+  /* Одно скругление на всё. Крупных нет — три размера сведены к одному
+     значению, чтобы карточка, поле и плашка не расходились по форме. */
+  --radius: 6px;
   --radius-sm: 6px;
-  --radius-lg: 16px;
+  --radius-lg: 6px;
 
-  --font-sans: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  /* Заголовки — антиква. Запасной вариант тоже серифный: подмена гротеском
-     сменила бы не начертание, а сам характер страницы. */
-  --font-display: "PT Serif", Georgia, "Times New Roman", serif;
-  --font-mono: "IBM Plex Mono", ui-monospace, "SF Mono", Consolas, monospace;
+  /* Засечек в интерфейсе нет: заголовки и текст набраны одним семейством,
+     отличаются весом и размером. Golos Text рисовался под кириллицу. */
+  --font-sans: "Golos Text", system-ui, Arial, sans-serif;
+  --font-display: "Golos Text", system-ui, Arial, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, Consolas, monospace;
 
   --header-h: 64px;
 
@@ -91,43 +98,40 @@
 [data-theme="dark"] {
   color-scheme: dark;
 
-  /* Тёмная тема уведена от сине-чёрного. Тот оттенок стоит по умолчанию в
-     половине интерфейсов, и страница на нём выглядит не оформленной, а просто
-     инвертированной. Здесь фон тёплый — тёмные чернила, а не синий пластик;
-     с антиквой в заголовках он и держится заодно.
+  /* Те же роли цветов, другой уровень яркости. Синий акцент осветлён: тёмно-синий
+     #1f3a5f на тёмном фоне не набирает нужного контраста ни с фоном, ни с текстом,
+     и кнопка перестаёт читаться как кнопка. */
+  --bg: #15181c;
+  --bg-soft: #191d22;
+  --surface: #1c2026;
+  --surface-2: #22272e;
+  --surface-3: #2b313a;
 
-     Акцент приглушён по сравнению с обычным для тёмных тем ярко-синим: на
-     тёплом фоне неоновая подсветка спорит с текстом, а не выделяет его. */
-  --bg: #1a1815;
-  --bg-soft: #201d19;
-  --surface: #242019;
-  --surface-2: #2b2721;
-  --surface-3: #38332b;
+  --text: #e8eaed;
+  --text-strong: #f7f8fa;
+  --muted: #a3acb9;
+  --muted-soft: #808a97;
 
-  --text: #ece8e0;
-  --text-strong: #faf8f4;
-  --muted: #a8a196;
-  --muted-soft: #857e73;
+  --accent: #8ab4e8;
+  --accent-hover: #a9c8f0;
+  --accent-soft: rgba(138, 180, 232, 0.12);
+  --accent-line: rgba(138, 180, 232, 0.32);
+  --on-accent: #10151c;
+  --on-cover: #ffffff;
+  --backdrop: rgba(0, 0, 0, 0.62);
 
-  --accent: #8fb1e0;
-  --accent-hover: #b2caed;
-  --accent-soft: rgba(143, 177, 224, 0.15);
-  --accent-line: rgba(143, 177, 224, 0.34);
-  --on-accent: #171512;
+  --border: #2e343c;
+  --hairline: rgba(232, 234, 237, 0.08);
 
-  --border: rgba(236, 232, 224, 0.14);
-  --hairline: rgba(236, 232, 224, 0.07);
+  --success: #6fcf97;
+  --success-soft: rgba(111, 207, 151, 0.13);
+  --warning: #d9ac5e;
+  --warning-soft: rgba(217, 172, 94, 0.15);
+  --danger: #f2998f;
+  --danger-soft: rgba(242, 153, 143, 0.13);
 
-  --success: #93c9a1;
-  --success-soft: rgba(147, 201, 161, 0.14);
-  --warning: #e6b66a;
-  --warning-soft: rgba(230, 182, 106, 0.15);
-  --danger: #e89a8b;
-  --danger-soft: rgba(232, 154, 139, 0.15);
-
-  /* Тени на тёмном фоне почти не читаются — глубину даёт граница. */
-  --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.45);
-  --shadow-2: 0 6px 18px rgba(0, 0, 0, 0.5);
+  --shadow-1: none;
+  --shadow-2: none;
 }
 
 /* Пока человек не выбрал тему руками, слушаем системную настройку. Правило
@@ -138,44 +142,82 @@
   :root:not([data-theme]) {
     color-scheme: dark;
 
-    /* Тёмная тема уведена от сине-чёрного. Тот оттенок стоит по умолчанию в
-       половине интерфейсов, и страница на нём выглядит не оформленной, а просто
-       инвертированной. Здесь фон тёплый — тёмные чернила, а не синий пластик;
-       с антиквой в заголовках он и держится заодно.
+    /* Те же роли цветов, другой уровень яркости. Синий акцент осветлён: тёмно-синий
+       #1f3a5f на тёмном фоне не набирает нужного контраста ни с фоном, ни с текстом,
+       и кнопка перестаёт читаться как кнопка. */
+    --bg: #15181c;
+    --bg-soft: #191d22;
+    --surface: #1c2026;
+    --surface-2: #22272e;
+    --surface-3: #2b313a;
 
-       Акцент приглушён по сравнению с обычным для тёмных тем ярко-синим: на
-       тёплом фоне неоновая подсветка спорит с текстом, а не выделяет его. */
-    --bg: #1a1815;
-    --bg-soft: #201d19;
-    --surface: #242019;
-    --surface-2: #2b2721;
-    --surface-3: #38332b;
+    --text: #e8eaed;
+    --text-strong: #f7f8fa;
+    --muted: #a3acb9;
+    --muted-soft: #808a97;
 
-    --text: #ece8e0;
-    --text-strong: #faf8f4;
-    --muted: #a8a196;
-    --muted-soft: #857e73;
+    --accent: #8ab4e8;
+    --accent-hover: #a9c8f0;
+    --accent-soft: rgba(138, 180, 232, 0.12);
+    --accent-line: rgba(138, 180, 232, 0.32);
+    --on-accent: #10151c;
+    --on-cover: #ffffff;
+    --backdrop: rgba(0, 0, 0, 0.62);
 
-    --accent: #8fb1e0;
-    --accent-hover: #b2caed;
-    --accent-soft: rgba(143, 177, 224, 0.15);
-    --accent-line: rgba(143, 177, 224, 0.34);
-    --on-accent: #171512;
+    --border: #2e343c;
+    --hairline: rgba(232, 234, 237, 0.08);
 
-    --border: rgba(236, 232, 224, 0.14);
-    --hairline: rgba(236, 232, 224, 0.07);
+    --success: #6fcf97;
+    --success-soft: rgba(111, 207, 151, 0.13);
+    --warning: #d9ac5e;
+    --warning-soft: rgba(217, 172, 94, 0.15);
+    --danger: #f2998f;
+    --danger-soft: rgba(242, 153, 143, 0.13);
 
-    --success: #93c9a1;
-    --success-soft: rgba(147, 201, 161, 0.14);
-    --warning: #e6b66a;
-    --warning-soft: rgba(230, 182, 106, 0.15);
-    --danger: #e89a8b;
-    --danger-soft: rgba(232, 154, 139, 0.15);
-
-    /* Тени на тёмном фоне почти не читаются — глубину даёт граница. */
-    --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.45);
-    --shadow-2: 0 6px 18px rgba(0, 0, 0, 0.5);
+    --shadow-1: none;
+    --shadow-2: none;
   }
+}
+
+/* Ламповая тема — между светлой и тёмной: приглушённый тёплый свет настольной лампы.
+   Для вечернего чтения, когда белый лист слепит, а чёрный фон в освещённой комнате
+   утомляет контрастом. Акцент янтарный, а не синий: холодный цвет на коричневом фоне
+   спорил бы с текстом. Включается только кнопкой: системной настройки для неё нет.
+   Контраст всех пар «текст — фон» сверяет тест WarmThemeTests. */
+[data-theme="warm"] {
+  color-scheme: dark;
+
+  --bg: #3a3129;
+  --bg-soft: #332b24;
+  --surface: #443a30;
+  --surface-2: #4e4338;
+  --surface-3: #5c4f41;
+
+  --text: #f6ecdc;
+  --text-strong: #fff8ec;
+  --muted: #e0d2bc;
+  --muted-soft: #d0c0a7;
+
+  --accent: #f7c784;
+  --accent-hover: #fbd8a6;
+  --accent-soft: rgba(247, 199, 132, 0.12);
+  --accent-line: rgba(247, 199, 132, 0.28);
+  --on-accent: #2a1f12;
+  --on-cover: #ffffff;
+  --backdrop: rgba(24, 18, 12, 0.6);
+
+  --border: #65574a;
+  --hairline: rgba(246, 236, 220, 0.12);
+
+  --success: #b6e3ac;
+  --success-soft: rgba(182, 227, 172, 0.12);
+  --warning: #ffc49c;
+  --warning-soft: rgba(255, 196, 156, 0.12);
+  --danger: #ffbcae;
+  --danger-soft: rgba(255, 188, 174, 0.12);
+
+  --shadow-1: none;
+  --shadow-2: none;
 }
 
 /* ===== 2. База и типографика ============================================= */
@@ -248,23 +290,33 @@ h5 {
   margin: 0;
   font-family: var(--font-display);
   color: var(--text-strong);
-  font-weight: 700;
-  /* Антикве нужно больше воздуха между строк, чем гротеску: засечки и выносные
-     элементы визуально сокращают межстрочное расстояние. */
-  line-height: 1.3;
-  /* Отрицательный трекинг — приём для гротесков. У антиквы он съедает засечки
-     и делает заголовок сбитым, поэтому здесь трекинг нулевой. */
-  letter-spacing: 0;
+  /* Шестисотый вес вместо жирного: на гротеске с крупным очком семисотый
+     выглядит объявлением, а не заголовком раздела. */
+  font-weight: 600;
+  line-height: 1.25;
+  letter-spacing: -0.01em;
+  text-wrap: balance;
 }
 
 h1 {
-  font-size: 34px;
+  font-size: 36px;
 }
 h2 {
   font-size: 24px;
 }
 h3 {
   font-size: 19px;
+}
+
+/* На телефоне заголовок уменьшается: 36 px занимают три строки из четырёх слов
+   и выталкивают содержание под сгиб. */
+@media (max-width: 640px) {
+  h1 {
+    font-size: 28px;
+  }
+  h2 {
+    font-size: 21px;
+  }
 }
 
 p {
@@ -405,12 +457,6 @@ summary:focus-visible,
   font-size: 16px;
   font-weight: 700;
   color: var(--text-strong);
-}
-
-.small-label {
-  color: var(--muted);
-  font-size: 12px;
-  letter-spacing: 0.02em;
 }
 
 .cell-sub {
@@ -559,6 +605,18 @@ summary:focus-visible,
   gap: 14px;
 }
 
+/* На небольшом ноутбуке длинное имя преподавателя съедало место у меню, и последний
+   пункт — «Сообщения» со счётчиком — уезжал за край незаметно: полоса прокрутки у меню
+   скрыта. Имя и так открывается целиком в настройках, поэтому ужимается оно. */
+@media (max-width: 1200px) {
+  .nav {
+    gap: 16px;
+  }
+  .header-actions .link-muted {
+    max-width: 12ch;
+  }
+}
+
 .link-muted {
   max-width: 22ch;
   overflow: hidden;
@@ -579,7 +637,7 @@ summary:focus-visible,
   padding: 0 5px;
   border-radius: 9px;
   background: var(--danger);
-  color: #fff;
+  color: var(--on-accent);
   font-size: 11px;
   font-weight: 700;
   line-height: 18px;
@@ -613,14 +671,79 @@ summary:focus-visible,
   width: 18px;
   height: 18px;
 }
-/* Показываем ту иконку, которая соответствует теме, в которую переключит нажатие. */
-.icon-btn .icon-dark {
+
+/* Список тем под кнопкой в шапке. */
+.theme-menu {
+  position: relative;
+  display: flex;
+}
+.theme-icon {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.theme-list {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 40;
+  display: grid;
+  gap: 2px;
+  min-width: 190px;
+  padding: 4px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: var(--shadow-2);
+}
+.theme-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 44px;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--text);
+  font-family: inherit;
+  font-size: 14px;
+  text-align: left;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.theme-option:hover,
+.theme-option:focus-visible {
+  background: var(--surface-2);
+}
+/* Выбранная тема отмечена не только цветом, но и галочкой. */
+.theme-option[aria-checked="true"] {
+  color: var(--accent);
+  font-weight: 600;
+}
+.theme-option[aria-checked="true"]::after {
+  margin-left: auto;
+  padding-left: 12px;
+  content: "✓";
+}
+
+/* На кнопке — значок текущей темы. */
+.icon-btn .icon-dark,
+.icon-btn .icon-warm {
   display: none;
 }
-[data-theme="dark"] .icon-btn .icon-dark {
+[data-theme="dark"] .icon-btn .icon-dark,
+[data-theme="warm"] .icon-btn .icon-warm {
   display: block;
 }
-[data-theme="dark"] .icon-btn .icon-light {
+[data-theme="dark"] .icon-btn .icon-light,
+[data-theme="warm"] .icon-btn .icon-light {
   display: none;
 }
 @media (prefers-color-scheme: dark) {
@@ -757,11 +880,11 @@ summary:focus-visible,
 .btn-danger {
   background: var(--danger);
   border-color: var(--danger);
-  color: #fff;
+  color: var(--on-accent);
 }
 .btn-danger:hover {
   filter: brightness(0.94);
-  color: #fff;
+  color: var(--on-accent);
 }
 
 .btn-block {
@@ -909,7 +1032,8 @@ select {
   background-size: 16px;
   cursor: pointer;
 }
-[data-theme="dark"] select {
+[data-theme="dark"] select,
+[data-theme="warm"] select {
   background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23a8a196' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 6l4 4 4-4'/%3E%3C/svg%3E");
 }
 @media (prefers-color-scheme: dark) {
@@ -1062,114 +1186,507 @@ select {
 }
 
 .stars {
-  color: #e2a33c;
+  color: var(--warning);
   font-size: 14px;
   letter-spacing: 1px;
 }
 
-/* ===== 6. Главная ======================================================== */
+/* ===== 5a. Компоненты редизайна ========================================== */
 
-.hero {
-  display: grid;
-  grid-template-columns: 1.05fr 0.95fr;
-  align-items: center;
-  gap: 56px;
-  padding-top: 72px;
-  padding-bottom: 80px;
+/* Набор из §6 брифа. Часть компонентов в платформе уже была — кнопки, карточки,
+   бейджи, варианты ответа, — поэтому здесь не второй набор, а то, чего не
+   хватало, плюс общие правила для того, что раньше жило по месту.
+   Все вместе они показаны на /styleguide/ (страница открыта только в разработке). */
+
+/* Блок «Обратите внимание»: мягкая подложка акцента и тонкая полоса слева.
+   Тени нет — вес даёт фон, а не подъём над страницей. */
+.note {
+  margin: 0 0 18px;
+  padding: 14px 18px;
+  border-left: 3px solid var(--accent);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  background: var(--accent-soft);
+}
+.note-title {
+  margin: 0 0 6px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-strong);
+}
+.note p:last-child {
+  margin-bottom: 0;
 }
 
-.eyebrow {
+/* Подсказка — свёрнутый <details>, а не самодельная раскрывашка: нативный
+   элемент сам работает с клавиатуры и читается скринридером, и открыт он
+   остаётся при печати. */
+.hint {
+  margin: 0 0 18px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+}
+.hint > summary {
+  padding: 11px 16px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--accent);
+  cursor: pointer;
+  list-style: none;
+}
+.hint > summary::-webkit-details-marker {
+  display: none;
+}
+/* Треугольник рисуем сами: у встроенного маркера нельзя задать цвет и отступ. */
+.hint > summary::before {
+  content: "";
+  display: inline-block;
+  width: 0;
+  height: 0;
+  margin-right: 10px;
+  border-top: 5px solid transparent;
+  border-bottom: 5px solid transparent;
+  border-left: 6px solid currentColor;
+  vertical-align: 1px;
+  transition: transform 0.15s;
+}
+.hint[open] > summary::before {
+  transform: rotate(90deg);
+}
+.hint-body {
+  padding: 0 16px 14px;
+  color: var(--text);
+}
+.hint-body > :last-child {
+  margin-bottom: 0;
+}
+
+/* Блок кода вне теории: SQL в задании, пример схемы, вывод команды. Прокрутка
+   своя — страница от длинной строки вбок не едет (бриф §4). */
+.code-block {
+  margin: 0 0 18px;
+  padding: 14px 16px;
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  font-family: var(--font-mono);
+  font-size: 15px;
+  line-height: 1.6;
+  white-space: pre;
+  tab-size: 2;
+}
+.code-inline {
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: var(--surface-2);
+  font-family: var(--font-mono);
+  font-size: 0.9em;
+}
+
+/* Аккордеон: список <details> с общей рамкой. Используется в программе курса на
+   узких экранах и везде, где длинный перечень нужно свернуть. */
+.accordion {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  overflow: hidden;
+}
+.accordion > details + details {
+  border-top: 1px solid var(--hairline);
+}
+.accordion summary {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  /* 44 px по высоте — минимальная зона нажатия на телефоне (бриф §4). */
+  min-height: 44px;
+  padding: 11px 16px;
+  font-weight: 600;
+  cursor: pointer;
+  list-style: none;
+}
+.accordion summary::-webkit-details-marker {
+  display: none;
+}
+.accordion summary::after {
+  content: "";
+  width: 8px;
+  height: 8px;
+  margin-left: auto;
+  border-right: 1.5px solid var(--muted);
+  border-bottom: 1.5px solid var(--muted);
+  transform: rotate(45deg) translate(-2px, -2px);
+  transition: transform 0.15s;
+}
+.accordion details[open] > summary::after {
+  transform: rotate(-135deg) translate(-2px, -2px);
+}
+.accordion summary:hover {
+  background: var(--bg-soft);
+}
+.accordion-body {
+  padding: 0 16px 14px;
+  color: var(--text);
+}
+.accordion-count {
+  color: var(--muted);
+  font-weight: 400;
+  font-size: 14px;
+}
+
+/* Метка статуса. Цвет здесь вспомогательный: слово обязательно, значок рисуется
+   фигурой, а не цветной точкой, — состояние должно читаться и в чёрно-белой
+   печати, и человеком, который цвета не различает (бриф §7). */
+.status {
   display: inline-flex;
   align-items: center;
-  padding: 5px 12px;
-  margin-bottom: 20px;
-  border-radius: 999px;
-  background: var(--accent-soft);
-  color: var(--accent);
+  gap: 7px;
+  font-size: 14px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+.status::before {
+  content: "";
+  width: 12px;
+  height: 12px;
+  flex: none;
+  border: 1.5px solid currentColor;
+  border-radius: 50%;
+}
+.status-done {
+  color: var(--success);
+}
+/* Пройдено — галочка: заливка кружка сама по себе значением не является. */
+.status-done::before {
+  width: 11px;
+  height: 6px;
+  border-width: 0 0 1.5px 1.5px;
+  border-radius: 0;
+  transform: rotate(-45deg);
+  margin-bottom: 3px;
+}
+.status-progress {
+  color: var(--warning);
+}
+.status-progress::before {
+  background: linear-gradient(to right, currentColor 50%, transparent 50%);
+}
+.status-locked {
+  color: var(--muted);
+}
+.status-locked::before {
+  width: 10px;
+  height: 8px;
+  border-radius: 2px;
+  border-width: 1.5px;
+  margin-top: 3px;
+  box-shadow: 0 -4px 0 -1.5px transparent;
+}
+.status-error {
+  color: var(--danger);
+}
+
+/* Таблица данных. Заголовок на подложке, линии в 1 px, цифры моноширинными
+   знаками одинаковой ширины — иначе колонка баллов пляшет. */
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 15px;
+}
+.data-table caption {
+  padding: 0 0 10px;
+  color: var(--muted);
+  font-size: 14px;
+  text-align: left;
+}
+.data-table th,
+.data-table td {
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--hairline);
+  text-align: left;
+  vertical-align: top;
+}
+.data-table thead th {
+  background: var(--surface-2);
+  color: var(--muted);
   font-size: 13px;
   font-weight: 600;
+  white-space: nowrap;
+}
+.data-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+.data-table .num {
+  font-variant-numeric: tabular-nums;
+  text-align: right;
 }
 
-.hero h1 {
-  font-size: 46px;
-  line-height: 1.22;
+/* Полоса прогресса. Старое имя (.bar-wrap) оставлено рядом с новым: страницы
+   отчётов используют его, а вид должен быть один. */
+.progress,
+.bar-wrap {
+  height: 6px;
+  overflow: hidden;
+  border-radius: 3px;
+  background: var(--surface-3);
+}
+.progress > span,
+.bar-fill {
+  display: block;
+  height: 100%;
+  background: var(--accent);
 }
 
-.lead {
-  max-width: 52ch;
-  margin: 18px 0 0;
+/* Кнопка в состоянии загрузки. Текст остаётся на месте — подменять его на
+   «Загрузка…» значит менять ширину кнопки и дёргать раскладку. */
+.btn[aria-busy="true"] {
+  pointer-events: none;
+  opacity: 0.75;
+}
+.btn[aria-busy="true"]::before {
+  content: "";
+  width: 14px;
+  height: 14px;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: btn-spin 0.7s linear infinite;
+}
+@keyframes btn-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+/* Без движения кольцо просто стоит: оно и так читается как «идёт работа». */
+@media (prefers-reduced-motion: reduce) {
+  .btn[aria-busy="true"]::before {
+    animation: none;
+  }
+}
+
+/* Ссылка в тексте: подчёркивание обязательно — цвета мало, если человек не
+   различает синий и чёрный (бриф §7). */
+.text-link,
+.prose a,
+.note a,
+.hint-body a {
+  color: var(--accent);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  text-decoration-thickness: 1px;
+}
+.text-link:hover,
+.prose a:hover {
+  color: var(--accent-hover);
+}
+
+/* Раскладка страницы-примера /styleguide/. Держится здесь, а не в отдельном
+   файле: лишняя таблица стилей — ещё один запрос и ещё одно место, где цвета
+   разойдутся с токенами. */
+.sg-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin: 0 0 24px;
+}
+.sg-row-tight {
+  gap: 18px;
+  margin-top: 14px;
+}
+.sg-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+.sg-pad {
+  padding: 18px;
+}
+.sg-help {
+  max-width: 68ch;
+  margin: 0 0 14px;
+}
+
+/* ===== 6. Главная ======================================================== */
+
+/* Главная — витрина основного курса (бриф §3.1). Прежний лендинг с пилюлей
+   «Учебная платформа», рядом цифр 8 / 79 / 27 и нарисованным «скриншотом»
+   тренажёра убран целиком: ни одна из этих частей не отвечала на вопрос, чему
+   здесь учат. */
+.home {
+  width: 100%;
+  max-width: 1160px;
+  margin: 0 auto;
+  padding: 32px 24px 64px;
+}
+.home-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 420px;
+  align-items: center;
+  gap: 40px;
+  padding-bottom: 40px;
+  border-bottom: 1px solid var(--border);
+}
+.home-title {
+  margin: 0 0 14px;
+  font-size: 40px;
+  line-height: 1.15;
+}
+.home-lead {
+  max-width: 54ch;
+  margin: 0 0 24px;
   color: var(--muted);
   font-size: 18px;
   line-height: 1.6;
 }
-
-.hero-actions {
+.home-actions {
   display: flex;
   flex-wrap: wrap;
-  align-items: center;
-  gap: 14px;
-  margin-top: 28px;
+  gap: 12px;
+  margin-bottom: 20px;
 }
-.hero-actions .btn {
-  padding: 12px 24px;
-  font-size: 16px;
-}
-
-.meta {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 18px;
-  margin-top: 32px;
-  padding-top: 24px;
-  border-top: 1px solid var(--hairline);
+.home-facts {
+  margin: 0;
   color: var(--muted);
   font-size: 14px;
 }
-.meta b {
-  display: block;
-  color: var(--text-strong);
-  font-family: var(--font-sans);
-  font-size: 22px;
-  font-weight: 700;
-  line-height: 1.2;
+
+/* Линейная ER-диаграмма: тонкие рамки, никакой заливки и теней. Цвета берутся
+   из токенов, поэтому в тёмной теме рисунок не светится белым прямоугольником. */
+.home-er {
+  width: 100%;
+  height: auto;
+}
+.home-er-box rect {
+  fill: var(--surface);
+  stroke: var(--border);
+  stroke-width: 1;
+}
+.home-er-box line {
+  stroke: var(--border);
+  stroke-width: 1;
+}
+.home-er-name {
+  fill: var(--text-strong);
+  font-family: var(--font-mono);
+  font-size: 14px;
+  font-weight: 500;
+}
+.home-er-field {
+  fill: var(--muted);
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+.home-er-line {
+  fill: none;
+  stroke: var(--accent-line);
+  stroke-width: 1.5;
+}
+.home-er-dot {
+  fill: var(--accent);
 }
 
-/* Превью SQL-тренажёра. Раньше это был макет окна терминала с «светофором» —
-   украшение, изображавшее чужое приложение. Теперь это карточка с настоящим
-   запросом и его результатом: она показывает, что платформа делает. */
-.terminal {
-  overflow: hidden;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  background: var(--surface);
-  box-shadow: var(--shadow-2);
-}
-.terminal-bar {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 12px 18px;
+.home-cols {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 32px;
+  padding: 36px 0;
   border-bottom: 1px solid var(--border);
-  background: var(--surface-2);
 }
-.terminal-title {
-  color: var(--muted);
-  font-family: var(--font-mono);
-  font-size: 13px;
+.home-cols .section-title {
+  margin-top: 0;
 }
-.terminal-body {
-  padding: 18px;
-  font-family: var(--font-mono);
-  font-size: 13.5px;
-  line-height: 1.7;
+
+.home-modules {
+  padding-top: 36px;
 }
-.terminal-body .pr {
+/* Программа в три колонки: девять модулей столбиком заняли бы экран, а
+   отношения между ними всё равно нет — это список, а не последовательность
+   шагов, которую нужно читать сверху вниз. */
+.module-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 2px 28px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: module;
+}
+.module-item {
+  counter-increment: module;
+  border-bottom: 1px solid var(--hairline);
+}
+.module-item a {
+  display: grid;
+  gap: 2px;
+  padding: 12px 0 12px 32px;
+  position: relative;
+  color: var(--text);
+  text-decoration: none;
+}
+.module-item a::before {
+  content: counter(module) ".";
+  position: absolute;
+  left: 0;
+  top: 12px;
+  color: var(--muted-soft);
+  font-variant-numeric: tabular-nums;
+}
+.module-item a:hover {
   color: var(--accent);
-  font-weight: 600;
 }
-.terminal-body .cmd {
-  color: var(--text-strong);
+.module-item-title {
+  font-weight: 500;
 }
+.module-item-meta {
+  color: var(--muted);
+  font-size: 13.5px;
+}
+.home-more {
+  margin: 28px 0 0;
+  color: var(--muted);
+}
+
+.home-empty {
+  width: 100%;
+  max-width: 60ch;
+  margin: 0 auto;
+  padding: 64px 0;
+  text-align: center;
+}
+
+@media (max-width: 900px) {
+  .home-hero {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 28px;
+  }
+  .home-title {
+    font-size: 32px;
+  }
+  /* Диаграмма уезжает под кнопки (бриф §3.1) и ужимается: на телефоне она
+     иллюстрация, а не схема, по которой работают. */
+  .home-er {
+    max-width: 420px;
+  }
+}
+
+@media (max-width: 640px) {
+  .home {
+    padding: 20px 16px 40px;
+  }
+  .home-title {
+    font-size: 28px;
+  }
+  .home-lead {
+    font-size: 17px;
+  }
+  .home-actions .btn {
+    flex: 1 1 100%;
+  }
+}
+
 .t-table {
   margin: 14px 0 8px;
   border: 1px solid var(--hairline);
@@ -1263,7 +1780,7 @@ select {
   align-items: center;
   justify-content: center;
   height: 132px;
-  color: #fff;
+  color: var(--on-cover);
 }
 
 /* Обложка-снимок. `object-fit` обязателен: у карточки фиксированная высота, а
@@ -1520,9 +2037,6 @@ select {
 
 /* Боковая колонка */
 .course-side,
-.lesson-foot {
-  min-width: 0;
-}
 .side-card {
   position: sticky;
   top: calc(var(--header-h) + 20px);
@@ -1603,7 +2117,7 @@ select {
 .rating-input input:checked ~ label,
 .rating-input label:hover,
 .rating-input label:hover ~ label {
-  color: #e2a33c;
+  color: var(--warning);
 }
 .rating-input input:focus-visible + label {
   outline: 2px solid var(--accent);
@@ -1634,28 +2148,385 @@ select {
 
 /* ===== 9. Урок =========================================================== */
 
-.lesson-eyebrow {
-  margin-bottom: 6px;
-  color: var(--muted);
-  font-size: 14px;
+/* Раскладка «как в технической документации» (бриф §3.3): слева дерево курса,
+   по центру текст, справа оглавление урока. Три колонки живут от 1024 px — ниже
+   дерево уезжает в выдвижную панель, а оглавление сворачивается над текстом. */
+.lesson-shell {
+  display: grid;
+  grid-template-columns: 264px minmax(0, 1fr) 236px;
+  grid-template-areas:
+    "tree main side"
+    "tree pager side";
+  grid-template-rows: 1fr auto;
+  align-items: start;
+  gap: 0 36px;
+  width: 100%;
+  max-width: 1360px;
+  margin: 0 auto;
+  padding: 24px 24px 56px;
 }
-.lesson-nav {
+.lesson-main {
+  grid-area: main;
+  min-width: 0;
+}
+.lesson-side {
+  grid-area: side;
+  position: sticky;
+  top: calc(var(--header-h) + 20px);
+  display: grid;
+  gap: 16px;
+}
+.lesson-pager {
+  grid-area: pager;
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
   gap: 12px;
   margin-top: 36px;
   padding-top: 22px;
   border-top: 1px solid var(--border);
 }
+.lesson-pager-btn {
+  flex: 1 1 0;
+}
+/* Пустая половина держит «Следующий урок» справа, когда предыдущего урока нет. */
+.lesson-pager-btn.is-empty {
+  display: block;
+}
+
+.lesson-eyebrow {
+  margin: 0 0 6px;
+  color: var(--muted);
+  font-size: 14px;
+}
+.lesson-title {
+  margin: 0 0 10px;
+}
+.lesson-time-top {
+  margin: 0 0 28px;
+  color: var(--muted);
+  font-size: 14px;
+}
+.lesson-done-form,
+.lesson-done-mark {
+  margin-top: 28px;
+}
+/* Предложение записаться: вместо кнопок прогресса у того, кто на курс не записан. */
+.lesson-enroll {
+  margin-top: 28px;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+.lesson-enroll p {
+  margin: 0 0 12px;
+  color: var(--muted);
+}
+
+/* Дерево курса. Своя прокрутка и липкая позиция: список из восемнадцати уроков
+   не должен уезжать вместе с текстом, но и тянуть страницу вниз ему незачем. */
+.lesson-tree {
+  grid-area: tree;
+  position: sticky;
+  top: calc(var(--header-h) + 20px);
+  max-height: calc(100vh - var(--header-h) - 40px);
+  overflow-y: auto;
+  padding-right: 16px;
+  border-right: 1px solid var(--border);
+}
+.lesson-tree-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+.lesson-tree-course {
+  color: var(--text-strong);
+  font-weight: 600;
+  font-size: 15px;
+  line-height: 1.3;
+  text-decoration: none;
+}
+.lesson-tree-course:hover {
+  color: var(--accent);
+}
+.lesson-tree-close {
+  display: none;
+  width: 44px;
+  height: 44px;
+  flex: none;
+  margin-left: auto;
+  border: 0;
+  background: none;
+  color: var(--muted);
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+}
+.lesson-tree-modules {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: lesson-module;
+}
+.lesson-tree-module + .lesson-tree-module {
+  margin-top: 18px;
+}
+.lesson-tree-module-title {
+  margin: 0 0 6px;
+  counter-increment: lesson-module;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.lesson-tree-module-title::before {
+  content: counter(lesson-module) ". ";
+}
+.lesson-tree-module-title .status {
+  margin-left: 8px;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
+}
+.lesson-tree-lessons {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+/* Текущий урок отмечен полосой слева (бриф §3.3). У остальных полоса прозрачная,
+   иначе при переходе строка прыгала бы на два пикселя. */
+.lesson-tree-link {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 10px;
+  border-left: 2px solid transparent;
+  color: var(--text);
+  font-size: 14.5px;
+  line-height: 1.35;
+  text-decoration: none;
+}
+a.lesson-tree-link:hover {
+  background: var(--bg-soft);
+  color: var(--accent);
+}
+.lesson-tree-link.is-current {
+  border-left-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-weight: 600;
+}
+.lesson-tree-link.is-locked {
+  color: var(--muted-soft);
+}
+.lesson-tree-done {
+  width: 11px;
+  height: 6px;
+  flex: none;
+  margin: -3px 0 0 auto;
+  border-left: 1.5px solid var(--success);
+  border-bottom: 1.5px solid var(--success);
+  transform: rotate(-45deg);
+}
+
+/* Оглавление урока. В правой колонке — список, над текстом (на узких экранах) —
+   свёрнутый блок; разметка одна, показывается то одно, то другое. */
+.lesson-toc-list {
+  display: grid;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.lesson-toc-list a {
+  display: block;
+  padding: 5px 0;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.35;
+  text-decoration: none;
+}
+.lesson-toc-list a:hover {
+  color: var(--accent);
+}
+.lesson-toc-l3 a {
+  padding-left: 14px;
+  font-size: 13.5px;
+}
+.lesson-toc-inline {
+  display: none;
+  margin: 0 0 24px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+}
+.lesson-toc-inline > summary {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 16px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.lesson-toc-inline > .lesson-toc-list {
+  padding: 0 16px 12px;
+}
+
+/* Заголовок, на который ведёт якорь, не должен уезжать под липкую шапку. */
+.prose :is(h2, h3)[id] {
+  scroll-margin-top: calc(var(--header-h) + 16px);
+}
+
+/* Кнопка и подложка выдвижной панели. По умолчанию их нет: они появляются
+   только когда скрипт загрузился (класс js-lesson) и экран узкий. */
+.lesson-drawer-toggle {
+  display: none;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  margin-bottom: 18px;
+  padding: 0 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.lesson-drawer-toggle-icon {
+  position: relative;
+  width: 16px;
+  height: 2px;
+  background: currentColor;
+}
+.lesson-drawer-toggle-icon::before,
+.lesson-drawer-toggle-icon::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  width: 16px;
+  height: 2px;
+  background: currentColor;
+}
+.lesson-drawer-toggle-icon::before {
+  top: -5px;
+}
+.lesson-drawer-toggle-icon::after {
+  top: 5px;
+}
+.lesson-drawer-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  background: var(--backdrop);
+}
+
+/* 1023px — тот же порог, что в lesson.js. Значение продублировано сознательно:
+   matchMedia не читает медиазапросы из таблицы стилей. */
+@media (max-width: 1023px) {
+  .lesson-shell {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+      "toggle"
+      "main"
+      "side"
+      "pager";
+    gap: 0;
+    padding: 20px 20px 40px;
+  }
+  .lesson-drawer-toggle {
+    grid-area: toggle;
+    justify-self: start;
+  }
+  .lesson-side {
+    position: static;
+    margin-top: 32px;
+  }
+  /* Оглавление из правой колонки прячется, вместо него — свёрнутый блок над
+     текстом урока (бриф §4). Литература остаётся внизу. */
+  .lesson-toc {
+    display: none;
+  }
+  .lesson-toc-inline {
+    display: block;
+  }
+
+  /* Пока скрипт не загрузился, дерево — обычный список над уроком. */
+  .js-lesson .lesson-tree {
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 31;
+    width: min(320px, 86vw);
+    max-height: none;
+    padding: 20px;
+    border-right: 1px solid var(--border);
+    background: var(--surface);
+    transform: translateX(-100%);
+    transition: transform 0.2s ease;
+  }
+  .js-lesson .lesson-tree.is-open {
+    transform: translateX(0);
+  }
+  .js-lesson .lesson-drawer-toggle {
+    display: inline-flex;
+  }
+  .js-lesson .lesson-tree-close {
+    display: block;
+  }
+  body.is-drawer-open {
+    overflow: hidden;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .js-lesson .lesson-tree {
+    transition: none;
+  }
+}
+
+/* На телефоне переход между уроками закреплён внизу экрана (бриф §4): иначе до
+   «Следующего урока» нужно пролистать весь текст обратно. */
+@media (max-width: 640px) {
+  .lesson-shell {
+    padding: 16px 16px 92px;
+  }
+  .lesson-pager {
+    position: fixed;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 20;
+    margin: 0;
+    padding: 10px 16px calc(10px + env(safe-area-inset-bottom));
+    border-top: 1px solid var(--border);
+    background: var(--surface);
+  }
+  .lesson-pager-btn.is-empty {
+    display: none;
+  }
+}
+
+.lesson-eyebrow {
+  margin-bottom: 6px;
+  color: var(--muted);
+  font-size: 14px;
+}
 
 /* Теория. Ширина строки ограничена: длинная строка на широком экране читается
    заметно хуже — глаз теряет начало следующей. */
 .prose {
-  max-width: 72ch;
-  font-size: 16.5px;
-  line-height: 1.75;
+  /* 68 знаков — предел, за которым глаз начинает терять начало следующей строки.
+     Раньше здесь было 72ch при более мелком кегле, и строка выходила под 95 знаков
+     на широком экране. */
+  max-width: 68ch;
+  font-size: 17.5px;
+  line-height: 1.6;
 }
 .prose h2 {
   margin: 34px 0 12px;
@@ -1689,7 +2560,7 @@ select {
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   background: var(--surface-2);
-  font-size: 14px;
+  font-size: 15px;
   line-height: 1.6;
 }
 .prose pre code {
@@ -1731,17 +2602,6 @@ select {
   background: var(--surface-2);
 }
 
-.done-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 14px;
-  border-radius: 999px;
-  background: var(--success-soft);
-  color: var(--success);
-  font-size: 14px;
-  font-weight: 600;
-}
 
 .locked-card {
   max-width: 560px;
@@ -1815,6 +2675,35 @@ select {
 }
 .reflection-textarea {
   min-height: 90px;
+}
+
+/* Врезка в теории урока. Разметку даёт расширение admonition (`!!! note`),
+   поэтому классы здесь чужие — они подключены к компоненту .note из раздела 5a,
+   а не оформлены заново. */
+.prose .admonition {
+  margin: 0 0 18px;
+  padding: 14px 18px;
+  border-left: 3px solid var(--accent);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  background: var(--accent-soft);
+}
+.prose .admonition-title {
+  margin: 0 0 6px;
+  color: var(--text-strong);
+  font-size: 15px;
+  font-weight: 600;
+}
+.prose .admonition > :last-child {
+  margin-bottom: 0;
+}
+/* Предупреждение и опасность — те же семантические цвета, что у меток статуса. */
+.prose .admonition.warning {
+  border-left-color: var(--warning);
+  background: var(--warning-soft);
+}
+.prose .admonition.danger {
+  border-left-color: var(--danger);
+  background: var(--danger-soft);
 }
 
 /* ===== 10. Тесты, тренажёр, задания ====================================== */
@@ -1912,23 +2801,211 @@ select {
   font-variant-numeric: tabular-nums;
 }
 
-/* Тренажёр.
-   Простая колонка, а не две: в разметке схема таблиц, поле запроса, кнопки и
-   вывод идут друг за другом одним потоком, и сеткой из двух колонок они
-   разъезжаются — схема оказывается слева, а редактор справа от неё. */
-.trainer {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
+/* Тренажёр — рабочий экран, а не страница с формой (бриф §3.4).
+   Слева база: набор данных, его таблицы и действия над ней. Справа запрос,
+   кнопки и результат. На экранах уже 1024 px стороны становятся вкладками. */
+.trainer-shell {
+  width: 100%;
+  max-width: 1360px;
+  margin: 0 auto;
+  padding: 24px 24px 48px;
 }
-.trainer-schema {
-  padding: 16px 18px;
+.trainer-head {
+  margin-bottom: 20px;
+}
+.trainer-title {
+  margin: 0 0 8px;
+}
+.trainer-lead {
+  max-width: 68ch;
+  margin: 0;
+  color: var(--muted);
+}
+.trainer {
+  display: grid;
+  grid-template-columns: 300px minmax(0, 1fr);
+  align-items: start;
+  gap: 24px;
+}
+/* Шкала загрузки — на всю ширину: иначе она занимала первую ячейку сетки, и на время
+   загрузки панели разъезжались по чужим местам. */
+.trainer-boot {
+  grid-column: 1 / -1;
+}
+.trainer-pane {
+  min-width: 0;
+}
+
+/* Вывод — на всю ширину под базой и запросом. Диаграмма и пошаговый показ занимают
+   место, и в правой колонке им его не хватало бы. */
+.trainer-stage {
+  grid-column: 1 / -1;
+  min-width: 0;
+}
+.stage-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+.trainer-tabs.stage-tabs {
+  flex: 0 1 560px;
+  min-width: 0;
+  margin-bottom: 0;
+}
+.stage-panel {
+  min-width: 0;
+}
+.trainer-stage.is-full {
+  overflow: auto;
+  padding: 20px;
+  background: var(--bg);
+}
+/* На телефоне разворачивать некуда: вывод и так занимает весь экран. */
+@media (max-width: 640px) {
+  #stage-full {
+    display: none;
+  }
+}
+
+/* Страница задания: одна колонка, без сетки тренажёра. */
+.assignment-work {
+  margin-top: 24px;
+}
+/* Таблицы задания: что есть в базе, прежде чем писать запрос. */
+.task-data {
+  margin-top: 24px;
+}
+.task-data .section-h {
+  margin: 0 0 12px;
+}
+.task-diagram {
+  margin-bottom: 14px;
+  padding: 10px;
   border: 1px solid var(--border);
   border-radius: var(--radius);
+  background: var(--surface-2);
+}
+.task-tables {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  align-items: start;
+  gap: 16px;
+}
+.task-table {
+  min-width: 0;
+}
+.task-table-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 6px;
+}
+.task-table-name {
+  color: var(--text-strong);
+  font-family: var(--font-mono);
+  font-size: 15px;
+  font-weight: 600;
+}
+.task-table-count {
+  color: var(--muted);
+  font-size: 13px;
+}
+.task-type {
+  display: block;
+  color: var(--muted-soft);
+  font-size: 11.5px;
+  font-weight: 400;
+}
+.assignment-verdict {
+  margin-top: 14px;
+}
+.assignment-verdict:empty {
+  display: none;
+}
+
+/* Сдача работы преподавателю. */
+.work-state {
+  margin-top: 16px;
+}
+.work-form {
+  margin-top: 20px;
+}
+.work-answer {
+  min-height: 180px;
+  font-size: 14px;
+  line-height: 1.55;
+  resize: vertical;
+}
+.work-form input[type="file"] {
+  display: block;
+  max-width: 100%;
+  color: var(--muted);
+  font-family: inherit;
+  font-size: 14px;
+}
+.work-form input[type="file"]::file-selector-button {
+  margin-right: 12px;
+  padding: 8px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 14px;
+  cursor: pointer;
+}
+.trainer-db {
+  display: grid;
+  gap: 14px;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+.trainer-db-top {
+  display: grid;
+  gap: 4px;
+}
+.trainer-db-top .toolbar-select {
+  width: 100%;
+}
+.trainer-db-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+/* Разрушительное действие отделено чертой и стоит последним: рядом с «Выполнить»
+   оно выглядело таким же рабочим, как остальные. */
+.trainer-danger {
+  padding-top: 14px;
+  border-top: 1px solid var(--hairline);
+}
+.trainer-reset {
+  color: var(--danger);
+  border-color: var(--danger-soft);
+}
+.trainer-reset:hover:not(:disabled) {
+  background: var(--danger-soft);
+  border-color: var(--danger);
+  color: var(--danger);
+}
+.trainer-danger .help {
+  margin: 8px 0 0;
+}
+
+.trainer-schema {
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
   background: var(--surface-2);
   font-family: var(--font-mono);
   font-size: 13px;
   line-height: 1.8;
+  overflow-x: auto;
 }
 .schema-title {
   display: block;
@@ -1938,26 +3015,226 @@ select {
   font-size: 13px;
   font-weight: 600;
 }
-.trainer-input {
-  min-height: 130px;
-  font-family: var(--font-mono);
-  font-size: 14px;
-  line-height: 1.6;
-  resize: vertical;
+
+/* Поле запроса: номера строк, подложка с подсветкой и само поле лежат друг на
+   друге. Совпадение держится на одинаковых шрифте, кегле, интерлиньяже и
+   отступах — любое расхождение здесь сдвигает подсветку относительно текста,
+   поэтому значения вынесены в переменные и не задаются по месту. */
+.editor {
+  --editor-font-size: 15px;
+  --editor-line: 1.6;
+  --editor-pad: 14px;
+  --editor-gutter: 44px;
+
+  position: relative;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  overflow: hidden;
 }
+.editor:focus-within {
+  border-color: var(--accent);
+  outline: 2px solid var(--accent);
+  outline-offset: -1px;
+}
+.editor-gutter,
+.editor-layer,
+.trainer-input {
+  margin: 0;
+  padding: var(--editor-pad) 0;
+  font-family: var(--font-mono);
+  font-size: var(--editor-font-size);
+  line-height: var(--editor-line);
+  white-space: pre;
+  tab-size: 2;
+}
+.editor-gutter {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: var(--editor-gutter);
+  height: 100%;
+  overflow: hidden;
+  border-right: 1px solid var(--hairline);
+  background: var(--surface-2);
+  color: var(--muted-soft);
+  text-align: right;
+  padding-right: 10px;
+  user-select: none;
+}
+/* Подложка и поле начинаются правее колонки с номерами, а не лежат под ней. Иначе при
+   прокрутке длинной строки вбок вместе с текстом уезжал и отступ, и запрос наезжал на
+   номера строк. */
+.editor-layer {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: var(--editor-gutter);
+  padding-left: 12px;
+  overflow: hidden;
+  color: var(--text);
+  pointer-events: none;
+}
+.trainer-input {
+  position: relative;
+  display: block;
+  width: calc(100% - var(--editor-gutter));
+  min-height: 200px;
+  margin-left: var(--editor-gutter);
+  padding-left: 12px;
+  padding-right: 14px;
+  border: 0;
+  background: none;
+  /* Текст прозрачный: видно подложку с подсветкой, а курсор и выделение —
+     настоящие, от поля. */
+  color: transparent;
+  caret-color: var(--text);
+  resize: vertical;
+  overflow: auto;
+}
+.trainer-input::selection {
+  background: var(--accent-line);
+  color: transparent;
+}
+.trainer-input:focus {
+  outline: none;
+}
+.trainer-input::placeholder {
+  color: var(--muted-soft);
+}
+
+/* Разбор запроса. Цвета — из палитры: своих «цветов синтаксиса» платформа не
+   заводит, иначе редактор выпадет из темы вместе с остальным экраном. */
+.tok-key {
+  color: var(--accent);
+  font-weight: 500;
+}
+.tok-string {
+  color: var(--success);
+}
+.tok-number {
+  color: var(--warning);
+}
+.tok-comment {
+  color: var(--muted-soft);
+  font-style: italic;
+}
+
+/* Строка быстрых символов (бриф §5). На широком экране не нужна: там есть
+   настоящая клавиатура. */
+.symbol-row {
+  display: none;
+  gap: 6px;
+  margin-top: 10px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+  scrollbar-width: thin;
+}
+.symbol-key {
+  flex: none;
+  min-width: 44px;
+  height: 44px;
+  padding: 0 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: 15px;
+  cursor: pointer;
+}
+.symbol-key:active {
+  background: var(--surface-2);
+}
+
 .trainer-actions {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 14px;
+  gap: 10px;
   margin-top: 14px;
 }
 .trainer-status {
+  margin: 12px 0 0;
   color: var(--muted);
   font-size: 13px;
 }
+
+/* Вкладки «База» и «Запрос» — только для узких экранов, показывает их скрипт. */
+.trainer-tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 14px;
+  padding: 4px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+}
+.trainer-tab {
+  flex: 1 1 0;
+  min-height: 40px;
+  border: 0;
+  border-radius: 4px;
+  background: none;
+  color: var(--muted);
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.trainer-tab.is-active {
+  background: var(--surface);
+  color: var(--text-strong);
+}
+
+/* 1023px — тот же порог, что в trainer.js. */
+@media (max-width: 1023px) {
+  .trainer-shell {
+    padding: 20px 20px 40px;
+  }
+  .trainer {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0;
+  }
+  .trainer-tabs {
+    grid-column: 1 / -1;
+  }
+  .trainer-stage {
+    margin-top: 20px;
+  }
+}
+
+@media (max-width: 640px) {
+  .trainer-shell {
+    padding: 16px 16px 32px;
+  }
+  .editor {
+    /* 16 px — иначе iPhone приближает страницу при касании поля (бриф §4). */
+    --editor-font-size: 16px;
+    --editor-pad: 12px;
+    --editor-gutter: 36px;
+  }
+  .symbol-row {
+    display: flex;
+  }
+  .trainer-input {
+    min-height: 150px;
+  }
+  /* «Выполнить» на всю ширину и первым: на телефоне это единственное действие,
+     которым пользуются каждый раз. */
+  .trainer-actions {
+    gap: 8px;
+  }
+  .trainer-actions .btn-primary {
+    flex: 1 1 100%;
+  }
+  .trainer-actions .btn-ghost {
+    flex: 1 1 calc(50% - 4px);
+  }
+}
+
 .trainer-output {
-  margin-top: 18px;
   padding: 16px;
   overflow-x: auto;
   border: 1px solid var(--border);
@@ -1965,6 +3242,19 @@ select {
   background: var(--surface-2);
   font-family: var(--font-mono);
   font-size: 13.5px;
+}
+/* Пустая полоса без подписи выглядела как сломанный блок. */
+#stage-result .trainer-output:empty::before {
+  content: "Результат появится здесь после запуска запроса.";
+  color: var(--muted);
+  font-family: var(--font-sans);
+  font-size: 14px;
+}
+.assignment-work .trainer-output {
+  margin-top: 18px;
+}
+.assignment-work .trainer-output:empty {
+  display: none;
 }
 .trainer-output table {
   border-collapse: collapse;
@@ -2289,34 +3579,57 @@ select {
   transition: width 0.2s linear;
 }
 
-.trainer-bar {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 10px;
-}
 
 /* ER-диаграмма. Цвета — токенами, чтобы следовать теме: картинкой пришлось бы
    держать два файла, а SVG в разметке подчиняется тем же переменным. */
-.trainer-schema.is-diagram {
-  font-family: var(--font-sans);
-}
 .er-scroll {
-  overflow-x: auto;
+  overflow: auto;
   padding-bottom: 4px;
 }
 .er {
-  max-width: 100%;
-  height: auto;
-  /* Перетаскивание пальцем: без этого браузер считает жест прокруткой и
-     забирает событие себе на первом же движении. */
-  touch-action: none;
+  display: block;
+  margin: 0 auto;
   user-select: none;
+}
+.diagram-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.diagram-scale {
+  min-width: 48px;
+  color: var(--muted);
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+.diagram-canvas {
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface-2);
+}
+.diagram-info {
+  min-height: 24px;
+  margin: 12px 0 0;
+  color: var(--muted);
+  font-size: 14px;
+}
+.diagram-info b {
+  color: var(--text-strong);
+  font-family: var(--font-mono);
 }
 
 /* Таблицу можно двигать — курсор об этом и говорит. */
 .er-table {
   cursor: grab;
+  /* Перетаскивание пальцем: без этого браузер считает жест прокруткой и забирает
+     событие себе на первом же движении. Только на самих таблицах: иначе на телефоне
+     страницу нельзя было бы пролистать, когда палец попал на диаграмму. */
+  touch-action: none;
 }
 .er-table.is-dragging {
   cursor: grabbing;
@@ -2343,25 +3656,285 @@ select {
 }
 .er-title {
   fill: var(--text-strong);
-  font-family: var(--font-sans);
-  font-size: 12px;
+  font-family: var(--font-mono);
+  font-size: 14px;
   font-weight: 600;
 }
 .er-col {
   fill: var(--text);
   font-family: var(--font-mono);
-  font-size: 11px;
+  font-size: 13px;
 }
 .er-key {
   fill: var(--text-strong);
   font-weight: 600;
 }
+.er-type {
+  fill: var(--muted-soft);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  text-anchor: end;
+}
 .er-mark {
   fill: var(--muted-soft);
   font-family: var(--font-sans);
-  font-size: 9px;
+  font-size: 10px;
   font-weight: 700;
   text-anchor: end;
+}
+
+/* Выделение части схемы: шаг выполнения запроса или выбранная таблица. Остальное
+   приглушается, но остаётся на месте — по неподвижной картинке видно, какая её часть
+   сейчас работает. */
+.er.is-tracing .er-table:not(.is-used) {
+  opacity: 0.35;
+}
+.er.is-tracing .er-edge:not(.is-active) {
+  opacity: 0.25;
+}
+.er-table.is-used .er-box {
+  stroke: var(--accent-line);
+}
+.er-table.is-active .er-box {
+  stroke: var(--accent);
+  stroke-width: 2;
+}
+.er-table.is-active .er-head {
+  fill: var(--accent);
+  stroke: var(--accent);
+}
+.er-table.is-active .er-title {
+  fill: var(--on-accent);
+}
+.er-col.is-used {
+  fill: var(--accent);
+  font-weight: 700;
+}
+.er-edge.is-active .er-link {
+  stroke-width: 2.6;
+  stroke-dasharray: 7 5;
+  animation: er-flow 0.9s linear infinite;
+}
+/* Линии, которой нет в схеме: соединение идёт мимо внешнего ключа. */
+.er-virtual .er-link {
+  stroke: var(--warning);
+}
+.er-virtual .er-dot {
+  fill: var(--warning);
+}
+.er-virtual .er-dot-one {
+  fill: var(--bg);
+  stroke: var(--warning);
+}
+@keyframes er-flow {
+  to {
+    stroke-dashoffset: -24;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .er-edge.is-active .er-link {
+    animation: none;
+  }
+}
+
+/* Как выполняется запрос: текст запроса, шаги, диаграмма и строки. */
+.trace {
+  min-width: 0;
+}
+.trace-sql {
+  margin: 0;
+  padding: 14px 16px;
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface-2);
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+}
+.trace-mark {
+  padding: 1px 2px;
+  border-radius: 3px;
+  background: var(--accent-line);
+  color: var(--text-strong);
+}
+.trace-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+}
+.trace-counter {
+  margin-left: 8px;
+  color: var(--muted);
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+}
+.trace-steps {
+  display: flex;
+  gap: 8px;
+  margin: 12px 0 16px;
+  padding: 0 0 6px;
+  overflow-x: auto;
+  list-style: none;
+  scrollbar-width: thin;
+}
+.trace-steps li {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 8px;
+}
+/* Стрелка между шагами: данные текут слева направо. */
+.trace-steps li + li::before {
+  color: var(--muted-soft);
+  content: "→";
+}
+.trace-chip {
+  display: grid;
+  gap: 3px;
+  min-width: 112px;
+  min-height: 44px;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--text);
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.trace-chip:hover {
+  border-color: var(--accent-line);
+}
+.trace-chip.is-done {
+  background: var(--surface-2);
+}
+.trace-chip.is-active {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+.trace-chip-name {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.trace-chip-rows {
+  color: var(--muted);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.trace-chip-bar {
+  display: block;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--surface-3);
+  overflow: hidden;
+}
+.trace-chip-bar i {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+}
+.trace-body {
+  display: grid;
+  grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+  align-items: start;
+  gap: 20px;
+}
+/* Диаграмма остаётся на виду, пока рядом листают длинную таблицу строк. */
+.trace-map {
+  position: sticky;
+  top: calc(var(--header-h) + 12px);
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface-2);
+}
+.trace-detail {
+  min-width: 0;
+}
+.trace-title {
+  margin: 0 0 6px;
+  font-size: 18px;
+  line-height: 1.3;
+}
+.trace-text {
+  margin: 0;
+  color: var(--text);
+  font-size: 15px;
+  line-height: 1.55;
+}
+.trace-flow {
+  margin: 12px 0;
+  color: var(--muted);
+  font-size: 14px;
+}
+.trace-flow b {
+  color: var(--text-strong);
+  font-family: var(--font-mono);
+  font-size: 20px;
+  font-variant-numeric: tabular-nums;
+}
+.trace-plus {
+  margin: 0 2px;
+}
+.trace-arrow {
+  margin: 0 10px;
+  color: var(--accent);
+  font-size: 18px;
+}
+.trace-note {
+  margin: 0 0 12px;
+  padding: 10px 13px;
+  border-left: 3px solid var(--warning);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  background: var(--warning-soft);
+  color: var(--text);
+  font-size: 14px;
+  line-height: 1.5;
+}
+.trace-table th.is-used {
+  color: var(--accent);
+}
+.trace-table td {
+  max-width: 240px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.trace-state {
+  width: 28px;
+  text-align: center;
+}
+/* Состояние передаётся не только цветом: значком и зачёркиванием тоже. */
+.trace-table .is-kept td {
+  background: var(--success-soft);
+}
+.trace-table .is-kept .trace-state {
+  color: var(--success);
+  font-weight: 700;
+}
+.trace-table .is-dropped td {
+  color: var(--muted-soft);
+  text-decoration: line-through;
+}
+.trace-table .is-dropped .trace-state {
+  color: var(--danger);
+  font-weight: 700;
+  text-decoration: none;
+}
+@media (max-width: 1023px) {
+  .trace-body {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .trace-map {
+    position: static;
+  }
 }
 .er-link {
   fill: none;
@@ -2510,7 +4083,7 @@ select {
 
 .ach-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
   gap: 14px;
   margin-top: 14px;
 }
@@ -2523,8 +4096,8 @@ select {
   border-radius: var(--radius);
   background: var(--surface);
 }
-.ach-tile:not(.earned) {
-  opacity: 0.55;
+.ach-tile.earned {
+  border-color: var(--accent-line);
 }
 .ach-icon {
   display: flex;
@@ -2543,27 +4116,46 @@ select {
   color: var(--accent);
 }
 /* Текстовая колонка плитки должна уметь сжиматься: без `min-width: 0` элемент
-   флекса не становится уже своего содержимого и раздвигает сетку. */
-.ach-tile > div {
+   флекса не становится уже своего содержимого и раздвигает сетку. Переносится
+   только по словам (`break-word`, а не `anywhere`): иначе при нехватке места браузер
+   предпочитает ломать слова посимвольно. */
+.ach-body {
+  flex: 1 1 auto;
   min-width: 0;
 }
 .ach-title {
+  color: var(--text-strong);
   font-size: 15px;
   font-weight: 600;
-  overflow-wrap: anywhere;
+  line-height: 1.3;
+  overflow-wrap: break-word;
+}
+.ach-tile:not(.earned) .ach-title {
+  color: var(--muted);
 }
 .ach-desc {
-  margin-top: 2px;
-  overflow-wrap: anywhere;
+  margin-top: 4px;
+  overflow-wrap: break-word;
   color: var(--muted);
   font-size: 13px;
   line-height: 1.5;
 }
+.ach-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px 12px;
+  margin-top: 10px;
+}
 .ach-xp,
 .ach-date {
-  margin-top: 4px;
   color: var(--muted-soft);
   font-size: 12px;
+}
+.ach-tile.earned .ach-xp {
+  color: var(--accent);
+  font-weight: 600;
 }
 .ach-count {
   color: var(--muted);
@@ -3362,7 +4954,6 @@ select {
     grid-template-columns: 1fr;
   }
   .course-actions .btn,
-  .trainer-actions .btn,
   .defend-form .btn,
   .sub-form .btn,
   .hero-actions .btn {
@@ -3388,7 +4979,8 @@ select {
    принтере нечитаема и расходует тонер. */
 @media print {
   :root,
-  [data-theme="dark"] {
+  [data-theme="dark"],
+  [data-theme="warm"] {
     --bg: #fff;
     --bg-soft: #fff;
     --surface: #fff;

@@ -42,6 +42,21 @@ class CourseQuerySet(models.QuerySet):
             return self
         return self.filter(Q(author=user) | Q(coauthors=user)).distinct()
 
+    def visible_to(self, user):
+        """Курсы, которые пользователь вправе открыть: опубликованные и свои черновики.
+
+        Черновик автору нужен, чтобы посмотреть урок глазами студента до публикации;
+        всем остальным его содержимое показывать нельзя. Правило живёт в выборке, а не
+        в представлениях: урок, тест и задание открываются по прямому адресу, и забыть
+        проверку на одном из них значило бы открыть черновик гостю.
+        """
+        published = Q(is_published=True)
+        if not user.is_authenticated:
+            return self.filter(published)
+        if user.is_superuser:
+            return self
+        return self.filter(published | Q(author=user) | Q(coauthors=user)).distinct()
+
 
 class Course(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -71,6 +86,21 @@ class Course(models.Model):
     is_published = models.BooleanField(verbose_name="опубликован", default=False)
     created_at = models.DateTimeField(verbose_name="создан", default=timezone.now)
     level = models.CharField(verbose_name="уровень", max_length=50, choices=LEVEL_CHOICES)
+    # Два списка для витрины курса (бриф §3.1). Хранятся строками, по пункту на
+    # строку: отдельная таблица на три-четыре фразы, которые правят раз в семестр,
+    # — лишняя сущность, а markdown здесь не нужен, список и так список.
+    goals = models.TextField(
+        verbose_name="цели курса",
+        blank=True,
+        null=True,
+        help_text="По одной цели на строку. Показывается на главной.",
+    )
+    learning_outcomes = models.TextField(
+        verbose_name="чему научится студент",
+        blank=True,
+        null=True,
+        help_text="По одному умению на строку. Показывается на главной.",
+    )
     cover_url = models.TextField(verbose_name="обложка", blank=True, null=True)
 
     objects = CourseQuerySet.as_manager()
@@ -134,18 +164,35 @@ class Module(models.Model):
         return self.title
 
 
+class LessonQuerySet(models.QuerySet):
+    def visible_to(self, user):
+        """Уроки курсов, которые пользователь вправе открыть (см. `visible_to` у курса)."""
+        return self.filter(module__course__in=Course.objects.visible_to(user))
+
+
 class Lesson(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     module = models.ForeignKey(
         Module, on_delete=models.CASCADE, related_name="lessons", verbose_name="модуль"
     )
     title = models.CharField(verbose_name="название", max_length=200)
-    theory_content = models.TextField(verbose_name="теория", blank=True, null=True)
+    theory_content = models.TextField(
+        verbose_name="теория",
+        blank=True,
+        null=True,
+        help_text=(
+            "Markdown. Заголовки ## и ### попадают в «Содержание урока» на странице. "
+            'Врезка: строка «!!! note "Обратите внимание"», следующий абзац — '
+            "с отступом в четыре пробела. Вместо note бывает warning и danger."
+        ),
+    )
     order_index = models.IntegerField(
         verbose_name="порядок",
     )
     est_minutes = models.IntegerField(verbose_name="время, мин", blank=True, null=True)
     xp_reward = models.IntegerField(verbose_name="награда XP", default=0)
+
+    objects = LessonQuerySet.as_manager()
 
     class Meta:
         verbose_name = "урок"

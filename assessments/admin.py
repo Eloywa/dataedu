@@ -9,22 +9,10 @@ from django.utils.html import format_html, format_html_join
 from django.views.decorators.http import require_POST
 
 from core.admin_utils import OwnedAdmin
+from core.plural import plural_ru
 
 from .expected import ExpectedError, compute_and_save
 from .models import AnswerOption, Assignment, Question, Test
-
-
-def plural_ru(n, one, few, many):
-    """Согласование существительного с числом: 1 строка, 2 строки, 5 строк.
-
-    Штатный `pluralize` Django даёт две формы и для русского не годится.
-    """
-    n = abs(int(n))
-    if n % 10 == 1 and n % 100 != 11:
-        return one
-    if 2 <= n % 10 <= 4 and not 12 <= n % 100 <= 14:
-        return few
-    return many
 
 
 def rows_cols_summary(n_rows, n_cols):

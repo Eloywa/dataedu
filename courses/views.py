@@ -16,6 +16,7 @@ from messaging import services as chat
 
 from .models import Course, CourseRating, Lesson, Topic
 from .resources import get_course_resources
+from .theory import render_theory
 
 
 def _progress(user, course):
@@ -112,7 +113,7 @@ def catalog(request):
 
 def course_detail(request, slug):
     course = get_object_or_404(
-        Course.objects.filter(is_published=True).select_related("author"), slug=slug
+        Course.objects.visible_to(request.user).select_related("author"), slug=slug
     )
     modules = list(course.modules.prefetch_related("lessons").all())
 
@@ -278,7 +279,9 @@ def submit_review(request, slug):
 
 
 def lesson_detail(request, lesson_id):
-    lesson = get_object_or_404(Lesson.objects.select_related("module__course"), id=lesson_id)
+    lesson = get_object_or_404(
+        Lesson.objects.visible_to(request.user).select_related("module__course"), id=lesson_id
+    )
     course = lesson.module.course
 
     gating = services.course_gating(
@@ -311,14 +314,49 @@ def lesson_detail(request, lesson_id):
             user=request.user, lesson=lesson, status="completed"
         ).exists()
 
+    # Дерево курса для боковой колонки: модули с уроками, отметками о прохождении
+    # и состоянием доступа. Данные те же, что на странице курса, — иначе в двух
+    # местах платформы один курс выглядел бы по-разному.
+    tree = []
+    completed_ids = set()
+    if request.user.is_authenticated:
+        completed_ids = set(
+            LessonProgress.objects.filter(
+                user=request.user, lesson__module__course=course, status="completed"
+            ).values_list("lesson_id", flat=True)
+        )
+    for module in course.modules.prefetch_related("lessons").all():
+        gate_info = gating.get(module.id, {"unlocked": True})
+        tree.append(
+            {
+                "module": module,
+                "unlocked": gate_info.get("unlocked", True),
+                "lessons": [
+                    {
+                        "lesson": item,
+                        "done": item.id in completed_ids,
+                        "current": item.id == lesson.id,
+                    }
+                    for item in module.lessons.all()
+                ],
+            }
+        )
+
+    theory_html, toc = render_theory(lesson.theory_content)
+
     test = lesson.tests.first()
     best_attempt = None
     if test and request.user.is_authenticated:
         best_attempt = test.attempts.filter(user=request.user).order_by("-score").first()
 
+    # Читать урок можно без записи — так курс и выбирают. А вот тест, отметка и
+    # рефлексия пишутся в прогресс, поэтому кнопки показываются только участникам:
+    # незаписанному вместо них предлагается записаться.
+    can_study = services.may_track_progress(request.user, course)
+
     # Рефлексия: своя, если уже заполнена — форма показывается с прежними ответами.
     reflection = None
-    if request.user.is_authenticated and not request.user.is_teacher:
+    if can_study and not request.user.is_teacher:
         reflection = Reflection.objects.filter(user=request.user, lesson=lesson).first()
 
     return render(
@@ -327,6 +365,10 @@ def lesson_detail(request, lesson_id):
         {
             "lesson": lesson,
             "course": course,
+            "can_study": can_study,
+            "tree": tree,
+            "theory_html": theory_html,
+            "toc": toc,
             "prev_lesson": prev_lesson,
             "next_lesson": next_lesson,
             "done": done,
@@ -343,8 +385,10 @@ def lesson_detail(request, lesson_id):
 
 @login_required
 def complete_lesson(request, lesson_id):
-    lesson = get_object_or_404(Lesson, id=lesson_id)
-    if request.method == "POST":
+    lesson = get_object_or_404(
+        Lesson.objects.visible_to(request.user).select_related("module__course"), id=lesson_id
+    )
+    if request.method == "POST" and services.may_study(request.user, lesson):
         # Статус, XP урока, событие и «Первый шаг» — одной операцией (идемпотентно).
         services.complete_lesson(request.user, lesson)
     return redirect("courses:lesson_detail", lesson_id=lesson_id)
@@ -367,8 +411,10 @@ def submit_reflection(request, lesson_id):
     Преподаватель рефлексию не заполняет: это инструмент обратной связи от студента,
     и его оценки исказили бы данные исследования.
     """
-    lesson = get_object_or_404(Lesson, id=lesson_id)
-    if request.user.is_teacher:
+    lesson = get_object_or_404(
+        Lesson.objects.visible_to(request.user).select_related("module__course"), id=lesson_id
+    )
+    if request.user.is_teacher or not services.may_study(request.user, lesson):
         return redirect("courses:lesson_detail", lesson_id=lesson_id)
 
     clarity = _clamp_rating(request.POST.get("clarity"))

@@ -250,16 +250,19 @@ def defend_project(request, user_id):
     if assignment is None:
         return redirect(f"{target}?error=Итоговое задание не найдено")
 
-    Submission.objects.update_or_create(
-        assignment=assignment,
-        user=person,
-        defaults={
-            "score": assignment.max_score,
-            "status": "graded",
-            "graded_by": request.user,
-            "graded_at": timezone.now(),
-        },
-    )
+    # Не `update_or_create`: сдач по заданию у студента может быть несколько (уникального
+    # ограничения на эту пару нет), и он падал бы с MultipleObjectsReturned. Зачёт ложится
+    # на последнюю редакцию работы.
+    submission = (
+        Submission.objects.filter(assignment=assignment, user=person)
+        .order_by("-submitted_at")
+        .first()
+    ) or Submission(assignment=assignment, user=person)
+    submission.score = assignment.max_score
+    submission.status = "graded"
+    submission.graded_by = request.user
+    submission.graded_at = timezone.now()
+    submission.save()
     gamification.award_achievement(person, "project_defender")
     return redirect(target)
 

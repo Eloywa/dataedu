@@ -4,13 +4,24 @@
 // Библиотека вшита в static/vendor/pglite — см. комментарий в trainer.js.
 import { PGlite } from "../vendor/pglite/index.js";
 import { rowsLabel } from "./plural.js";
+import { setupEditor } from "./sql/editor.js";
 import { classify } from "./sql/errors.js";
+import { bindDiagram, fitDiagram, readSchema, renderDiagram } from "./sql/schema.js";
+
+// Сколько строк показать в таблице задания: достаточно, чтобы понять, что в ней лежит,
+// и не вытеснить редактор за край экрана.
+const PREVIEW_ROWS = 6;
 
 const $ = (id) => document.getElementById(id);
 const root = $("assignment");
 const checkUrl = root.dataset.checkUrl;
 const csrf = root.dataset.csrf;
 const setup = JSON.parse(($("setup-sql") && $("setup-sql").textContent) || '""');
+
+// Без этого вызова поле нечитаемо: текст `.trainer-input` прозрачный, его показывает
+// слой подсветки, который создаёт редактор. Именно так задание и сломалось, когда
+// поле перевели на общий стиль с тренажёром, а обвязку не подключили.
+const editor = setupEditor($("sql"), { symbolsHost: $("symbols") });
 
 function esc(v) {
   return String(v).replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" })[c]);
@@ -29,6 +40,59 @@ async function freshDb() {
   const d = await PGlite.create();
   if (setup) await d.exec(setup);
   return d;
+}
+
+function quoteIdent(name) {
+  return '"' + String(name).replace(/"/g, '""') + '"';
+}
+
+/** Одна таблица задания: столбцы с типами и первые строки. */
+async function tableCard(db, table) {
+  const name = quoteIdent(table.name);
+  const [rows, count] = await Promise.all([
+    db.query(`SELECT * FROM ${name} LIMIT ${PREVIEW_ROWS}`),
+    db.query(`SELECT count(*)::int AS n FROM ${name}`),
+  ]);
+  const total = count.rows[0].n;
+  const columns = table.columns.map((c) => c.name);
+
+  let html = '<div class="task-table">';
+  html += `<div class="task-table-head"><b class="task-table-name">${esc(table.name)}</b>`;
+  html += `<span class="task-table-count">${rowsLabel(total)}</span></div>`;
+  html += '<div class="trainer-table-wrap"><table class="trainer-table">';
+  html += `<caption class="visually-hidden">Таблица ${esc(table.name)}</caption><thead><tr>`;
+  html += table.columns
+    .map((c) => `<th>${esc(c.name)}<span class="task-type">${esc(c.type)}</span></th>`)
+    .join("");
+  html += "</tr></thead><tbody>";
+  for (const row of rows.rows) {
+    html += "<tr>" + columns.map((c) => `<td>${esc(fmt(row[c]))}</td>`).join("") + "</tr>";
+  }
+  html += "</tbody></table></div>";
+  if (total > rows.rows.length) {
+    html += `<p class="trainer-note">Показаны первые ${rows.rows.length} — в запросе участвуют все.</p>`;
+  }
+  return html + "</div>";
+}
+
+/** Схема и содержимое заготовки задания: то, с чем студенту предстоит работать. */
+async function showTables(db) {
+  const host = $("task-tables");
+  if (!host) return;
+  const schema = await readSchema(db);
+  const cards = await Promise.all(schema.tables.map((table) => tableCard(db, table)));
+
+  // Диаграмма нужна там, где есть что соединять: у одной таблицы рисовать нечего.
+  const diagram = schema.links.length
+    ? `<div class="task-diagram">${renderDiagram(schema, {}, { note: false })}</div>`
+    : "";
+  host.innerHTML = `${diagram}<div class="task-tables">${cards.join("")}</div>`;
+
+  const box = host.querySelector(".task-diagram");
+  if (box) {
+    bindDiagram(box);
+    fitDiagram(box, { maxHeight: 260, maxScale: 1 });
+  }
 }
 
 function renderTable(res) {
@@ -125,10 +189,15 @@ async function check() {
 
 async function init() {
   try {
-    await freshDb(); // прогрев PGlite
+    const db = await freshDb(); // прогрев PGlite: заодно есть откуда взять таблицы задания
     setStatus("Готово — напишите запрос и нажмите «Проверить»", "ok");
     $("check").disabled = false;
     $("resetdb").disabled = false;
+    await showTables(db).catch(() => {
+      // Решить задачу можно и без показа таблиц: это не повод блокировать проверку.
+      const host = $("task-tables");
+      if (host) host.textContent = "Не удалось показать таблицы.";
+    });
   } catch (e) {
     setStatus("Не удалось загрузить PGlite: " + (e && e.message ? e.message : e), "err");
   }
@@ -137,6 +206,7 @@ async function init() {
 $("check").addEventListener("click", check);
 $("resetdb").addEventListener("click", () => {
   $("sql").value = "";
+  editor.refresh(); // присваивание не порождает `input`, и подложка осталась бы старой
   $("output").innerHTML = "";
   $("verdict").innerHTML = "";
 });

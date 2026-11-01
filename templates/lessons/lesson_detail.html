@@ -1,137 +1,223 @@
 {% extends "base.html" %}
-{% load course_extras %}
+{% load static %}
 {% block title %}{{ lesson.title }} — DataEdu{% endblock %}
 
 {% block content %}
-<main class="container page">
-  <a href="{% url 'courses:course_detail' course.slug %}" class="back-link">← {{ course.title }}</a>
+<main class="lesson-shell">
+  {% comment %}
+  Три колонки по §3.3 брифа: дерево курса, текст, оглавление урока. На экранах
+  уже 1024 px дерево уезжает в выдвижную панель, а оглавление сворачивается в
+  блок над текстом — разметка при этом одна и та же, меняются только стили.
+  {% endcomment %}
 
-  <div class="lesson-layout">
-    <article class="lesson-main">
-      <div class="lesson-eyebrow">{{ lesson.module.title }}</div>
-      <h1 class="page-title accent-ink">{{ lesson.title }}</h1>
-      {% if lesson.est_minutes %}<div class="lesson-time-top">Примерное время: {{ lesson.est_minutes }} мин</div>{% endif %}
+  <button type="button" class="lesson-drawer-toggle" id="course-tree-toggle"
+          aria-expanded="false" aria-controls="course-tree" hidden>
+    <span class="lesson-drawer-toggle-icon" aria-hidden="true"></span>
+    Программа курса
+  </button>
 
-      <div class="prose">{{ lesson.theory_content|md_to_html }}</div>
+  <nav class="lesson-tree" id="course-tree" aria-label="Уроки курса">
+    <div class="lesson-tree-head">
+      <a href="{% url 'courses:course_detail' course.slug %}" class="lesson-tree-course">{{ course.title }}</a>
+      <button type="button" class="lesson-tree-close" id="course-tree-close" hidden>
+        <span class="visually-hidden">Закрыть программу курса</span>
+        <span aria-hidden="true">×</span>
+      </button>
+    </div>
 
-      {% if test %}
-        <div class="lesson-test-block">
-          <div class="small-label">тест</div>
-          <h2 class="section-h" style="margin-top: 4px">{{ test.title }}</h2>
-          {% if best_attempt %}
-            <p class="page-sub" style="margin-bottom: 14px">
-              Лучший результат: <strong>{{ best_attempt.score }}%</strong>
-              {% if best_attempt.is_passed %}<span class="badge badge-success">пройден</span>
-              {% else %}<span class="badge badge-danger">не пройден</span>{% endif %}
+    <ol class="lesson-tree-modules">
+      {% for item in tree %}
+        <li class="lesson-tree-module{% if not item.unlocked %} is-locked{% endif %}">
+          <p class="lesson-tree-module-title">
+            {{ item.module.title }}
+            {% if not item.unlocked %}<span class="status status-locked">Закрыт</span>{% endif %}
+          </p>
+          <ul class="lesson-tree-lessons">
+            {% for row in item.lessons %}
+              <li>
+                {% if item.unlocked %}
+                  <a href="{% url 'courses:lesson_detail' row.lesson.id %}"
+                     class="lesson-tree-link{% if row.current %} is-current{% endif %}"
+                     {% if row.current %}aria-current="page"{% endif %}>
+                    {{ row.lesson.title }}
+                    {% if row.done %}<span class="visually-hidden">— пройден</span>
+                      <span class="lesson-tree-done" aria-hidden="true"></span>{% endif %}
+                  </a>
+                {% else %}
+                  <span class="lesson-tree-link is-locked">{{ row.lesson.title }}</span>
+                {% endif %}
+              </li>
+            {% endfor %}
+          </ul>
+        </li>
+      {% endfor %}
+    </ol>
+  </nav>
+
+  {% comment %}
+  Подложка закрывает панель касанием мимо неё (бриф §4). Это <div>, а не кнопка:
+  закрытие с клавиатуры делают Esc и кнопка «×», а лишняя остановка табуляции на
+  пустом прямоугольнике только мешает.
+  {% endcomment %}
+  <div class="lesson-drawer-backdrop" id="course-tree-backdrop" hidden></div>
+
+  <article class="lesson-main">
+    <p class="lesson-eyebrow">{{ lesson.module.title }}</p>
+    <h1 class="lesson-title">{{ lesson.title }}</h1>
+    {% if lesson.est_minutes %}
+      <p class="lesson-time-top">Примерное время: {{ lesson.est_minutes }} мин</p>
+    {% endif %}
+
+    {% if toc %}
+      <details class="lesson-toc-inline">
+        <summary>Содержание урока</summary>
+        <ol class="lesson-toc-list">
+          {% for head in toc %}
+            <li class="lesson-toc-l{{ head.level }}"><a href="#{{ head.id }}">{{ head.name }}</a></li>
+          {% endfor %}
+        </ol>
+      </details>
+    {% endif %}
+
+    <div class="prose">{{ theory_html }}</div>
+
+    {% if test %}
+      <section class="lesson-test-block" aria-labelledby="lesson-test-title">
+        <p class="small-label">тест</p>
+        <h2 class="section-h" id="lesson-test-title">{{ test.title }}</h2>
+        {% if best_attempt %}
+          <p class="help sg-help">
+            Лучший результат: <strong>{{ best_attempt.score }}%</strong> —
+            {% if best_attempt.is_passed %}
+              <span class="status status-done">пройден</span>
+            {% else %}
+              <span class="status status-error">не пройден</span>
+            {% endif %}
+          </p>
+        {% endif %}
+        {% if can_study %}
+          <a class="btn btn-primary" href="{% url 'assessments:lesson_test' lesson.id %}">{% if best_attempt %}Пройти заново{% else %}Пройти тест{% endif %}</a>
+        {% elif not user.is_authenticated %}
+          <a class="btn btn-primary" href="{% url 'accounts:login' %}?next={{ request.path }}">Войдите, чтобы пройти тест</a>
+        {% endif %}
+      </section>
+    {% endif %}
+
+    {% if user.is_authenticated and not can_study and course.is_published %}
+      {% comment %}
+      Читать урок можно без записи, а вот прогресс ведётся только у участников курса:
+      иначе он не попадёт ни в ведомость, ни в отчёты преподавателя.
+      {% endcomment %}
+      <form method="post" action="{% url 'courses:enroll' course.slug %}" class="lesson-enroll">
+        {% csrf_token %}
+        <p>Запишитесь на курс, чтобы проходить тесты и отмечать уроки пройденными.</p>
+        <button class="btn btn-primary" type="submit">Записаться на курс</button>
+      </form>
+    {% endif %}
+
+    {% if can_study and not user.is_teacher %}
+      <section class="lesson-reflection-block" id="reflection" aria-labelledby="reflection-title">
+        <p class="small-label">рефлексия</p>
+        <h2 class="section-h" id="reflection-title">Как прошёл урок?</h2>
+        <p class="help sg-help">
+          Две оценки и, если захочется, пара слов. Это помогает понять, какие темы
+          стоит объяснить иначе.
+        </p>
+
+        {% if reflection_saved %}
+          <div class="form-ok" role="status">
+            Спасибо, ответ сохранён.{% if reflection %} Его можно изменить в любой момент.{% endif %}
+          </div>
+        {% endif %}
+        {% if reflection_invalid %}
+          <div class="form-error" role="alert">
+            Нужно выбрать обе оценки — понятность и трудность.
+          </div>
+        {% endif %}
+
+        <form method="post" action="{% url 'courses:submit_reflection' lesson.id %}" class="reflection-form">
+          {% csrf_token %}
+
+          <fieldset class="rating-group">
+            <legend class="small-label">насколько понятно — 1 запутанно, 5 предельно ясно</legend>
+            <div class="rating-scale">
+              {% for n in rating_scale %}
+                <label class="rating-option">
+                  <input type="radio" name="clarity" value="{{ n }}"
+                         {% if reflection.clarity_rating == n %}checked{% endif %} required />
+                  <span>{{ n }}</span>
+                </label>
+              {% endfor %}
+            </div>
+          </fieldset>
+
+          <fieldset class="rating-group">
+            <legend class="small-label">насколько трудно — 1 легко, 5 очень трудно</legend>
+            <div class="rating-scale">
+              {% for n in rating_scale %}
+                <label class="rating-option">
+                  <input type="radio" name="difficulty" value="{{ n }}"
+                         {% if reflection.difficulty_rating == n %}checked{% endif %} required />
+                  <span>{{ n }}</span>
+                </label>
+              {% endfor %}
+            </div>
+          </fieldset>
+
+          <div class="field">
+            <label for="comment">что было непонятно или, наоборот, зашло <span class="field-opt">— необязательно</span></label>
+            <textarea id="comment" name="comment" rows="3" class="reflection-textarea">{{ reflection.comment|default:'' }}</textarea>
+          </div>
+
+          <div class="field field-check">
+            <label for="anonymous" class="check-label">
+              <input id="anonymous" name="anonymous" type="checkbox"
+                     {% if reflection.comment_is_anonymous %}checked{% endif %} />
+              <span>
+                Показать комментарий преподавателю без моего имени. Оценки понятности
+                и трудности останутся привязаны к учётной записи — они нужны, чтобы
+                сопоставить их с тем, как урок шёл на самом деле.
+              </span>
+            </label>
+          </div>
+
+          <button class="btn btn-primary" type="submit">
+            {% if reflection %}Изменить ответ{% else %}Отправить{% endif %}
+          </button>
+          {% if reflection %}
+            <p class="field-hint" style="margin-top: 12px">
+              Отправлено {{ reflection.created_at|date:"d.m.Y" }}{% if reflection.updated_at %}, изменено {{ reflection.updated_at|date:"d.m.Y" }}{% endif %}.
             </p>
           {% endif %}
-          {% if user.is_authenticated %}
-            <a class="btn btn-primary" href="{% url 'assessments:lesson_test' lesson.id %}">{% if best_attempt %}Пройти заново{% else %}Пройти тест{% endif %}</a>
-          {% else %}
-            <a class="btn btn-primary" href="{% url 'accounts:login' %}?next={{ request.path }}">Войдите, чтобы пройти тест</a>
-          {% endif %}
-        </div>
-      {% endif %}
+        </form>
+      </section>
+    {% endif %}
 
-      {% if user.is_authenticated and not user.is_teacher %}
-        <div class="lesson-reflection-block" id="reflection">
-          <div class="small-label">рефлексия</div>
-          <h2 class="section-h" style="margin-top: 4px">Как прошёл урок?</h2>
-          <p class="page-sub" style="margin-bottom: 18px">
-            Две оценки и, если захочется, пара слов. Это помогает понять, какие темы
-            стоит объяснить иначе.
-          </p>
+    {% if can_study and not done %}
+      <form method="post" action="{% url 'courses:complete_lesson' lesson.id %}" class="lesson-done-form">
+        {% csrf_token %}
+        <button class="btn btn-ghost" type="submit">Отметить пройденным</button>
+      </form>
+    {% elif done %}
+      <p class="lesson-done-mark"><span class="status status-done">Урок пройден</span></p>
+    {% endif %}
+  </article>
 
-          {% if reflection_saved %}
-            <div class="form-ok" role="status">
-              Спасибо, ответ сохранён.{% if reflection %} Его можно изменить в любой момент.{% endif %}
-            </div>
-          {% endif %}
-          {% if reflection_invalid %}
-            <div class="form-error" role="alert">
-              Нужно выбрать обе оценки — понятность и трудность.
-            </div>
-          {% endif %}
+  <aside class="lesson-side" aria-label="Оглавление и литература">
+    {% if toc %}
+      <nav class="side-card lesson-toc" aria-label="Содержание урока">
+        <h2 class="side-title">Содержание урока</h2>
+        <ol class="lesson-toc-list">
+          {% for head in toc %}
+            <li class="lesson-toc-l{{ head.level }}"><a href="#{{ head.id }}">{{ head.name }}</a></li>
+          {% endfor %}
+        </ol>
+      </nav>
+    {% endif %}
 
-          <form method="post" action="{% url 'courses:submit_reflection' lesson.id %}" class="reflection-form">
-            {% csrf_token %}
-
-            <fieldset class="rating-group">
-              <legend class="small-label">насколько понятно — 1 запутанно, 5 предельно ясно</legend>
-              <div class="rating-scale">
-                {% for n in rating_scale %}
-                  <label class="rating-option">
-                    <input type="radio" name="clarity" value="{{ n }}"
-                           {% if reflection.clarity_rating == n %}checked{% endif %} required />
-                    <span>{{ n }}</span>
-                  </label>
-                {% endfor %}
-              </div>
-            </fieldset>
-
-            <fieldset class="rating-group">
-              <legend class="small-label">насколько трудно — 1 легко, 5 очень трудно</legend>
-              <div class="rating-scale">
-                {% for n in rating_scale %}
-                  <label class="rating-option">
-                    <input type="radio" name="difficulty" value="{{ n }}"
-                           {% if reflection.difficulty_rating == n %}checked{% endif %} required />
-                    <span>{{ n }}</span>
-                  </label>
-                {% endfor %}
-              </div>
-            </fieldset>
-
-            <div class="field">
-              <label for="comment">что было непонятно или, наоборот, зашло <span class="field-opt">— необязательно</span></label>
-              <textarea id="comment" name="comment" rows="3" class="reflection-textarea">{{ reflection.comment|default:'' }}</textarea>
-            </div>
-
-            <div class="field field-check">
-              <label for="anonymous" class="check-label">
-                <input id="anonymous" name="anonymous" type="checkbox"
-                       {% if reflection.comment_is_anonymous %}checked{% endif %} />
-                <span>
-                  Показать комментарий преподавателю без моего имени. Оценки понятности
-                  и трудности останутся привязаны к учётной записи — они нужны, чтобы
-                  сопоставить их с тем, как урок шёл на самом деле.
-                </span>
-              </label>
-            </div>
-
-            <button class="btn btn-primary" type="submit">
-              {% if reflection %}Изменить ответ{% else %}Отправить{% endif %}
-            </button>
-            {% if reflection %}
-              <p class="field-hint" style="margin-top: 12px">
-                Отправлено {{ reflection.created_at|date:"d.m.Y" }}{% if reflection.updated_at %}, изменено {{ reflection.updated_at|date:"d.m.Y" }}{% endif %}.
-              </p>
-            {% endif %}
-          </form>
-        </div>
-      {% endif %}
-
-      <div class="lesson-foot">
-        <div class="lesson-nav">
-          {% if prev_lesson %}<a class="btn btn-ghost" href="{% url 'courses:lesson_detail' prev_lesson.id %}">← Назад</a>{% endif %}
-          {% if next_lesson %}<a class="btn btn-ghost" href="{% url 'courses:lesson_detail' next_lesson.id %}">Вперёд →</a>{% endif %}
-        </div>
-        {% if user.is_authenticated %}
-          {% if done %}
-            <span class="done-pill">✓ Урок пройден</span>
-          {% else %}
-            <form method="post" action="{% url 'courses:complete_lesson' lesson.id %}">
-              {% csrf_token %}
-              <button class="btn btn-primary" type="submit">Отметить пройденным</button>
-            </form>
-          {% endif %}
-        {% endif %}
-      </div>
-    </article>
-
-    <aside class="course-side">
+    {% if resources %}
       <div class="side-card">
-        <h3 class="side-title">Литература</h3>
+        <h2 class="side-title">Литература</h2>
         <ul class="resource-list">
           {% for res in resources %}
             <li>
@@ -141,7 +227,29 @@
           {% endfor %}
         </ul>
       </div>
-    </aside>
-  </div>
+    {% endif %}
+  </aside>
+
+  {% comment %}
+  Переход между уроками закреплён внизу экрана на телефоне (бриф §4) и остаётся
+  обычной строкой на широких экранах. Обе кнопки на всю ширину своей половины:
+  попасть пальцем в край экрана проще, чем в кнопку посередине.
+  {% endcomment %}
+  <nav class="lesson-pager" aria-label="Переход между уроками">
+    {% if prev_lesson %}
+      <a class="btn btn-ghost lesson-pager-btn" href="{% url 'courses:lesson_detail' prev_lesson.id %}">← Назад</a>
+    {% else %}
+      <span class="lesson-pager-btn is-empty" aria-hidden="true"></span>
+    {% endif %}
+    {% if next_lesson %}
+      <a class="btn btn-primary lesson-pager-btn" href="{% url 'courses:lesson_detail' next_lesson.id %}">Следующий урок →</a>
+    {% else %}
+      <a class="btn btn-primary lesson-pager-btn" href="{% url 'courses:course_detail' course.slug %}">К программе курса</a>
+    {% endif %}
+  </nav>
 </main>
+{% endblock %}
+
+{% block scripts %}
+  <script src="{% static 'js/lesson.js' %}" defer></script>
 {% endblock %}

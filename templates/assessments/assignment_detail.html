@@ -13,23 +13,44 @@
   </div>
   {% if assignment.description %}<p class="page-sub" style="margin-top: 12px">{{ assignment.description }}</p>{% endif %}
 
+  {% if assignment.is_autocheckable and assignment.setup_sql %}
+    {% comment %}
+    Таблицы задания. Без них условие приходится решать вслепую: не видно ни столбцов, ни
+    того, что в них лежит. Содержимое читает скрипт из той же базы в браузере, где потом
+    выполнится запрос, — поэтому показанное не разойдётся с заготовкой задания.
+    {% endcomment %}
+    <section class="task-data" aria-labelledby="task-data-title">
+      <h2 class="section-h" id="task-data-title">Таблицы задания</h2>
+      <div id="task-tables" class="task-tables-host">
+        <p class="trainer-note">Загружаю таблицы…</p>
+      </div>
+    </section>
+  {% endif %}
+
   {% if assignment.is_autocheckable %}
+    {% comment %}
+    Класс здесь свой, а не .trainer: у тренажёра две колонки под базу и запрос, а на
+    странице задания колонка одна. Поле обвязывает тот же редактор, что и в тренажёре
+    (см. assignment.js): текст самого поля прозрачный, виден слой с подсветкой.
+    {% endcomment %}
     <div
       id="assignment"
-      class="trainer"
+      class="assignment-work"
       data-check-url="{% url 'assessments:check' assignment.id %}"
       data-error-url="{% url 'assessments:report_error' assignment.id %}"
       data-csrf="{{ csrf_token }}"
 >
       <label class="visually-hidden" for="sql">Ваш SQL-запрос</label>
       <textarea id="sql" class="trainer-input mono" rows="6" spellcheck="false"
+                autocapitalize="off" autocorrect="off" autocomplete="off"
                 placeholder="Ваш SQL-запрос…"></textarea>
+      <div class="symbol-row" id="symbols" aria-label="Быстрый ввод символов"></div>
       <div class="trainer-actions">
         <button id="check" class="btn btn-primary" disabled>Проверить</button>
         <button id="resetdb" class="btn btn-ghost" disabled>Сбросить ввод</button>
-        <span id="status" class="trainer-status mono">Загрузка PGlite…</span>
       </div>
-      <div id="verdict"></div>
+      <p id="status" class="trainer-status mono" role="status">Загрузка PGlite…</p>
+      <div id="verdict" class="assignment-verdict"></div>
       <div id="output" class="trainer-output"></div>
     </div>
   {% else %}
@@ -46,18 +67,55 @@
         <a href="{% url 'core:trainer' %}">SQL-тренажёре</a>: там своя база и разрешено
         всё, включая <code>CREATE</code> и <code>INSERT</code>.
       </p>
-      {% if last_submission %}
-        <p class="field-hint">
-          Ваша работа отправлена {{ last_submission.submitted_at|date:"d.m.Y" }}.
-          {% if last_submission.status == "graded" %}
-            Оценка: <b>{{ last_submission.score }}</b>.
-            {% if last_submission.feedback %}{{ last_submission.feedback }}{% endif %}
-          {% else %}
-            Ожидает проверки.
-          {% endif %}
-        </p>
-      {% endif %}
     </div>
+
+    {% if just_submitted %}
+      <div class="form-ok work-state" role="status">Работа отправлена преподавателю.</div>
+    {% endif %}
+
+    {% if last_submission %}
+      <div class="note work-state">
+        {% if last_submission.status == "graded" %}
+          <p class="note-title">Работа оценена: {{ last_submission.score|floatformat:"-2" }} из {{ assignment.max_score }}</p>
+        {% elif last_submission.status == "returned" %}
+          <p class="note-title">Преподаватель вернул работу на доработку</p>
+          <p>Исправьте её и отправьте заново — новая редакция заменит прежнюю.</p>
+        {% else %}
+          <p class="note-title">Работа отправлена {{ last_submission.submitted_at|date:"d.m.Y" }} и ждёт проверки</p>
+          <p>Пока её не оценили, можно отправить исправленную редакцию — она заменит прежнюю.</p>
+        {% endif %}
+        {% if last_submission.feedback %}<p>Отзыв преподавателя: {{ last_submission.feedback }}</p>{% endif %}
+      </div>
+    {% endif %}
+
+    {% if can_submit %}
+      <form method="post" action="{% url 'assessments:submit' assignment.id %}"
+            enctype="multipart/form-data" class="work-form">
+        {% csrf_token %}
+        {% if answer_error %}<div class="form-error" role="alert">{{ answer_error }}</div>{% endif %}
+        <div class="field">
+          <label for="answer">{% if is_sql_task %}Ваш SQL{% else %}Ваш ответ{% endif %}</label>
+          <textarea id="answer" name="answer" rows="10" class="work-answer mono" spellcheck="false"
+                    autocapitalize="off" autocorrect="off">{% if answer_text %}{{ answer_text }}{% elif is_sql_task %}{{ last_submission.sql_query|default_if_none:'' }}{% else %}{{ last_submission.text_answer|default_if_none:'' }}{% endif %}</textarea>
+        </div>
+        <div class="field">
+          <label for="upload">Или файл <span class="field-opt">— .sql или .txt, до 1 МБ</span></label>
+          <input id="upload" name="upload" type="file" accept=".sql,.txt" />
+          <span class="field-hint">
+            Базу из тренажёра можно сохранить файлом кнопкой «Выгрузить SQL».
+          </span>
+        </div>
+        <button class="btn btn-primary" type="submit">
+          {% if last_submission %}Отправить заново{% else %}Отправить на проверку{% endif %}
+        </button>
+      </form>
+    {% elif not is_participant and assignment.course.is_published %}
+      <form method="post" action="{% url 'courses:enroll' assignment.course.slug %}" class="lesson-enroll">
+        {% csrf_token %}
+        <p>Запишитесь на курс «{{ assignment.course.title }}», чтобы сдать эту работу.</p>
+        <button class="btn btn-primary" type="submit">Записаться на курс</button>
+      </form>
+    {% endif %}
   {% endif %}
 </main>
 

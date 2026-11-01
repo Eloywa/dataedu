@@ -164,7 +164,7 @@ def assignment(course_obj, lesson_obj=None, auto=True, max_score=100, is_final=F
         lesson=lesson_obj,
         title=extra.pop("title", f"Задание {_n()}"),
         level="basic",
-        type="sql" if auto else "ddl",
+        type=extra.pop("type_override", "sql" if auto else "ddl"),
         expected_sql="SELECT 1 AS n;",
         setup_sql="",
         expected_result=expected,

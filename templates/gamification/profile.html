@@ -48,14 +48,23 @@
           {% for a in achievements %}
             <div class="ach-tile {% if a.earned %}earned{% endif %}">
               <div class="ach-icon" aria-hidden="true">{{ a.glyph }}</div>
-              <div class="ach-title">{{ a.title }}</div>
-              {% if a.description %}<div class="ach-desc">{{ a.description }}</div>{% endif %}
-              <div class="ach-xp">+{{ a.xp_reward }} XP</div>
-              {% if a.earned %}
-                <div class="ach-date">{{ a.awarded_at|date:"j M Y" }}</div>
-              {% else %}
-                <div class="ach-date">закрыто</div>
-              {% endif %}
+              {% comment %}
+              Текст — одной колонкой рядом со значком. Когда название, описание, XP и
+              дата стояли отдельными элементами в ряд, на каждый приходилось по паре
+              десятков пикселей, и слова ломались посимвольно.
+              {% endcomment %}
+              <div class="ach-body">
+                <div class="ach-title">{{ a.title }}</div>
+                {% if a.description %}<div class="ach-desc">{{ a.description }}</div>{% endif %}
+                <div class="ach-foot">
+                  <span class="ach-xp">+{{ a.xp_reward }} XP</span>
+                  {% if a.earned %}
+                    <span class="ach-date">{{ a.awarded_at|date:"j M Y" }}</span>
+                  {% else %}
+                    <span class="status status-locked">Закрыто</span>
+                  {% endif %}
+                </div>
+              </div>
             </div>
           {% endfor %}
         </div>

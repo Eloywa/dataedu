@@ -1,33 +1,78 @@
 import json
 
 from django.conf import settings
-from django.http import JsonResponse
+from django.db.models import Count
+from django.http import Http404, JsonResponse
 from django.shortcuts import render
 from django.views.decorators.http import require_POST
 
 from accounts import legal
-from assessments.models import Test
-from courses.models import Course, Lesson
+from assessments.models import Assignment, Question, Test
+from courses.models import Course, Lesson, Module
+from courses.theory import render_theory
 from gamification import services
 from learning import reports
 from learning.models import Enrollment, LessonProgress
 
 
+def main_course():
+    """Курс, который платформа показывает на главной.
+
+    Берётся по настройке MAIN_COURSE_SLUG. Если такого курса нет (перенесли
+    данные, переименовали, не опубликовали) — самый объёмный опубликованный:
+    пустая главная выглядит как поломка платформы, а не как отсутствие настройки.
+    """
+    published = Course.objects.filter(is_published=True)
+    course = published.filter(slug=settings.MAIN_COURSE_SLUG).first()
+    if course is None:
+        course = published.annotate(n=Count("modules__lessons")).order_by("-n").first()
+    return course
+
+
+def lines(text):
+    """Строки поля в список: цели и умения хранятся по пункту на строку."""
+    return [line.strip() for line in (text or "").splitlines() if line.strip()]
+
+
 def home(request):
     user = request.user
     if not user.is_authenticated:
-        # Цифры на лендинге берутся из базы, а не вписываются в шаблон руками:
-        # прежние «9 недель · 18 уроков» разошлись с содержимым и обещали меньше,
-        # чем платформа на самом деле даёт.
+        # Главная — витрина основного курса (бриф §3.1): заголовок, цели, чему
+        # научится студент и программа. Всё из базы: прежние «9 недель · 18
+        # уроков» были вписаны в шаблон руками и разошлись с содержимым.
+        course = main_course()
+        modules = []
+        first_lesson = None
+        if course:
+            modules = list(
+                course.modules.prefetch_related("lessons")
+                .annotate(lesson_count=Count("lessons"))
+                .order_by("order_index")
+            )
+            first_lesson = (
+                Lesson.objects.filter(module__course=course)
+                .order_by("module__order_index", "order_index")
+                .first()
+            )
+
         return render(
             request,
             "core/home.html",
             {
-                "course_count": Course.objects.filter(is_published=True).count(),
-                "lesson_count": Lesson.objects.filter(module__course__is_published=True).count(),
-                "test_count": Test.objects.filter(
-                    lesson__module__course__is_published=True
-                ).count(),
+                "course": course,
+                "modules": modules,
+                "first_lesson": first_lesson,
+                "goals": lines(course.goals if course else ""),
+                "outcomes": lines(course.learning_outcomes if course else ""),
+                "lesson_count": Lesson.objects.filter(module__course=course).count()
+                if course
+                else 0,
+                "test_count": Test.objects.filter(lesson__module__course=course).count()
+                if course
+                else 0,
+                "other_courses": Course.objects.filter(is_published=True)
+                .exclude(pk=course.pk if course else None)
+                .count(),
             },
         )
 
@@ -101,6 +146,9 @@ def trainer_log(request):
         payload = json.loads(request.body or b"{}")
     except (ValueError, TypeError):
         payload = {}
+    # Корректный JSON — ещё не объект: на теле `[]` вызов `.get` уронил бы запрос.
+    if not isinstance(payload, dict):
+        payload = {}
 
     if payload.get("event") == "error":
         services.record_sql_error(request.user, payload.get("error"))
@@ -122,3 +170,72 @@ def privacy(request):
 def terms(request):
     """Пользовательское соглашение."""
     return render(request, "legal/terms.html", {"version": legal.TERMS_VERSION})
+
+
+def styleguide(request):
+    """Страница-пример: все базовые компоненты редизайна в одном месте.
+
+    Нужна по двум причинам. Первая — дизайн правится здесь, а не на семи разных
+    экранах: видно сразу, что кнопка, метка статуса и таблица сделаны в одной
+    системе. Вторая — обе темы и узкая ширина проверяются одним открытием
+    страницы, а не обходом платформы.
+
+    Открыта только в разработке и сотрудникам: это внутренний инструмент, и
+    в каталоге страниц платформы ему места нет.
+    """
+    if not settings.DEBUG and not request.user.is_staff:
+        raise Http404
+
+    # Содержимое берётся из базы, а не выдумывается: пример компонента на
+    # придуманном тексте врёт о длине строк и о том, как раскладка держит
+    # настоящие названия вроде «Проектирование БД и ER-модель».
+    course = Course.objects.filter(is_published=True).order_by("title").first()
+    lessons = (
+        list(
+            Lesson.objects.filter(module__course=course)
+            .select_related("module")
+            .order_by("module__order_index", "order_index")[:3]
+        )
+        if course
+        else []
+    )
+    modules = (
+        list(
+            Module.objects.filter(course=course)
+            .annotate(lesson_count=Count("lessons"))
+            .order_by("order_index")[:3]
+        )
+        if course
+        else []
+    )
+    assignment = (
+        Assignment.objects.filter(type="sql").exclude(setup_sql="").order_by("title").first()
+    )
+    question = (
+        Question.objects.filter(test__lesson__module__course=course)
+        .prefetch_related("options")
+        .order_by("order_index")
+        .first()
+    )
+
+    # Врезка показывается прогнанной через тот же рендер, что и теория урока:
+    # иначе страница-пример доказывала бы только то, что CSS написан, а не то,
+    # что разметка из markdown доходит до него.
+    sample_html, _ = render_theory(
+        '!!! note "Обратите внимание"\n'
+        "    Запрос выполняется в браузере: база PostgreSQL собрана в WebAssembly\n"
+        "    и живёт на вашем устройстве. Сервер её не видит.\n"
+    )
+
+    return render(
+        request,
+        "core/styleguide.html",
+        {
+            "course": course,
+            "lessons": lessons,
+            "modules": modules,
+            "assignment": assignment,
+            "question": question,
+            "sample_html": sample_html,
+        },
+    )

@@ -39,7 +39,7 @@
 
       <section class="modules">
         {% for module in modules %}
-          <div class="module {% if not module.gate.unlocked %}module-locked{% endif %}">
+          <div class="module {% if not module.gate.unlocked %}module-locked{% endif %}" id="module-{{ module.order_index }}">
             <div class="module-head">
               <h2 class="module-title">{{ module.title }}</h2>
               <span class="module-head-right">
