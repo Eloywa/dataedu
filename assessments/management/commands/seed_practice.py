@@ -15,7 +15,7 @@
 from django.core.management.base import BaseCommand
 
 from assessments.models import Assignment
-from courses.models import Course
+from courses.models import Course, Lesson
 
 SETUP = """
 CREATE TABLE groups (
@@ -51,6 +51,7 @@ INSERT INTO students (id, full_name, group_id, xp) VALUES
 TASKS = [
     {
         "title": "Студенты группы ПИ-101",
+        "lesson": "Объединение таблиц: JOIN",
         "level": "basic",
         "description": "Выведите столбец full_name всех студентов из группы «ПИ-101» "
         "(используйте JOIN таблиц students и groups).",
@@ -91,6 +92,7 @@ TASKS = [
     },
     {
         "title": "Отличники (xp ≥ 300)",
+        "lesson": "Фильтрация строк: WHERE",
         "level": "basic",
         "description": "Выведите full_name и xp студентов, у которых xp не меньше 300.",
         "expected_sql": "SELECT full_name, xp FROM students WHERE xp >= 300;",
@@ -101,6 +103,7 @@ TASKS = [
     },
     {
         "title": "Сколько студентов в каждой группе",
+        "lesson": "Группировка: GROUP BY и HAVING",
         "level": "medium",
         "description": "Выведите название группы (столбец name) и количество студентов в ней. "
         "Используйте JOIN и GROUP BY.",
@@ -114,6 +117,7 @@ TASKS = [
     },
     {
         "title": "Средний XP",
+        "lesson": "Сортировка и агрегатные функции",
         "level": "medium",
         "description": "Выведите средний xp по всем студентам, округлённый до целого "
         "(одно число, функция round и avg).",
@@ -154,6 +158,15 @@ class Command(BaseCommand):
                 },
             )
             created += 1 if was_created else 0
+
+            # Урока может не быть: курс мог прийти из другого дампа, и задание тогда
+            # просто остаётся без привязки.
+            lesson = Lesson.objects.filter(
+                module__course=obj.course, title=t.get("lesson", "")
+            ).first()
+            if lesson and obj.lesson_id != lesson.pk:
+                obj.lesson = lesson
+                obj.save(update_fields=["lesson"])
 
         # Задание на CREATE TABLE автопроверке не поддаётся: запрос студента не
         # возвращает строк, сравнивать нечего. Помечаем его типом ddl, чтобы оно

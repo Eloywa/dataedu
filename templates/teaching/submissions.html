@@ -23,6 +23,7 @@
             <div class="cell-sub">
               {{ s.assignment.title }} · {{ s.assignment.course.title }} · {{ s.assignment.type|task_type_label }}
             </div>
+            {% if s.project_topic %}<div class="cell-sub">Билет: {{ s.project_topic }}</div>{% endif %}
           </div>
           <div class="sub-badges">
             {% if s.score is not None %}

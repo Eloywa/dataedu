@@ -36,6 +36,12 @@
   {% endif %}
 
   <h2 class="section-h">Итоговый проект</h2>
+  {% for draw in card.project_draws %}
+    <p class="page-sub">
+      Билет по курсу «{{ draw.course.title }}»: <strong>{{ draw.topic.title }}</strong>.
+      <a class="text-link" href="{% url 'admin:assessments_projectdraw_change' draw.pk %}">Заменить</a>
+    </p>
+  {% endfor %}
   {% if project_defended %}
     <p class="page-sub">Защита итогового проекта зачтена.</p>
   {% elif final_assignment %}

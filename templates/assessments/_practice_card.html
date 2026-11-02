@@ -1,0 +1,30 @@
+{% load course_extras %}
+{% comment %}
+Задание закрытой недели показывается, но ссылкой не становится: студент заранее видит, что
+его ждёт, а переход всё равно привёл бы на экран «закрыто».
+{% endcomment %}
+{% if locked %}
+  <div class="practice-card is-locked">
+    <div class="practice-card-top">
+      <span class="badge badge-{{ a.level|level_tone }}">{{ a.level|level_label }}</span>
+      <span class="badge badge-neutral">закрыто</span>
+    </div>
+    <h4 class="practice-card-title">{{ a.title }}</h4>
+    <div class="practice-card-course">{% if a.is_autocheckable %}автопроверка{% else %}проверяет преподаватель{% endif %}</div>
+  </div>
+{% else %}
+  <a href="{% url 'assessments:assignment_detail' a.id %}" class="practice-card">
+    <div class="practice-card-top">
+      <span class="badge badge-{{ a.level|level_tone }}">{{ a.level|level_label }}</span>
+      {% if a.state %}<span class="badge badge-{{ a.state.tone }}">{{ a.state.label }}</span>
+      {% elif a.ticket.draw %}<span class="badge badge-success">билет вытянут</span>
+      {% elif a.ticket.can_draw %}<span class="badge badge-warning">можно тянуть билет</span>{% endif %}
+    </div>
+    <h4 class="practice-card-title">{{ a.title }}</h4>
+    <div class="practice-card-course">
+      {% if a.ticket.draw %}{{ a.ticket.draw.topic.title }}
+      {% elif a.is_autocheckable %}автопроверка
+      {% else %}проверяет преподаватель{% endif %}
+    </div>
+  </a>
+{% endif %}

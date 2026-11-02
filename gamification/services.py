@@ -347,8 +347,23 @@ def may_study(user, lesson):
     напрямую, и без этой проверки урок закрытой недели засчитывался вместе с XP, а
     пройденные уроки дают 30% итоговой отметки в ведомости.
     """
-    course = lesson.module.course
-    if not may_track_progress(user, course):
+    if not may_track_progress(user, lesson.module.course):
         return False
-    gate = course_gating(user, course, user.is_teacher).get(lesson.module_id)
+    return lesson_unlocked(user, lesson)
+
+
+def lesson_unlocked(user, lesson):
+    """Открыта ли неделя этого урока для пользователя."""
+    course = lesson.module.course
+    is_teacher = user.is_authenticated and user.is_teacher
+    gate = course_gating(user, course, is_teacher).get(lesson.module_id)
     return gate is None or gate["unlocked"]
+
+
+def previous_module(module):
+    """Блок перед этим: его нужно пройти, чтобы открылся этот."""
+    return (
+        module.course.modules.filter(order_index__lt=module.order_index)
+        .order_by("-order_index")
+        .first()
+    )

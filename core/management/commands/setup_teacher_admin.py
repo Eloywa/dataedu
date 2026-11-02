@@ -1,7 +1,8 @@
 """Группа «Преподаватели» с правами на авторские модели и выдача её преподавателям.
 
 Преподаватели становятся is_staff и получают права add/change/delete/view на курсы,
-модули, уроки, тесты, вопросы, варианты ответов, задания и учебные группы. Видимость
+модули, уроки, тесты, вопросы, варианты ответов, задания, темы и билеты итогового
+проекта и учебные группы. Видимость
 своих объектов ограничивает уже сама админка (OwnedAdmin). Админ — суперпользователь,
 видит всё.
 
@@ -14,12 +15,30 @@ from django.contrib.contenttypes.models import ContentType
 from django.core.management.base import BaseCommand
 
 from accounts.models import User
-from assessments.models import AnswerOption, Assignment, Question, Test
+from assessments.models import (
+    AnswerOption,
+    Assignment,
+    ProjectDraw,
+    ProjectTopic,
+    Question,
+    Test,
+)
 from courses.models import Course, Lesson, Module
 from learning.models import StudyGroup
 
 GROUP_NAME = "Преподаватели"
-AUTHORING_MODELS = [Course, Module, Lesson, Test, Question, AnswerOption, Assignment, StudyGroup]
+AUTHORING_MODELS = [
+    Course,
+    Module,
+    Lesson,
+    Test,
+    Question,
+    AnswerOption,
+    Assignment,
+    ProjectTopic,
+    ProjectDraw,
+    StudyGroup,
+]
 
 
 class Command(BaseCommand):

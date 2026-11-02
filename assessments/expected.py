@@ -71,7 +71,10 @@ def compute_expected(assignment, conn=None):
             cur.execute("SET search_path TO tmp_chk, public;")
             for stmt in _statements(assignment.setup_sql):
                 cur.execute(stmt)
-            cur.execute(assignment.expected_sql)
+            # Эталон может быть скриптом: сначала INSERT, потом SELECT. Результат даёт
+            # последний запрос, как и в браузере у студента.
+            for stmt in _statements(assignment.expected_sql):
+                cur.execute(stmt)
             if cur.description is None:
                 raise ExpectedError(
                     "Эталонный запрос не вернул таблицу — для задания с автопроверкой нужен SELECT."

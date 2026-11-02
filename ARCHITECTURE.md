@@ -170,7 +170,8 @@ core         главная, тренажёр, правовые страницы
 - **courses:** `Course` → `Module` → `Lesson`; `Topic` + `CourseTopic` (составной
   ключ); `CourseRating`.
 - **assessments:** `Test` → `Question` → `AnswerOption`; `TestAttempt` →
-  `AnswerSubmission`; `Assignment` → `Submission`.
+  `AnswerSubmission`; `Assignment` → `Submission`; `ProjectTopic` → `ProjectDraw`
+  (билет итогового проекта, один на студента в курсе).
 - **learning:** `Enrollment`, `StudyGroup`, `LessonProgress`, `Reflection`, `Activity`.
 - **gamification:** `Achievement`, `UserAchievement`.
 - **messaging:** `Message`.

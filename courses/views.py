@@ -10,6 +10,7 @@ from django.urls import reverse
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 
+from assessments import projects, tasks
 from gamification import services
 from learning.models import Enrollment, LessonProgress, Reflection
 from messaging import services as chat
@@ -115,7 +116,7 @@ def course_detail(request, slug):
     course = get_object_or_404(
         Course.objects.visible_to(request.user).select_related("author"), slug=slug
     )
-    modules = list(course.modules.prefetch_related("lessons").all())
+    modules = list(course.modules.prefetch_related("lessons__assignments").all())
 
     completed = set()
     enrolled = False
@@ -154,6 +155,8 @@ def course_detail(request, slug):
 
     progress = _progress(request.user, course) if request.user.is_authenticated else None
 
+    final_task = course.assignments.filter(is_final=True).order_by("created_at").first()
+
     # Вопрос преподавателю прямо со страницы курса: собеседник — автор курса.
     # Виджет показывается только записанному студенту: у преподавателя для этого
     # есть инбокс, а незаписанному писать не о чем.
@@ -171,6 +174,8 @@ def course_detail(request, slug):
         {
             "course": course,
             "modules": modules,
+            "final_task": final_task,
+            "ticket": projects.ticket_state(request.user, final_task) if final_task else None,
             "enrolled": enrolled,
             "progress": progress,
             "next_lesson": next_lesson,
@@ -289,15 +294,13 @@ def lesson_detail(request, lesson_id):
     )
     gate = gating.get(lesson.module_id)
     if gate and not gate["unlocked"]:
-        modules = list(course.modules.all())
-        idx = next((i for i, m in enumerate(modules) if m.id == lesson.module_id), 0)
         return render(
             request,
             "lessons/lesson_locked.html",
             {
                 "course": course,
                 "lesson": lesson,
-                "prev_module": modules[idx - 1] if idx > 0 else None,
+                "prev_module": services.previous_module(lesson.module),
             },
         )
 
@@ -325,7 +328,7 @@ def lesson_detail(request, lesson_id):
                 user=request.user, lesson__module__course=course, status="completed"
             ).values_list("lesson_id", flat=True)
         )
-    for module in course.modules.prefetch_related("lessons").all():
+    for module in course.modules.prefetch_related("lessons__assignments").all():
         gate_info = gating.get(module.id, {"unlocked": True})
         tree.append(
             {
@@ -336,6 +339,7 @@ def lesson_detail(request, lesson_id):
                         "lesson": item,
                         "done": item.id in completed_ids,
                         "current": item.id == lesson.id,
+                        "has_task": bool(item.assignments.all()),
                     }
                     for item in module.lessons.all()
                 ],
@@ -348,6 +352,12 @@ def lesson_detail(request, lesson_id):
     best_attempt = None
     if test and request.user.is_authenticated:
         best_attempt = test.attempts.filter(user=request.user).order_by("-score").first()
+
+    # Задания к уроку. Итоговое сюда не попадает: оно относится ко всему курсу.
+    lesson_tasks = list(lesson.assignments.filter(is_final=False).order_by("title"))
+    task_states = tasks.task_states(request.user, lesson_tasks)
+    for task in lesson_tasks:
+        task.state = task_states.get(task.id)
 
     # Читать урок можно без записи — так курс и выбирают. А вот тест, отметка и
     # рефлексия пишутся в прогресс, поэтому кнопки показываются только участникам:
@@ -375,6 +385,7 @@ def lesson_detail(request, lesson_id):
             "resources": get_course_resources(course.slug),
             "test": test,
             "best_attempt": best_attempt,
+            "lesson_tasks": lesson_tasks,
             "reflection": reflection,
             "reflection_saved": request.GET.get("reflection") == "saved",
             "reflection_invalid": request.GET.get("reflection") == "invalid",

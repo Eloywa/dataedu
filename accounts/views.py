@@ -219,6 +219,14 @@ def _collect_user_data(user):
             }
             for s in user.submissions.select_related("assignment")
         ],
+        "билеты_итогового_проекта": [
+            {
+                "курс": d.course.title,
+                "тема": d.topic.title,
+                "вытянут": d.drawn_at.isoformat() if d.drawn_at else None,
+            }
+            for d in user.project_draws.select_related("course", "topic")
+        ],
         "рефлексии": [
             {
                 "урок": r.lesson.title if r.lesson else None,

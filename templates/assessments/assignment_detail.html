@@ -4,14 +4,33 @@
 
 {% block content %}
 <main class="container page" style="max-width: 900px">
-  <a href="{% url 'assessments:practice' %}" class="back-link">← Задания</a>
+  {% comment %}
+  Задание показывает своё место в курсе. С урока сюда приходят за практикой, и обратный
+  путь должен вести к уроку, а не в общий список.
+  {% endcomment %}
+  {% if assignment.lesson %}
+    <a href="{% url 'courses:lesson_detail' assignment.lesson.id %}" class="back-link">← К уроку</a>
+    <nav class="task-path" aria-label="Место задания в курсе">
+      <a href="{% url 'courses:course_detail' assignment.course.slug %}">{{ assignment.course.title }}</a>
+      <span aria-hidden="true">/</span>
+      <a href="{% url 'courses:course_detail' assignment.course.slug %}#module-{{ assignment.lesson.module.order_index }}">{{ assignment.lesson.module.title }}</a>
+      <span aria-hidden="true">/</span>
+      <a href="{% url 'courses:lesson_detail' assignment.lesson.id %}">{{ assignment.lesson.title }}</a>
+    </nav>
+  {% elif assignment.is_final %}
+    <a href="{% url 'courses:course_detail' assignment.course.slug %}#final-project" class="back-link">← {{ assignment.course.title }}</a>
+  {% else %}
+    <a href="{% url 'assessments:practice' %}" class="back-link">← Задания</a>
+  {% endif %}
   <h1 class="page-title accent-ink">{{ assignment.title }}</h1>
   <div class="course-meta">
     <span class="badge badge-{{ assignment.level|level_tone }}">{{ assignment.level|level_label }}</span>
     {% if solved %}<span class="badge badge-success">решено</span>{% endif %}
     <span style="color: var(--muted)">{{ assignment.course.title }}</span>
   </div>
-  {% if assignment.description %}<p class="page-sub" style="margin-top: 12px">{{ assignment.description }}</p>{% endif %}
+  {% if assignment.description %}<p class="page-sub task-description">{{ assignment.description }}</p>{% endif %}
+
+  {% if ticket %}{% include "assessments/_ticket.html" %}{% endif %}
 
   {% if assignment.is_autocheckable and assignment.setup_sql %}
     {% comment %}
@@ -116,6 +135,15 @@
         <button class="btn btn-primary" type="submit">Записаться на курс</button>
       </form>
     {% endif %}
+  {% endif %}
+
+  {% if assignment.lesson %}
+    <nav class="task-nav" aria-label="Переход между уроками">
+      <a class="btn btn-ghost" href="{% url 'courses:lesson_detail' assignment.lesson.id %}">← К уроку</a>
+      {% if next_lesson %}
+        <a class="btn btn-ghost" href="{% url 'courses:lesson_detail' next_lesson.id %}">Следующий урок →</a>
+      {% endif %}
+    </nav>
   {% endif %}
 </main>
 
