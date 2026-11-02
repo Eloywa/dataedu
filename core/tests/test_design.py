@@ -8,6 +8,7 @@
 """
 
 import re
+import sqlite3
 from pathlib import Path
 
 from django.conf import settings
@@ -196,6 +197,109 @@ def contrast(first, second):
     return (bright + 0.05) / (dark + 0.05)
 
 
+def aa_pairs(colour):
+    """Пары «текст — фон», которые в теме обязаны читаться."""
+    text = ("--text", "--text-strong", "--muted", "--muted-soft", "--accent")
+    states = ("--success", "--warning", "--danger")
+    backgrounds = ("--bg", "--bg-soft", "--surface", "--surface-2")
+    pairs = [(fg, colour[fg], bg, colour[bg]) for fg in text + states for bg in backgrounds]
+    for fg, bg in (
+        ("--on-accent", "--accent"),
+        ("--on-action", "--action"),
+        ("--on-action", "--action-hover"),
+        ("--on-chrome", "--chrome"),
+        ("--on-chrome-soft", "--chrome"),
+        ("--mark", "--surface"),
+        ("--text", "--field"),
+    ):
+        pairs.append((fg, colour[fg], bg, colour[bg]))
+    # Метка статуса: цветной текст на своей полупрозрачной подложке поверх карточки.
+    for state in ("--accent", *states):
+        soft = _over(colour[f"{state}-soft"], colour["--surface"])
+        pairs.append((state, colour[state], f"{state}-soft", soft))
+    return pairs
+
+
+class PaletteTests(SimpleTestCase):
+    """Светлая и тёмная темы: цвета сняты с образца, контраст считается, а не на глаз."""
+
+    def colours(self, pattern):
+        block = re.search(pattern, CSS.read_text(encoding="utf-8"), re.S)
+        self.assertIsNotNone(block)
+        return {
+            name: _rgb(value)
+            for name, value in re.findall(r"(--[\w-]+)\s*:\s*([^;]+);", block.group(1))
+            if value.strip().startswith(("#", "rgb"))
+        }
+
+    def test_light_theme_reaches_aa_contrast(self):
+        for fg_name, fg, bg_name, bg in aa_pairs(self.colours(r":root\s*\{(.+?)\n\}")):
+            with self.subTest(fg=fg_name, bg=bg_name):
+                self.assertGreaterEqual(contrast(fg, bg), 4.5)
+
+    def test_dark_theme_reaches_aa_contrast(self):
+        colours = self.colours(r'\[data-theme="dark"\]\s*\{(.+?)\n\}')
+        for fg_name, fg, bg_name, bg in aa_pairs(colours):
+            with self.subTest(fg=fg_name, bg=bg_name):
+                self.assertGreaterEqual(contrast(fg, bg), 4.5)
+
+    def test_main_action_has_its_own_colour(self):
+        """Основная кнопка красится отдельным токеном, а не цветом ссылок и фокуса."""
+        css = CSS.read_text(encoding="utf-8")
+        rule = re.search(r"\.btn-primary,\s*\.btn-accent\s*\{(.+?)\}", css, re.S)
+        self.assertIsNotNone(rule)
+        self.assertIn("var(--action)", rule.group(1))
+
+
+class FontTests(SimpleTestCase):
+    FONTS = Path(settings.BASE_DIR) / "static" / "vendor" / "fonts"
+
+    def test_interface_font_is_the_bundled_one(self):
+        css = CSS.read_text(encoding="utf-8")
+        self.assertIn('--font-sans: "Montserrat"', css)
+        self.assertIn('--font-display: "Montserrat"', css)
+
+    def test_every_montserrat_file_is_in_the_project(self):
+        """Платформа не делает внешних запросов: без файла браузер молча возьмёт другой шрифт."""
+        faces = (self.FONTS / "fonts.css").read_text(encoding="utf-8")
+        files = re.findall(r"url\((montserrat-[\w-]+\.woff2)\)", faces)
+        self.assertEqual(len(files), 16)
+        for name in files:
+            with self.subTest(file=name):
+                self.assertTrue((self.FONTS / name).exists())
+        self.assertTrue((self.FONTS / "montserrat-OFL.txt").exists())
+
+
+class HomeSampleQueryTests(SimpleTestCase):
+    """Таблицы и запрос на главной вписаны в шаблон и не должны разойтись с набором."""
+
+    def setUp(self):
+        scripts = SCRIPTS / "sql" / "datasets.js"
+        sql = re.search(r"university:.*?sql: `(.*?)`", scripts.read_text(encoding="utf-8"), re.S)
+        self.db = sqlite3.connect(":memory:")
+        self.addCleanup(self.db.close)
+        self.db.executescript(sql.group(1))
+        self.page = (TEMPLATES / "core" / "home.html").read_text(encoding="utf-8")
+
+    def test_result_is_what_the_query_returns(self):
+        query = re.search(r'<pre class="query-card-sql">(.*?)</pre>', self.page, re.S).group(1)
+        rows = self.db.execute(query).fetchall()
+        self.assertTrue(rows)
+        for name, value in rows:
+            with self.subTest(group=name):
+                self.assertIn(f'<td>{name}</td><td class="is-number">{value:.2f}</td>', self.page)
+
+    def test_table_cards_list_the_real_columns(self):
+        for table in ("groups", "students", "marks"):
+            card = re.search(
+                rf'<h3 class="table-card-name">{table}</h3>(.*?)</ul>', self.page, re.S
+            ).group(1)
+            shown = re.findall(r"<li><span>(\w+)</span>", card)
+            real = [row[1] for row in self.db.execute(f"pragma table_info({table})")]
+            with self.subTest(table=table):
+                self.assertEqual(shown, real)
+
+
 class WarmThemeTests(SimpleTestCase):
     """Ламповая тема: третий набор цветов рядом со светлой и тёмной."""
 
@@ -223,17 +327,7 @@ class WarmThemeTests(SimpleTestCase):
         _, tokens = self.tokens()
         colour = {name: _rgb(value) for name, value in tokens.items() if "shadow" not in name}
 
-        text = ("--text", "--text-strong", "--muted", "--muted-soft", "--accent")
-        states = ("--success", "--warning", "--danger")
-        backgrounds = ("--bg", "--bg-soft", "--surface", "--surface-2")
-        pairs = [(fg, colour[fg], bg, colour[bg]) for fg in text + states for bg in backgrounds]
-        pairs.append(("--on-accent", colour["--on-accent"], "--accent", colour["--accent"]))
-        # Метка статуса: цветной текст на своей полупрозрачной подложке поверх карточки.
-        for state in ("--accent", *states):
-            soft = _over(colour[f"{state}-soft"], colour["--surface"])
-            pairs.append((state, colour[state], f"{state}-soft", soft))
-
-        for fg_name, fg, bg_name, bg in pairs:
+        for fg_name, fg, bg_name, bg in aa_pairs(colour):
             with self.subTest(fg=fg_name, bg=bg_name):
                 self.assertGreaterEqual(contrast(fg, bg), 4.5)
 

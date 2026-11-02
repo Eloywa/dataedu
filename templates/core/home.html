@@ -5,136 +5,229 @@
 {% block content %}
 <main class="home">
   {% comment %}
-  Главная — витрина основного курса семестра (бриф §3.1). Каталог при этом никуда
-  не делся: остальные курсы доступны ссылкой внизу и пунктом в шапке. Ни одной
-  цифры и ни одного названия в шаблоне не вписано — всё приходит из базы.
+  Главная — витрина основного курса (бриф §3.1). Каталог при этом никуда не делся:
+  остальные курсы стоят соседними ящиками внизу и доступны пунктом в шапке. Название,
+  описание, модули и все числа о курсе приходят из базы.
   {% endcomment %}
   {% if course %}
-  <section class="home-hero">
-    <div class="home-hero-text">
-      <h1 class="home-title">{{ course.title }}</h1>
-      <p class="home-lead">{{ course.description }}</p>
+  <section class="home-first">
+    <div class="container home-drawer">
+      <article class="home-course">
+        <div class="home-course-band">
+          <span class="home-course-address">catalog/{{ course.slug }}</span>
+          <span>{{ course.semester|default:"" }}</span>
+        </div>
+        <div class="home-course-body">
+          <ul class="home-course-facts">
+            <li>{{ modules|length }} {{ modules|length|plural_ru:"модуль,модуля,модулей" }}</li>
+            <li>{{ lesson_count }} {{ lesson_count|plural_ru:"урок,урока,уроков" }}</li>
+            <li>{{ test_count }} {{ test_count|plural_ru:"тест,теста,тестов" }}</li>
+          </ul>
+          <div class="home-course-main">
+            <h1 class="home-title">{{ course.title }}</h1>
+            <p class="home-lead">{{ course.description|default:"" }}</p>
+            <div class="home-actions">
+              {% if first_lesson %}
+                <a class="btn btn-primary" href="{% url 'courses:lesson_detail' first_lesson.id %}">Начать с введения</a>
+              {% endif %}
+              <a class="btn btn-ghost" href="{% url 'courses:course_detail' course.slug %}">Программа курса</a>
+            </div>
+          </div>
+        </div>
+        <span class="card-hole" aria-hidden="true"></span>
+      </article>
 
-      <div class="home-actions">
-        {% if first_lesson %}
-          <a class="btn btn-primary" href="{% url 'courses:lesson_detail' first_lesson.id %}">Начать с введения</a>
-        {% endif %}
-        <a class="btn btn-ghost" href="{% url 'courses:course_detail' course.slug %}">Программа курса</a>
-      </div>
-
-      <p class="home-facts">
-        {{ course.semester }} · {{ modules|length }} {{ modules|length|plural_ru:"модуль,модуля,модулей" }} ·
-        {{ lesson_count }} {{ lesson_count|plural_ru:"урок,урока,уроков" }} ·
-        {{ test_count }} {{ test_count|plural_ru:"тест,теста,тестов" }}
-      </p>
+      {% comment %}
+      Правый край разделителя стоит на неделе модуля, поэтому силуэт стопки — это
+      настоящий ход семестра. Значения --week и --span приходят из базы, а формула
+      ширины лежит в app.css. Неделя написана и текстом: шкала только показывает то же
+      самое наглядно и для чтения с экрана скрыта.
+      {% endcomment %}
+      <section class="module-stack" aria-labelledby="program-title" style="--span: {{ weeks_span }}">
+        <h2 class="module-stack-title" id="program-title">Программа курса</h2>
+        <p class="module-stack-note">Чем позже неделя, тем длиннее разделитель.</p>
+        <div class="week-scale" aria-hidden="true">
+          <span class="week-scale-label">неделя</span>
+          {% for tick in week_ticks %}
+            <span class="week-tick" style="--w: {{ tick.week }}">{% if tick.label %}<span class="week-tick-label">{{ tick.week }}</span>{% endif %}</span>
+          {% endfor %}
+        </div>
+        <ol class="module-tabs">
+          {% for module in modules %}
+            <li class="module-tab" style="--week: {{ module.week_number|default:1 }}; --i: {{ forloop.counter0 }}">
+              <a href="{% url 'courses:course_detail' course.slug %}#module-{{ module.order_index }}">
+                <span class="module-tab-num">{{ forloop.counter }}</span>
+                <span class="module-tab-text">
+                  <span class="module-tab-title">{{ module.title }}</span>
+                  <span class="module-tab-meta">
+                    неделя {{ module.week_number|default:"—" }} ·
+                    {{ module.lesson_count }} {{ module.lesson_count|plural_ru:"урок,урока,уроков" }}
+                  </span>
+                </span>
+                {% if forloop.first %}<span class="module-tab-start">начало</span>{% endif %}
+              </a>
+            </li>
+          {% endfor %}
+        </ol>
+      </section>
     </div>
-
-    {% comment %}
-    Фирменный образ платформы — линейная ER-диаграмма (бриф §1). Таблицы настоящие:
-    это учебный набор «Университет» из тренажёра, тот же, что студент откроет на
-    первом же задании. Рисунок встроен в разметку, а не лежит картинкой: ему нужны
-    цвета темы, а SVG-файл со своей заливкой в тёмной теме светился бы белым.
-    {% endcomment %}
-    <svg class="home-er" viewBox="0 0 420 300" role="img"
-         aria-label="Схема учебной базы: таблицы groups, students и marks, связанные внешними ключами">
-      <g class="home-er-box">
-        <rect x="8" y="16" width="150" height="92" rx="6" />
-        <text class="home-er-name" x="20" y="38">groups</text>
-        <line x1="8" y1="48" x2="158" y2="48" />
-        <text class="home-er-field" x="20" y="66">id</text>
-        <text class="home-er-field" x="20" y="84">name</text>
-        <text class="home-er-field" x="20" y="102">curator</text>
-      </g>
-
-      <g class="home-er-box">
-        <rect x="236" y="16" width="170" height="110" rx="6" />
-        <text class="home-er-name" x="248" y="38">students</text>
-        <line x1="236" y1="48" x2="406" y2="48" />
-        <text class="home-er-field" x="248" y="66">id</text>
-        <text class="home-er-field" x="248" y="84">full_name</text>
-        <text class="home-er-field" x="248" y="102">group_id</text>
-        <text class="home-er-field" x="248" y="120">xp</text>
-      </g>
-
-      <g class="home-er-box">
-        <rect x="150" y="186" width="170" height="110" rx="6" />
-        <text class="home-er-name" x="162" y="208">marks</text>
-        <line x1="150" y1="218" x2="320" y2="218" />
-        <text class="home-er-field" x="162" y="236">id</text>
-        <text class="home-er-field" x="162" y="254">student_id</text>
-        <text class="home-er-field" x="162" y="272">subject</text>
-        <text class="home-er-field" x="162" y="290">mark</text>
-      </g>
-
-      {% comment %}Связи: students.group_id → groups.id и marks.student_id → students.id{% endcomment %}
-      <path class="home-er-line" d="M158 96 H 200 V 102 H 236" />
-      <path class="home-er-line" d="M321 126 V 160 H 235 V 186" />
-      <circle class="home-er-dot" cx="158" cy="96" r="3" />
-      <circle class="home-er-dot" cx="236" cy="102" r="3" />
-      <circle class="home-er-dot" cx="321" cy="126" r="3" />
-      <circle class="home-er-dot" cx="235" cy="186" r="3" />
-    </svg>
   </section>
 
   {% if goals or outcomes %}
-    <section class="home-cols">
-      {% if goals %}
-        <div>
-          <h2 class="section-title">Цели курса</h2>
-          <ul class="plain-list">
-            {% for item in goals %}<li>{{ item }}</li>{% endfor %}
-          </ul>
-        </div>
-      {% endif %}
-      {% if outcomes %}
-        <div>
-          <h2 class="section-title">Что вы научитесь делать</h2>
-          <ul class="plain-list">
-            {% for item in outcomes %}<li>{{ item }}</li>{% endfor %}
-          </ul>
-        </div>
-      {% endif %}
-    </section>
+    <div class="container">
+      <section class="home-cols">
+        {% if goals %}
+          <div>
+            <h2 class="section-title">Цели курса</h2>
+            <ul class="plain-list">
+              {% for item in goals %}<li>{{ item }}</li>{% endfor %}
+            </ul>
+          </div>
+        {% endif %}
+        {% if outcomes %}
+          <div>
+            <h2 class="section-title">Что вы научитесь делать</h2>
+            <ul class="plain-list">
+              {% for item in outcomes %}<li>{{ item }}</li>{% endfor %}
+            </ul>
+          </div>
+        {% endif %}
+      </section>
+    </div>
   {% elif user.is_staff %}
     {% comment %}
     Заглушка видна только сотруднику (бриф §8): гостю пустой раздел ни о чём не
     говорит, а тому, кто может заполнить, нужно знать, где именно.
     {% endcomment %}
-    <section class="home-cols">
-      <div class="note">
-        <p class="note-title">Цели курса и «Чему научитесь» не заполнены</p>
-        <p>
-          Поля «цели курса» и «чему научится студент» у курса «{{ course.title }}»
-          пустые, поэтому раздел скрыт от студентов. Заполнить — в админке,
-          по пункту на строку.
+    <div class="container">
+      <section class="home-cols">
+        <div class="note">
+          <p class="note-title">Цели курса и «Чему научитесь» не заполнены</p>
+          <p>
+            Поля «цели курса» и «чему научится студент» у курса «{{ course.title }}»
+            пустые, поэтому раздел скрыт от студентов. Заполнить — в админке,
+            по пункту на строку.
+          </p>
+        </div>
+      </section>
+    </div>
+  {% endif %}
+
+  {% comment %}
+  Таблицы и запрос настоящие: это учебный набор «Университет» из static/js/sql/datasets.js,
+  тот же, что студент откроет в тренажёре. Результат запроса сверяет с набором тест
+  HomeSampleQueryTests: если набор изменится, тест подскажет обновить этот блок.
+  {% endcomment %}
+  <section class="home-lab">
+    <div class="container">
+      <div class="home-lab-head">
+        <div>
+          <h2 class="home-section-title">Тренажёр</h2>
+          <p class="home-lab-lead">
+            Настоящий PostgreSQL работает прямо в браузере, устанавливать ничего не нужно.
+            Учебный набор «Университет»: группы, студенты, оценки.
+          </p>
+        </div>
+        <a class="btn btn-primary" href="{% url 'core:trainer' %}">Открыть тренажёр</a>
+      </div>
+
+      <ul class="table-cards">
+        <li class="table-card">
+          <h3 class="table-card-name">groups</h3>
+          <ul class="table-card-fields">
+            <li><span>id</span><span class="table-card-type">integer</span></li>
+            <li><span>name</span><span class="table-card-type">text</span></li>
+            <li><span>curator</span><span class="table-card-type">text</span></li>
+          </ul>
+          <span class="card-hole" aria-hidden="true"></span>
+        </li>
+        <li class="table-card">
+          <svg class="table-card-link" height="82" viewBox="0 0 72 82" aria-hidden="true"><path d="M72 81H36V1H0" /></svg>
+          <h3 class="table-card-name">students</h3>
+          <ul class="table-card-fields">
+            <li><span>id</span><span class="table-card-type">integer</span></li>
+            <li><span>full_name</span><span class="table-card-type">text</span></li>
+            <li><span>group_id</span><span class="table-card-type">integer</span><span class="table-card-ref">см. groups</span></li>
+            <li><span>xp</span><span class="table-card-type">integer</span></li>
+          </ul>
+          <span class="card-hole" aria-hidden="true"></span>
+        </li>
+        <li class="table-card">
+          <svg class="table-card-link" height="42" viewBox="0 0 72 42" aria-hidden="true"><path d="M72 41H36V1H0" /></svg>
+          <h3 class="table-card-name">marks</h3>
+          <ul class="table-card-fields">
+            <li><span>id</span><span class="table-card-type">serial</span></li>
+            <li><span>student_id</span><span class="table-card-type">integer</span><span class="table-card-ref">см. students</span></li>
+            <li><span>subject</span><span class="table-card-type">text</span></li>
+            <li><span>mark</span><span class="table-card-type">integer</span></li>
+            <li><span>taken_on</span><span class="table-card-type">date</span></li>
+          </ul>
+          <span class="card-hole" aria-hidden="true"></span>
+        </li>
+      </ul>
+
+      <article class="query-card">
+        <h3 class="query-card-title">Средний балл по базам данных в каждой группе</h3>
+        <div class="query-card-body">
+          <pre class="query-card-sql">SELECT g.name, round(avg(m.mark), 2) AS avg_mark
+FROM marks m
+JOIN students s ON s.id = m.student_id
+JOIN groups g ON g.id = s.group_id
+WHERE m.subject = 'Базы данных'
+GROUP BY g.name
+ORDER BY avg_mark DESC;</pre>
+          <div class="query-card-result">
+            <table class="query-table">
+              <thead>
+                <tr><th scope="col">name</th><th scope="col" class="is-number">avg_mark</th></tr>
+              </thead>
+              <tbody>
+                <tr><td>ПИ-101</td><td class="is-number">4.00</td></tr>
+                <tr><td>МО-201</td><td class="is-number">3.75</td></tr>
+                <tr><td>ПИ-102</td><td class="is-number">3.50</td></tr>
+              </tbody>
+            </table>
+            <p class="query-card-note">Группировка разбирается в модуле&nbsp;6, соединения в модуле&nbsp;7.</p>
+          </div>
+        </div>
+        <span class="card-hole" aria-hidden="true"></span>
+      </article>
+    </div>
+  </section>
+
+  {% if other_courses %}
+    <section class="home-catalog">
+      <div class="container">
+        <h2 class="home-section-title">Каталог</h2>
+        <p class="home-catalog-lead">
+          Кроме этого курса в каталоге ещё {{ other_courses }}:
+          <a class="text-link" href="{% url 'courses:catalog' %}">смотреть каталог</a>.
         </p>
+        <ul class="drawer-grid">
+          <li>
+            <div class="catalog-drawer is-open">
+              <span class="catalog-drawer-label">
+                <span class="catalog-drawer-title">{{ course.title }}</span>
+                <span class="catalog-drawer-meta">открыт выше</span>
+              </span>
+              <span class="catalog-drawer-handle" aria-hidden="true"></span>
+            </div>
+          </li>
+          {% for other in other_course_list %}
+            <li>
+              <a class="catalog-drawer" href="{% url 'courses:course_detail' other.slug %}">
+                <span class="catalog-drawer-label">
+                  <span class="catalog-drawer-title">{{ other.title }}</span>
+                  <span class="catalog-drawer-meta">{{ other.semester|default:"" }}</span>
+                </span>
+                <span class="catalog-drawer-handle" aria-hidden="true"></span>
+              </a>
+            </li>
+          {% endfor %}
+        </ul>
       </div>
     </section>
   {% endif %}
-
-  <section class="home-modules">
-    <h2 class="section-title">Программа курса</h2>
-    <ol class="module-grid">
-      {% for module in modules %}
-        <li class="module-item">
-          <a href="{% url 'courses:course_detail' course.slug %}#module-{{ module.order_index }}">
-            <span class="module-item-title">{{ module.title }}</span>
-            <span class="module-item-meta">
-              неделя {{ module.week_number|default:"—" }} ·
-              {{ module.lesson_count }} {{ module.lesson_count|plural_ru:"урок,урока,уроков" }}
-            </span>
-          </a>
-        </li>
-      {% endfor %}
-    </ol>
-
-    {% if other_courses %}
-      <p class="home-more">
-        Кроме этого курса в каталоге ещё {{ other_courses }}:
-        <a class="text-link" href="{% url 'courses:catalog' %}">смотреть каталог</a>.
-      </p>
-    {% endif %}
-  </section>
   {% else %}
     <section class="home-empty">
       <h1 class="home-title">DataEdu</h1>
