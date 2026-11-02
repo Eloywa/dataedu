@@ -164,6 +164,7 @@ def _collect_user_data(user):
         "учётная_запись": {
             "логин": user.username,
             "отображаемое_имя": user.display_name,
+            "аватарка": user.avatar,
             "email": user.email,
             "роль": user.role.name if user.role else None,
             "xp": user.xp,
@@ -218,6 +219,14 @@ def _collect_user_data(user):
                 "отправлено": s.submitted_at.isoformat() if s.submitted_at else None,
             }
             for s in user.submissions.select_related("assignment")
+        ],
+        "билеты_итогового_проекта": [
+            {
+                "курс": d.course.title,
+                "тема": d.topic.title,
+                "вытянут": d.drawn_at.isoformat() if d.drawn_at else None,
+            }
+            for d in user.project_draws.select_related("course", "topic")
         ],
         "рефлексии": [
             {

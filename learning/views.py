@@ -16,7 +16,7 @@ from django.views.decorators.http import require_POST
 
 from accounts.decorators import teacher_required
 from accounts.models import User
-from assessments.models import Assignment, Submission
+from assessments.models import Submission
 from gamification import services as gamification
 from gamification.levels import level_progress
 
@@ -223,9 +223,7 @@ def student(request, user_id):
             "project_defended": any(
                 a["code"] == "project_defender" and a["earned"] for a in achievements
             ),
-            "final_assignment": Assignment.objects.filter(
-                is_final=True, course__in=reports.visible_courses(request.user)
-            ).first(),
+            "final_assignment": reports.final_assignment_for(request.user, person),
             "error": request.GET.get("error"),
         },
     )
@@ -236,17 +234,15 @@ def student(request, user_id):
 def defend_project(request, user_id):
     """Зачесть защиту итогового проекта: оценённая сдача + достижение.
 
-    Итоговое задание берётся только из курсов этого преподавателя — зачесть защиту
-    по чужой дисциплине нельзя.
+    Итоговое задание берётся только из курсов этого преподавателя, на которые записан
+    студент: зачесть защиту по чужой дисциплине нельзя.
     """
     person = get_object_or_404(User, pk=user_id)
     target = reverse("teaching:student", args=[person.pk])
     if not reports.is_my_student(request.user, person):
         raise Http404("Студент не найден")
 
-    assignment = Assignment.objects.filter(
-        is_final=True, course__in=reports.visible_courses(request.user)
-    ).first()
+    assignment = reports.final_assignment_for(request.user, person)
     if assignment is None:
         return redirect(f"{target}?error=Итоговое задание не найдено")
 

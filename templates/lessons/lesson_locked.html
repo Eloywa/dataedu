@@ -13,9 +13,9 @@
         <path d="M8 11V7a4 4 0 0 1 8 0v4" />
       </svg>
     </div>
-    <h1 class="section-h" style="margin-top: 10px">Урок пока закрыт</h1>
+    <h1 class="section-h" style="margin-top: 10px">{% if is_task %}Задание пока закрыто{% else %}Урок пока закрыт{% endif %}</h1>
     <p class="page-sub">
-      Он откроется после завершения
+      {% if is_task %}Оно{% else %}Он{% endif %} откроется после завершения
       {% if prev_module %}недели «{{ prev_module.title }}»{% else %}предыдущей недели{% endif %}.
     </p>
     <a class="btn btn-primary" href="{% url 'courses:course_detail' course.slug %}">К программе курса →</a>

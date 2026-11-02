@@ -1,17 +1,23 @@
 {% extends "base.html" %}
+{% load account_extras %}
 {% block title %}{{ person.label }} — DataEdu{% endblock %}
 
 {% block content %}
 <main class="container page">
   <a href="{% url 'teaching:dashboard' %}" class="back-link">← К панели</a>
 
-  <h1 class="page-title accent-ink">{{ person.label }}</h1>
-  <p class="page-sub">
-    <span>{{ person.username }}</span>
-    {% if person.role %} · {{ person.role.name }}{% endif %}
-    · уровень {{ level.level }} · {{ person.xp }} XP
-    · достижений {{ earned_count }} из {{ achievements|length }}
-  </p>
+  <div class="person-head">
+    {% avatar person "avatar-md" %}
+    <div>
+      <h1 class="page-title accent-ink">{{ person.label }}</h1>
+      <p class="page-sub">
+        <span>{{ person.username }}</span>
+        {% if person.role %} · {{ person.role.name }}{% endif %}
+        · уровень {{ level.level }} · {{ person.xp }} XP
+        · достижений {{ earned_count }} из {{ achievements|length }}
+      </p>
+    </div>
+  </div>
 
   {% if error %}<p class="chat-error" role="alert">{{ error }}</p>{% endif %}
 
@@ -36,6 +42,12 @@
   {% endif %}
 
   <h2 class="section-h">Итоговый проект</h2>
+  {% for draw in card.project_draws %}
+    <p class="page-sub">
+      Билет по курсу «{{ draw.course.title }}»: <strong>{{ draw.topic.title }}</strong>.
+      <a class="text-link" href="{% url 'admin:assessments_projectdraw_change' draw.pk %}">Заменить</a>
+    </p>
+  {% endfor %}
   {% if project_defended %}
     <p class="page-sub">Защита итогового проекта зачтена.</p>
   {% elif final_assignment %}

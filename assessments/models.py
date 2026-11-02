@@ -1,6 +1,7 @@
 import uuid
 
 from django.conf import settings
+from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils import timezone
 
@@ -226,6 +227,18 @@ class Assignment(models.Model):
         verbose_name="максимум баллов",
     )
     is_final = models.BooleanField(verbose_name="итоговое", default=False)
+    opens_after = models.ForeignKey(
+        "courses.Module",
+        on_delete=models.SET_NULL,
+        related_name="opened_assignments",
+        blank=True,
+        null=True,
+        verbose_name="билет открывается после блока",
+        help_text=(
+            "Для итогового проекта: студент вытянет билет, когда пройдёт все уроки этого "
+            "блока. Пусто — сразу после записи на курс."
+        ),
+    )
     created_at = models.DateTimeField(verbose_name="создано", default=timezone.now)
 
     objects = AssignmentQuerySet.as_manager()
@@ -241,6 +254,17 @@ class Assignment(models.Model):
 
     def __str__(self):
         return self.title
+
+    def clean(self):
+        """Урок и блок должны быть из того же курса, что и задание.
+
+        Иначе переход с урока вёл бы на задание чужого курса, а его балл считался бы в
+        ведомости совсем другой дисциплины.
+        """
+        if self.lesson_id and self.lesson.module.course_id != self.course_id:
+            raise ValidationError({"lesson": "Урок должен быть из курса этого задания."})
+        if self.opens_after_id and self.opens_after.course_id != self.course_id:
+            raise ValidationError({"opens_after": "Блок должен быть из курса этого задания."})
 
     @property
     def is_autocheckable(self):
@@ -301,3 +325,93 @@ class Submission(models.Model):
 
     def __str__(self):
         return f"{self.assignment_id} · {self.user_id} ({self.status})"
+
+
+class ProjectTopic(models.Model):
+    """Тема итогового проекта: то, что написано на билете.
+
+    Темы — не задания, и это принципиально. Ведомость суммирует баллы всех заданий курса,
+    поэтому двенадцать итоговых заданий обрушили бы отметку каждому студенту: выполнить он
+    может только одно. Итоговое задание остаётся одно, с общими требованиями и общей
+    сдачей, а тема лишь уточняет предметную область.
+    """
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    course = models.ForeignKey(
+        "courses.Course",
+        on_delete=models.CASCADE,
+        related_name="project_topics",
+        verbose_name="курс",
+    )
+    title = models.CharField(verbose_name="название", max_length=200)
+    description = models.TextField(verbose_name="предметная область и требования")
+    is_active = models.BooleanField(
+        verbose_name="в наборе",
+        default=True,
+        help_text="Снятая тема больше не выпадает, но остаётся у тех, кто её уже вытянул.",
+    )
+
+    class Meta:
+        verbose_name = "тема проекта"
+        verbose_name_plural = "темы проектов"
+        db_table = "project_topics"
+        ordering = ["title"]
+        constraints = [
+            models.UniqueConstraint(fields=["course", "title"], name="uniq_topic_title_per_course")
+        ]
+
+    def __str__(self):
+        return self.title
+
+
+class ProjectDraw(models.Model):
+    """Вытянутый билет: какая тема досталась студенту.
+
+    Один билет на студента в курсе держит уникальное ограничение, а не проверка в коде:
+    двойной щелчок и вторая вкладка приходят почти одновременно, и обе проверки успели бы
+    увидеть, что билета ещё нет.
+    """
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="project_draws",
+        verbose_name="студент",
+    )
+    course = models.ForeignKey(
+        "courses.Course",
+        on_delete=models.CASCADE,
+        related_name="project_draws",
+        verbose_name="курс",
+    )
+    # PROTECT: удаление темы молча отняло бы билет у студента, который по ней уже работает.
+    # Чтобы тема больше не выпадала, её снимают с набора.
+    topic = models.ForeignKey(
+        ProjectTopic, on_delete=models.PROTECT, related_name="draws", verbose_name="тема"
+    )
+    drawn_at = models.DateTimeField(verbose_name="вытянут", default=timezone.now)
+    changed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        related_name="changed_project_draws",
+        blank=True,
+        null=True,
+        verbose_name="заменил",
+    )
+    note = models.TextField(verbose_name="причина замены", blank=True)
+
+    class Meta:
+        verbose_name = "билет итогового проекта"
+        verbose_name_plural = "билеты итогового проекта"
+        db_table = "project_draws"
+        constraints = [
+            models.UniqueConstraint(fields=["user", "course"], name="uniq_draw_per_user_course")
+        ]
+
+    def __str__(self):
+        return f"{self.user} · {self.topic}"
+
+    def clean(self):
+        if self.topic_id and self.topic.course_id != self.course_id:
+            raise ValidationError({"topic": "Тема должна быть из этого же курса."})

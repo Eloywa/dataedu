@@ -56,6 +56,7 @@
                     <a href="{% url 'courses:lesson_detail' lesson.id %}" class="lesson-link">
                       <span class="lesson-check {% if lesson.done %}done{% endif %}">{% if lesson.done %}✓{% else %}○{% endif %}</span>
                       <span class="lesson-name">{{ lesson.title }}</span>
+                      {% if lesson.assignments.all %}<span class="lesson-task-tag">задание</span>{% endif %}
                       {% if lesson.est_minutes %}<span class="lesson-time">{{ lesson.est_minutes }} мин</span>{% endif %}
                     </a>
                   </li>
@@ -69,6 +70,25 @@
             {% endif %}
           </div>
         {% endfor %}
+
+        {% if final_task %}
+          <div class="module" id="final-project">
+            <div class="module-head">
+              <h2 class="module-title">Итоговый проект</h2>
+              {% if ticket.draw %}<span class="badge badge-success">билет вытянут</span>{% endif %}
+            </div>
+            {% if ticket.draw %}
+              <p class="module-desc">Ваша тема: {{ ticket.draw.topic.title }}.</p>
+            {% elif ticket.waits_for %}
+              <p class="module-desc">Билет с темой можно будет вытянуть после блока «{{ ticket.waits_for.title }}».</p>
+            {% elif ticket.can_draw %}
+              <p class="module-desc">Можно вытянуть билет с темой проекта.</p>
+            {% elif final_task.description %}
+              <p class="module-desc">{{ final_task.description }}</p>
+            {% endif %}
+            <a class="btn btn-ghost" href="{% url 'assessments:assignment_detail' final_task.id %}">Открыть итоговый проект</a>
+          </div>
+        {% endif %}
       </section>
 
       <section class="reviews">

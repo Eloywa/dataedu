@@ -170,7 +170,8 @@ core         главная, тренажёр, правовые страницы
 - **courses:** `Course` → `Module` → `Lesson`; `Topic` + `CourseTopic` (составной
   ключ); `CourseRating`.
 - **assessments:** `Test` → `Question` → `AnswerOption`; `TestAttempt` →
-  `AnswerSubmission`; `Assignment` → `Submission`.
+  `AnswerSubmission`; `Assignment` → `Submission`; `ProjectTopic` → `ProjectDraw`
+  (билет итогового проекта, один на студента в курсе).
 - **learning:** `Enrollment`, `StudyGroup`, `LessonProgress`, `Reflection`, `Activity`.
 - **gamification:** `Achievement`, `UserAchievement`.
 - **messaging:** `Message`.
@@ -491,11 +492,9 @@ runserver` должен работать на чужой машине без у�
 чем стилизация под консоль. Моноширинный шрифт остался там, где несёт смысл —
 SQL, код в теории, схема таблиц; как приём оформления его нет нигде.
 
-Шрифтов три, и у каждого своя работа: **Inter** — интерфейс и основной текст
-(крупный очковый размер, поэтому читается мелким кеглем в таблицах отчётов),
-**PT Serif** — заголовки (антиква отделяет теорию урока от интерфейса вокруг и
-уместна в вузовском контексте), **IBM Plex Mono** — SQL, код и схема таблиц.
-Все три лежат в проекте: платформа не делает внешних запросов, а в контуре без
+Шрифтов два: **Montserrat** — интерфейс, текст и заголовки, **IBM Plex Mono** — SQL, код
+и схема таблиц.
+Оба лежат в проекте: платформа не делает внешних запросов, а в контуре без
 доступа наружу обращение к `fonts.googleapis.com` виснет на каждой загрузке.
 
 Подмножества разделены по `unicode-range`, поэтому русская страница не скачивает

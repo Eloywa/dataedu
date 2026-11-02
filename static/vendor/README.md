@@ -57,7 +57,12 @@ grep -o 'from"\./[^"]*"' static/vendor/pglite/index.js | sort -u
 
 ---
 
-## fonts/ — Geist, Space Grotesk, Manrope, IBM Plex Mono (SIL OFL 1.1)
+## fonts/ — Montserrat и IBM Plex Mono (SIL OFL 1.1)
+
+Рабочие семейства: **Montserrat** (интерфейс и текст, 16 файлов `woff2`, 188 КБ, взяты из
+`@fontsource/montserrat` 5.0.19, лицензия рядом: `montserrat-OFL.txt`) и **IBM Plex Mono**
+(код). Остальные файлы в каталоге остались от прежних вариантов оформления и на страницах
+не используются. Описание ниже относится к ним.
 
 22 файла `woff2` (~364 КБ) и `fonts.css` с правилами `@font-face`, снятыми с
 Google Fonts вместе с `unicode-range` — поэтому браузер по-прежнему качает только

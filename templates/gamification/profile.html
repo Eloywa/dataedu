@@ -1,79 +1,137 @@
 {% extends "base.html" %}
-{% block title %}Мой прогресс — DataEdu{% endblock %}
+{% load account_extras %}
+{% block title %}Профиль — DataEdu{% endblock %}
 
 {% block content %}
 <main class="container page">
-  <h1 class="page-title">Мой прогресс</h1>
-  <p class="page-sub">{{ user.label }}{% if user.role %} · {{ user.role.name }}{% endif %}</p>
+  {% if saved %}<div class="form-ok" role="status">Профиль сохранён.</div>{% endif %}
 
   <div class="progress-layout">
     <div class="progress-main">
-      <section class="level-card">
-        <div class="level-top">
-          <div>
-            <div class="small-label">уровень</div>
-            <div class="level-num accent-ink">{{ progress.level }}<span class="level-max">/{{ max_level }}</span></div>
+      <section class="profile-card" aria-labelledby="profile-name">
+        <div class="profile-head">
+          {% avatar user "avatar-lg" %}
+          <div class="profile-who">
+            <h1 class="profile-name" id="profile-name">{{ user.label }}</h1>
+            <p class="profile-meta">
+              <span>{{ user.username }}</span>{% if user.role %} · {{ user.role.name }}{% endif %}{% if user.created_at %} · на платформе с {{ user.created_at|date:"j E Y" }}{% endif %}
+            </p>
+            <a class="profile-settings" href="{% url 'accounts:settings' %}">Пароль и мои данные</a>
           </div>
-          <div class="level-xp">{{ progress.xp }} XP</div>
         </div>
-        <div class="progress-bar"><span style="width: {{ progress.pct }}%"></span></div>
-        <div class="progress-label">
-          {% if progress.is_max %}Максимальный уровень достигнут
-          {% else %}До уровня {{ progress.level|add:1 }} — ещё {{ progress.to_next }} XP{% endif %}
+
+        {% comment %}
+        Форма свёрнута нативным <details>: профиль открывают посмотреть чаще, чем менять, и
+        работать это должно без скриптов. При ошибке она остаётся раскрытой, иначе сообщение
+        об ошибке оказалось бы спрятано.
+        {% endcomment %}
+        <details class="profile-edit"{% if error %} open{% endif %}>
+          <summary class="btn btn-ghost">Изменить профиль</summary>
+          <form method="post" class="profile-form">
+            {% csrf_token %}
+            {% if error %}<div class="form-error" role="alert">{{ error }}</div>{% endif %}
+            <div class="field">
+              <label for="display_name">отображаемое имя <span class="field-opt">— необязательно</span></label>
+              <input id="display_name" name="display_name" type="text" maxlength="200"
+                     value="{{ form_name }}" placeholder="{{ user.username }}" />
+              <p class="field-hint">
+                Можно псевдоним: настоящее имя и фамилию указывать не нужно. Если оставить
+                пустым, будет показан логин.
+              </p>
+            </div>
+            <fieldset class="avatar-picker">
+              <legend class="small-label">аватарка</legend>
+              <div class="avatar-options">
+                <label class="avatar-option">
+                  <input type="radio" name="avatar" value=""{% if not form_avatar %} checked{% endif %} />
+                  <span class="avatar avatar-md" aria-hidden="true">{{ user.label|first|upper }}</span>
+                  <span class="avatar-caption">Буква</span>
+                </label>
+                {% for a in avatars %}
+                  <label class="avatar-option">
+                    <input type="radio" name="avatar" value="{{ a.key }}"{% if form_avatar == a.key %} checked{% endif %} />
+                    <span class="avatar avatar-md" aria-hidden="true"><svg viewBox="0 0 48 48" class="drawn-icon" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">{{ a.icon }}</svg></span>
+                    <span class="avatar-caption">{{ a.label }}</span>
+                  </label>
+                {% endfor %}
+              </div>
+            </fieldset>
+            <button class="btn btn-primary" type="submit">Сохранить</button>
+          </form>
+        </details>
+
+        <div class="profile-level">
+          <div class="profile-level-row">
+            <span class="profile-level-num">Уровень {{ progress.level }} из {{ max_level }}</span>
+            <span class="profile-xp">{{ progress.xp }} XP</span>
+          </div>
+          <div class="progress-bar" role="progressbar" aria-valuenow="{{ progress.pct }}" aria-valuemin="0"
+               aria-valuemax="100" aria-label="Прогресс до следующего уровня">
+            <span style="width: {{ progress.pct }}%"></span>
+          </div>
+          <div class="progress-label">
+            {% if progress.is_max %}Максимальный уровень достигнут
+            {% else %}До уровня {{ progress.level|add:1 }} ещё {{ progress.to_next }} XP{% endif %}
+          </div>
         </div>
+
+        <dl class="profile-stats">
+          <div><dt class="stat-cap">уроков пройдено</dt><dd class="stat-num">{{ stats.lessons }}</dd></div>
+          <div><dt class="stat-cap">тестов сдано</dt><dd class="stat-num">{{ stats.tests }}</dd></div>
+          <div><dt class="stat-cap">заданий решено</dt><dd class="stat-num">{{ stats.assignments }}</dd></div>
+          <div><dt class="stat-cap">запросов в тренажёре</dt><dd class="stat-num">{{ stats.queries }}</dd></div>
+        </dl>
+        <span class="card-hole" aria-hidden="true"></span>
       </section>
 
-      <section class="stat-row">
-        <div class="stat-tile">
-          <div class="stat-num">{{ stats.lessons }}</div>
-          <div class="stat-cap">уроков пройдено</div>
-        </div>
-        <div class="stat-tile">
-          <div class="stat-num">{{ stats.tests }}</div>
-          <div class="stat-cap">тестов сдано</div>
-        </div>
-        <div class="stat-tile">
-          <div class="stat-num">{{ stats.assignments }}</div>
-          <div class="stat-cap">заданий решено</div>
-        </div>
-        <div class="stat-tile">
-          <div class="stat-num">{{ stats.queries }}</div>
-          <div class="stat-cap">запросов в тренажёре</div>
-        </div>
-      </section>
-
-      <section>
-        <h2 class="section-h">Достижения <span class="ach-count">{{ earned_count }}/{{ achievements|length }}</span></h2>
-        <div class="ach-grid">
+      <section aria-labelledby="achievements-title">
+        <h2 class="section-h" id="achievements-title">
+          Достижения <span class="ach-count">{{ earned_count }} из {{ achievements|length }}</span>
+        </h2>
+        <ul class="ach-shelf">
           {% for a in achievements %}
-            <div class="ach-tile {% if a.earned %}earned{% endif %}">
-              <div class="ach-icon" aria-hidden="true">{{ a.glyph }}</div>
-              {% comment %}
-              Текст — одной колонкой рядом со значком. Когда название, описание, XP и
-              дата стояли отдельными элементами в ряд, на каждый приходилось по паре
-              десятков пикселей, и слова ломались посимвольно.
-              {% endcomment %}
+            <li class="ach{% if a.earned %} earned{% endif %}">
+              <span class="ach-seal" aria-hidden="true"><svg viewBox="0 0 48 48" class="drawn-icon" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">{{ a.badge }}</svg></span>
               <div class="ach-body">
                 <div class="ach-title">{{ a.title }}</div>
                 {% if a.description %}<div class="ach-desc">{{ a.description }}</div>{% endif %}
                 <div class="ach-foot">
-                  <span class="ach-xp">+{{ a.xp_reward }} XP</span>
-                  {% if a.earned %}
-                    <span class="ach-date">{{ a.awarded_at|date:"j M Y" }}</span>
-                  {% else %}
-                    <span class="status status-locked">Закрыто</span>
-                  {% endif %}
+                  +{{ a.xp_reward }} XP{% if a.earned %} · {{ a.awarded_at|date:"j E Y" }}{% else %}<span class="visually-hidden">, пока не получено</span>{% endif %}
                 </div>
               </div>
-            </div>
+            </li>
           {% endfor %}
-        </div>
+        </ul>
+      </section>
+
+      <section aria-labelledby="courses-title">
+        <h2 class="section-h" id="courses-title">Мои курсы</h2>
+        {% if courses %}
+          <ul class="profile-courses">
+            {% for row in courses %}
+              <li class="profile-course">
+                <a class="profile-course-title" href="{% url 'courses:course_detail' row.course.slug %}">{{ row.course.title }}</a>
+                <div class="progress-row">
+                  <div class="progress-bar" role="progressbar" aria-valuenow="{{ row.pct }}" aria-valuemin="0"
+                       aria-valuemax="100" aria-label="Прогресс по курсу">
+                    <span style="width: {{ row.pct }}%"></span>
+                  </div>
+                  <span class="progress-label">{{ row.done }} из {{ row.total }}</span>
+                </div>
+                {% if row.topic %}<p class="profile-course-note">Билет итогового проекта: {{ row.topic }}</p>{% endif %}
+                {% if row.finished %}<a class="profile-course-note text-link" href="{% url 'courses:certificate' row.course.slug %}">Сертификат</a>{% endif %}
+              </li>
+            {% endfor %}
+          </ul>
+        {% else %}
+          <p class="page-sub">Вы пока не записаны на курсы. Выберите первый в <a class="text-link" href="{% url 'courses:catalog' %}">каталоге</a>.</p>
+        {% endif %}
       </section>
     </div>
 
     <aside class="course-side">
       <div class="side-card">
-        <h3 class="side-title">Лента активности</h3>
+        <h2 class="side-title">Лента активности</h2>
         {% for group in activity %}
           <div class="feed-day">
             <div class="feed-date">{{ group.day }}</div>

@@ -149,14 +149,24 @@ class PracticeListTests(TestCase):
         self.student = f.student()
         self.url = reverse("assessments:practice")
 
-    def test_autocheckable_and_manual_are_separated(self):
-        auto = f.assignment(self.course, auto=True)
-        manual = f.assignment(self.course, auto=False)
+    def tasks_on_page(self, response):
+        """Все задания со страницы одним списком, как бы они ни были разложены."""
+        found = []
+        for group in response.context["groups"]:
+            found += group["finals"] + group["loose"]
+            for block in group["blocks"]:
+                for row in block["lessons"]:
+                    found += row["tasks"]
+        return found
+
+    def test_who_checks_the_task_is_shown(self):
+        f.assignment(self.course, auto=True)
+        f.assignment(self.course, auto=False)
 
         self.client.force_login(self.student)
         response = self.client.get(self.url)
-        self.assertEqual([a.pk for a in response.context["assignments"]], [auto.pk])
-        self.assertEqual([a.pk for a in response.context["manual_assignments"]], [manual.pk])
+        self.assertContains(response, "автопроверка")
+        self.assertContains(response, "проверяет преподаватель")
 
     def test_sql_task_without_reference_is_manual(self):
         """Иначе студент получал бы редактор, кнопка в котором отвечает ошибкой."""
@@ -172,7 +182,8 @@ class PracticeListTests(TestCase):
         )
         self.client.force_login(self.student)
         response = self.client.get(self.url)
-        self.assertIn(task.pk, [a.pk for a in response.context["manual_assignments"]])
+        shown = next(a for a in self.tasks_on_page(response) if a.pk == task.pk)
+        self.assertFalse(shown.is_autocheckable)
 
     def test_solved_task_is_marked(self):
         task = f.assignment(self.course, auto=True)
@@ -180,14 +191,14 @@ class PracticeListTests(TestCase):
 
         self.client.force_login(self.student)
         response = self.client.get(self.url)
-        self.assertTrue(response.context["assignments"][0].is_solved)
+        self.assertEqual(self.tasks_on_page(response)[0].state["label"], "решено")
 
     def test_draft_course_tasks_are_hidden(self):
         draft = f.course(published=False)
         task = f.assignment(draft, auto=True)
         self.client.force_login(self.student)
         response = self.client.get(self.url)
-        self.assertNotIn(task.pk, [a.pk for a in response.context["assignments"]])
+        self.assertNotIn(task.pk, [a.pk for a in self.tasks_on_page(response)])
         self.assertEqual(
             self.client.get(reverse("assessments:assignment_detail", args=[task.pk])).status_code,
             404,

@@ -19,6 +19,35 @@ class HomeTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "core/home.html")
 
+    def test_guest_home_puts_modules_on_their_weeks(self):
+        course, _ = f.course_with_lessons(lessons=1)
+        f.module(course, order_index=5, week_number=12, title="Модуль двенадцатой недели")
+
+        response = self.client.get(self.url)
+        self.assertContains(response, "--week: 12")
+        self.assertEqual(response.context["weeks_span"], 11)
+        last = response.context["week_ticks"][-1]
+        self.assertEqual(last, {"week": 12, "label": True})
+
+    def test_module_without_a_week_stands_at_the_start(self):
+        course, _ = f.course_with_lessons(lessons=1)
+        course.modules.update(week_number=None)
+
+        response = self.client.get(self.url)
+        self.assertContains(response, "--week: 1;")
+        self.assertContains(response, "неделя —")
+
+    def test_guest_home_lists_other_published_courses(self):
+        f.course_with_lessons(lessons=3)
+        other = f.course(title="Соседний курс")
+        draft = f.course(title="Черновик курса", published=False)
+
+        response = self.client.get(self.url)
+        self.assertContains(response, other.title)
+        self.assertContains(response, reverse("courses:course_detail", args=[other.slug]))
+        self.assertNotContains(response, draft.title)
+        self.assertEqual(response.context["other_courses"], 1)
+
     def test_teacher_sees_the_teacher_home(self):
         self.client.force_login(f.teacher())
         self.assertTemplateUsed(self.client.get(self.url), "core/home_teacher.html")

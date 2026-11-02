@@ -1,0 +1,48 @@
+{% load plural %}
+{% comment %}
+Билет итогового проекта. До жребия студент видит только число тем: иначе он выбирал бы
+удобную и тянул, пока не выпадет. Тему выбирает сервер, а движение карточки лишь показывает
+уже готовый результат.
+{% endcomment %}
+{% if ticket.draw %}
+  <section class="ticket{% if just_drawn %} is-new{% endif %}" aria-labelledby="ticket-title">
+    <div class="ticket-band">
+      <span>Ваш билет</span>
+      <span>вытянут {{ ticket.draw.drawn_at|date:"d.m.Y" }}</span>
+    </div>
+    <div class="ticket-body">
+      <h2 class="ticket-title" id="ticket-title">{{ ticket.draw.topic.title }}</h2>
+      <p class="ticket-text">{{ ticket.draw.topic.description }}</p>
+      {% if ticket.draw.note %}<p class="ticket-note">Заменён преподавателем: {{ ticket.draw.note }}</p>{% endif %}
+    </div>
+    <span class="card-hole" aria-hidden="true"></span>
+  </section>
+{% elif user.is_teacher %}
+  <div class="note work-state">
+    <p class="note-title">В наборе {{ ticket.pool }} {{ ticket.pool|plural_ru:"тема,темы,тем" }}</p>
+    <p>
+      Студенты тянут билет сами. Темы и то, как они разошлись, видно в
+      <a class="text-link" href="{% url 'admin:assessments_projecttopic_changelist' %}">админке</a>.
+    </p>
+  </div>
+{% elif ticket.can_draw %}
+  <div class="ticket-stack">
+    <section class="ticket ticket-draw" aria-labelledby="ticket-title">
+      <div class="ticket-band"><span>Билет итогового проекта</span></div>
+      <div class="ticket-body">
+        <h2 class="ticket-title" id="ticket-title">В ящике {{ ticket.pool }} {{ ticket.pool|plural_ru:"тема,темы,тем" }}</h2>
+        <p class="ticket-text">Тема выбирается случайно и один раз. Заменить её может только преподаватель.</p>
+        <form method="post" action="{% url 'assessments:draw_ticket' assignment.id %}">
+          {% csrf_token %}
+          <button class="btn btn-primary" type="submit">Вытянуть билет</button>
+        </form>
+      </div>
+      <span class="card-hole" aria-hidden="true"></span>
+    </section>
+  </div>
+{% elif ticket.waits_for %}
+  <div class="note work-state">
+    <p class="note-title">Билет пока закрыт</p>
+    <p>Вытянуть тему можно будет после блока «{{ ticket.waits_for.title }}».</p>
+  </div>
+{% endif %}

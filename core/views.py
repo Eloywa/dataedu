@@ -55,12 +55,25 @@ def home(request):
                 .first()
             )
 
+        # Шкала недель над разделителями модулей: длина берётся из самого курса.
+        last_week = max((module.week_number or 1 for module in modules), default=1)
+        others = list(
+            Course.objects.filter(is_published=True)
+            .exclude(pk=course.pk if course else None)
+            .order_by("title")
+        )
+
         return render(
             request,
             "core/home.html",
             {
                 "course": course,
                 "modules": modules,
+                "weeks_span": max(last_week - 1, 1),
+                "week_ticks": [
+                    {"week": week, "label": week == 1 or week % 5 == 0 or week == last_week}
+                    for week in range(1, last_week + 1)
+                ],
                 "first_lesson": first_lesson,
                 "goals": lines(course.goals if course else ""),
                 "outcomes": lines(course.learning_outcomes if course else ""),
@@ -70,9 +83,8 @@ def home(request):
                 "test_count": Test.objects.filter(lesson__module__course=course).count()
                 if course
                 else 0,
-                "other_courses": Course.objects.filter(is_published=True)
-                .exclude(pk=course.pk if course else None)
-                .count(),
+                "other_courses": len(others),
+                "other_course_list": others,
             },
         )
 

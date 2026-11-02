@@ -1,6 +1,7 @@
 import json
 
 from django.contrib import admin, messages
+from django.db.models import Count
 from django.http import Http404, JsonResponse
 from django.shortcuts import redirect
 from django.urls import path, reverse
@@ -12,7 +13,7 @@ from core.admin_utils import OwnedAdmin
 from core.plural import plural_ru
 
 from .expected import ExpectedError, compute_and_save
-from .models import AnswerOption, Assignment, Question, Test
+from .models import AnswerOption, Assignment, ProjectDraw, ProjectTopic, Question, Test
 
 
 def rows_cols_summary(n_rows, n_cols):
@@ -88,7 +89,7 @@ class AssignmentAdmin(OwnedAdmin):
 
     fieldsets = (
         (None, {"fields": ("course", "lesson", "title", "description")}),
-        ("Параметры", {"fields": ("level", "type", "max_score", "is_final")}),
+        ("Параметры", {"fields": ("level", "type", "max_score", "is_final", "opens_after")}),
         (
             "Автопроверка (для type = sql)",
             {
@@ -258,14 +259,73 @@ class AssignmentAdmin(OwnedAdmin):
             self.message_user(request, f"Не удалось — {line}", messages.ERROR)
 
     def formfield_for_foreignkey(self, db_field, request, **kwargs):
-        if not request.user.is_superuser and db_field.name in ("course", "lesson"):
+        if not request.user.is_superuser and db_field.name in ("course", "lesson", "opens_after"):
             # Импорт внутри метода — courses и assessments ссылаются друг на друга
             # моделями, и импорт на уровне модуля замкнул бы круг.
-            from courses.models import Course, Lesson
+            from courses.models import Course, Lesson, Module
 
             mine = Course.objects.authored_by(request.user)
             if db_field.name == "course":
                 kwargs["queryset"] = mine
-            else:
+            elif db_field.name == "lesson":
                 kwargs["queryset"] = Lesson.objects.filter(module__course__in=mine)
+            else:
+                kwargs["queryset"] = Module.objects.filter(course__in=mine)
         return super().formfield_for_foreignkey(db_field, request, **kwargs)
+
+
+@admin.register(ProjectTopic)
+class ProjectTopicAdmin(OwnedAdmin):
+    """Темы итогового проекта. Счётчик показывает, как разошлись билеты."""
+
+    course_path = "course"
+    list_display = ("title", "course", "is_active", "draws_count")
+    list_filter = ("is_active", "course")
+    search_fields = ("title", "description")
+
+    def get_queryset(self, request):
+        return super().get_queryset(request).annotate(draws_total=Count("draws"))
+
+    @admin.display(description="вытянули", ordering="draws_total")
+    def draws_count(self, obj):
+        return obj.draws_total
+
+    def formfield_for_foreignkey(self, db_field, request, **kwargs):
+        if not request.user.is_superuser and db_field.name == "course":
+            from courses.models import Course
+
+            kwargs["queryset"] = Course.objects.authored_by(request.user)
+        return super().formfield_for_foreignkey(db_field, request, **kwargs)
+
+
+@admin.register(ProjectDraw)
+class ProjectDrawAdmin(OwnedAdmin):
+    """Вытянутые билеты. Создаёт их только жребий, преподаватель может заменить тему."""
+
+    course_path = "course"
+    list_display = ("student", "course", "topic", "drawn_at", "changed_by")
+    list_select_related = ("user", "course", "topic", "changed_by")
+    list_filter = ("course", "topic")
+    fields = ("user", "course", "topic", "note", "drawn_at", "changed_by")
+    readonly_fields = ("user", "course", "drawn_at", "changed_by")
+
+    @admin.display(description="студент")
+    def student(self, obj):
+        return obj.user.label
+
+    def has_add_permission(self, request):
+        return False
+
+    def formfield_for_foreignkey(self, db_field, request, **kwargs):
+        if not request.user.is_superuser and db_field.name == "topic":
+            from courses.models import Course
+
+            kwargs["queryset"] = ProjectTopic.objects.filter(
+                course__in=Course.objects.authored_by(request.user)
+            )
+        return super().formfield_for_foreignkey(db_field, request, **kwargs)
+
+    def save_model(self, request, obj, form, change):
+        if change and "topic" in form.changed_data:
+            obj.changed_by = request.user
+        super().save_model(request, obj, form, change)

@@ -10,6 +10,7 @@ from django.views.decorators.http import require_POST
 from courses.models import Lesson
 from gamification import services
 
+from . import projects, tasks
 from .grading import diagnose
 from .manual import read_answer
 from .models import AnswerSubmission, Assignment, Submission, TestAttempt
@@ -129,32 +130,30 @@ def practice(request):
     сразу показываются как «проверяет преподаватель» — платформа не предлагает того,
     чего не умеет.
     """
-    solved = set(
-        Submission.objects.filter(user=request.user, score__gte=1).values_list(
-            "assignment_id", flat=True
-        )
-    )
-    submitted = set(
-        Submission.objects.filter(user=request.user).values_list("assignment_id", flat=True)
-    )
-
-    auto, manual = [], []
-    tasks = Assignment.objects.visible_to(request.user).select_related("course")
-    for a in tasks.order_by("course__title", "title"):
-        a.is_solved = a.id in solved
-        a.is_submitted = a.id in submitted
-        (auto if a.is_autocheckable else manual).append(a)
-
     return render(
         request,
         "assessments/practice_list.html",
-        {"assignments": auto, "manual_assignments": manual},
+        {"groups": tasks.grouped_tasks(request.user)},
     )
 
 
 def _visible_assignment(request, assignment_id):
     return get_object_or_404(
-        Assignment.objects.visible_to(request.user).select_related("course"), id=assignment_id
+        Assignment.objects.visible_to(request.user).select_related(
+            "course", "lesson__module__course", "opens_after"
+        ),
+        id=assignment_id,
+    )
+
+
+def _is_locked(user, assignment):
+    """Задание закрытой недели закрыто вместе с уроком.
+
+    Иначе экран «урок закрыт» обходился бы прямой ссылкой на его задание, а балл за него
+    идёт в ведомость.
+    """
+    return assignment.lesson_id is not None and not services.lesson_unlocked(
+        user, assignment.lesson
     )
 
 
@@ -177,7 +176,21 @@ def _may_submit_work(user, assignment, last):
         return False
     if not services.may_track_progress(user, assignment.course):
         return False
+    ticket = projects.ticket_state(user, assignment)
+    if ticket and ticket["needs_draw"]:
+        return False
     return last is None or last.status != "graded"
+
+
+def _next_lesson(lesson):
+    """Следующий урок курса по порядку или None, если этот последний."""
+    ordered = list(
+        Lesson.objects.filter(module__course=lesson.module.course_id).order_by(
+            "module__order_index", "order_index"
+        )
+    )
+    index = next((i for i, item in enumerate(ordered) if item.id == lesson.id), None)
+    return ordered[index + 1] if index is not None and index + 1 < len(ordered) else None
 
 
 def _render_assignment(request, assignment, answer_text="", answer_error=None):
@@ -191,6 +204,9 @@ def _render_assignment(request, assignment, answer_text="", answer_error=None):
         {
             "assignment": assignment,
             "solved": solved,
+            "next_lesson": _next_lesson(assignment.lesson) if assignment.lesson_id else None,
+            "ticket": projects.ticket_state(request.user, assignment),
+            "just_drawn": request.GET.get("drawn") == "1",
             "last_submission": last,
             "can_submit": _may_submit_work(request.user, assignment, last),
             "is_participant": services.may_track_progress(request.user, assignment.course),
@@ -204,7 +220,32 @@ def _render_assignment(request, assignment, answer_text="", answer_error=None):
 
 @login_required
 def assignment_detail(request, assignment_id):
-    return _render_assignment(request, _visible_assignment(request, assignment_id))
+    assignment = _visible_assignment(request, assignment_id)
+    if _is_locked(request.user, assignment):
+        return render(
+            request,
+            "lessons/lesson_locked.html",
+            {
+                "course": assignment.course,
+                "lesson": assignment.lesson,
+                "prev_module": services.previous_module(assignment.lesson.module),
+                "is_task": True,
+            },
+        )
+    return _render_assignment(request, assignment)
+
+
+@login_required
+@require_POST
+def draw_ticket(request, assignment_id):
+    """Вытянуть билет итогового проекта. Тема выбирается здесь, на сервере."""
+    assignment = _visible_assignment(request, assignment_id)
+    target = reverse("assessments:assignment_detail", args=[assignment.pk])
+    ticket = projects.ticket_state(request.user, assignment)
+    if not ticket or not ticket["can_draw"]:
+        return redirect(target)
+    projects.draw_ticket(request.user, assignment)
+    return redirect(f"{target}?drawn=1")
 
 
 @login_required
@@ -218,6 +259,8 @@ def submit_work(request, assignment_id):
     """
     assignment = _visible_assignment(request, assignment_id)
     target = reverse("assessments:assignment_detail", args=[assignment.pk])
+    if _is_locked(request.user, assignment):
+        return redirect(target)
 
     last = _last_submission(request.user, assignment)
     if not _may_submit_work(request.user, assignment, last):
@@ -250,6 +293,10 @@ def submit_work(request, assignment_id):
 @require_POST
 def check_assignment(request, assignment_id):
     assignment = _visible_assignment(request, assignment_id)
+    if _is_locked(request.user, assignment):
+        return JsonResponse(
+            {"passed": False, "message": "Задание откроется вместе с уроком."}, status=403
+        )
     if not assignment.is_autocheckable:
         return JsonResponse(
             {

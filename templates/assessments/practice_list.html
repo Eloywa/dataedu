@@ -6,43 +6,59 @@
 <main class="container page">
   <h1 class="page-title accent-ink">Задания</h1>
   <p class="page-sub">
-    SQL-задачи с автопроверкой. Запрос выполняется в твоём браузере (PGlite),
-    а итог независимо проверяет сервер.
+    Задания разложены по блокам и урокам. SQL-задачи проверяются автоматически: запрос
+    выполняется в браузере (PGlite), а итог независимо сверяет сервер. Создание таблиц и
+    файловые работы смотрит преподаватель.
   </p>
 
-  <div class="practice-grid">
-    {% for a in assignments %}
-      <a href="{% url 'assessments:assignment_detail' a.id %}" class="practice-card">
-        <div class="practice-card-top">
-          <span class="badge badge-{{ a.level|level_tone }}">{{ a.level|level_label }}</span>
-          {% if a.is_solved %}<span class="badge badge-success">решено</span>{% endif %}
-        </div>
-        <h2 class="practice-card-title">{{ a.title }}</h2>
-        <div class="practice-card-course">{{ a.course.title }}</div>
-      </a>
-    {% empty %}
-      <p class="page-sub">Заданий пока нет.</p>
-    {% endfor %}
-  </div>
+  {% for group in groups %}
+    <section class="practice-course" aria-labelledby="course-{{ forloop.counter }}">
+      <h2 class="section-h" id="course-{{ forloop.counter }}">{{ group.course.title }}</h2>
 
-  {% if manual_assignments %}
-    <h2 class="section-h" style="margin-top: 46px">Проверяет преподаватель</h2>
-    <p class="page-sub">
-      Автопроверки здесь нет: сравнение результата подходит для запросов
-      <code>SELECT</code>, а создание таблиц и файловые работы смотрит преподаватель.
-    </p>
-    <div class="practice-grid">
-      {% for a in manual_assignments %}
-        <a href="{% url 'assessments:assignment_detail' a.id %}" class="practice-card">
-          <div class="practice-card-top">
-            <span class="badge badge-{{ a.level|level_tone }}">{{ a.level|level_label }}</span>
-            {% if a.is_submitted %}<span class="badge badge-neutral">отправлено</span>{% endif %}
+      {% for block in group.blocks %}
+        <div class="practice-block">
+          <div class="practice-block-head">
+            <h3 class="practice-block-title">{{ block.module.title }}</h3>
+            {% if block.module.week_number %}<span class="module-week">неделя {{ block.module.week_number }}</span>{% endif %}
+            {% if not block.unlocked %}<span class="badge badge-neutral">закрыто</span>{% endif %}
           </div>
-          <h2 class="practice-card-title">{{ a.title }}</h2>
-          <div class="practice-card-course">{{ a.course.title }}</div>
-        </a>
+          <div class="practice-lessons">
+          {% for row in block.lessons %}
+            <div class="practice-lesson">
+              <p class="practice-lesson-title">
+                {% if block.unlocked %}<a href="{% url 'courses:lesson_detail' row.lesson.id %}">{{ row.lesson.title }}</a>{% else %}{{ row.lesson.title }}{% endif %}
+              </p>
+              <div class="practice-grid">
+                {% for a in row.tasks %}
+                  {% include "assessments/_practice_card.html" with locked=block.unlocked|yesno:",1" %}
+                {% endfor %}
+              </div>
+            </div>
+          {% endfor %}
+          </div>
+        </div>
       {% endfor %}
-    </div>
-  {% endif %}
+
+      {% if group.loose %}
+        <div class="practice-block">
+          <div class="practice-block-head"><h3 class="practice-block-title">Без привязки к уроку</h3></div>
+          <div class="practice-grid">
+            {% for a in group.loose %}{% include "assessments/_practice_card.html" %}{% endfor %}
+          </div>
+        </div>
+      {% endif %}
+
+      {% if group.finals %}
+        <div class="practice-block">
+          <div class="practice-block-head"><h3 class="practice-block-title">Итоговый проект</h3></div>
+          <div class="practice-grid">
+            {% for a in group.finals %}{% include "assessments/_practice_card.html" %}{% endfor %}
+          </div>
+        </div>
+      {% endif %}
+    </section>
+  {% empty %}
+    <p class="page-sub">Заданий пока нет.</p>
+  {% endfor %}
 </main>
 {% endblock %}

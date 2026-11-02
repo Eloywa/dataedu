@@ -40,6 +40,8 @@
                      class="lesson-tree-link{% if row.current %} is-current{% endif %}"
                      {% if row.current %}aria-current="page"{% endif %}>
                     {{ row.lesson.title }}
+                    {% if row.has_task %}<span class="visually-hidden">— есть задание</span>
+                      <svg class="lesson-tree-task" viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 1.5h6l3 3v10h-9zM9.5 1.5v3h3M5.5 8h5M5.5 11h5" /></svg>{% endif %}
                     {% if row.done %}<span class="visually-hidden">— пройден</span>
                       <span class="lesson-tree-done" aria-hidden="true"></span>{% endif %}
                   </a>
@@ -100,6 +102,25 @@
         {% elif not user.is_authenticated %}
           <a class="btn btn-primary" href="{% url 'accounts:login' %}?next={{ request.path }}">Войдите, чтобы пройти тест</a>
         {% endif %}
+      </section>
+    {% endif %}
+
+    {% if lesson_tasks %}
+      <section class="lesson-tasks-block" aria-labelledby="lesson-tasks-title">
+        <p class="small-label">практика</p>
+        <h2 class="section-h" id="lesson-tasks-title">{% if lesson_tasks|length > 1 %}Задания к уроку{% else %}Задание к уроку{% endif %}</h2>
+        <ul class="lesson-tasks">
+          {% for task in lesson_tasks %}
+            <li class="lesson-task">
+              <div class="lesson-task-text">
+                <span class="lesson-task-title">{{ task.title }}</span>
+                <span class="lesson-task-meta">{% if task.is_autocheckable %}проверяется автоматически{% else %}проверяет преподаватель{% endif %}</span>
+              </div>
+              {% if task.state %}<span class="badge badge-{{ task.state.tone }}">{{ task.state.label }}</span>{% endif %}
+              <a class="btn btn-primary" href="{% url 'assessments:assignment_detail' task.id %}">{% if task.state %}Открыть{% else %}Перейти к заданию{% endif %}</a>
+            </li>
+          {% endfor %}
+        </ul>
       </section>
     {% endif %}
 

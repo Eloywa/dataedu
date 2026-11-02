@@ -1,0 +1,5 @@
+{% comment %}
+Аватарка: рисунок из accounts/avatars.py или первая буква имени. Для чтения с экрана она
+скрыта: имя всегда стоит рядом, и озвучивать картинку незачем.
+{% endcomment %}
+<span class="avatar {{ css_class }}" aria-hidden="true">{% if icon %}<svg viewBox="0 0 48 48" class="drawn-icon" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">{{ icon }}</svg>{% else %}{{ letter }}{% endif %}</span>

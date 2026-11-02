@@ -11,7 +11,15 @@
 from django.db.models import Avg, Case, Count, IntegerField, Max, Q, Value, When
 from django.utils import timezone
 
-from assessments.models import AnswerSubmission, Assignment, Question, Submission, Test, TestAttempt
+from assessments.models import (
+    AnswerSubmission,
+    Assignment,
+    ProjectDraw,
+    Question,
+    Submission,
+    Test,
+    TestAttempt,
+)
 from courses.models import Course, Lesson
 from learning import sqlerrors
 from learning.analytics import (
@@ -628,13 +636,23 @@ def submission_queryset(teacher):
 
 
 def decorate_submissions(rows):
-    """Подписи и разобранный ответ — для показанной страницы очереди."""
+    """Подписи, тема билета и разобранный ответ — для показанной страницы очереди."""
     for s in rows:
         s.meta = STATUS_META.get(s.status, {"label": s.status, "tone": "neutral"})
         s.answer = s.sql_query or s.text_answer or None
         # «Оценено, но не человеком» — работа автопроверки. Преподавателю полезно
         # видеть разницу: такую сдачу имеет смысл перепроверить, руками оценённую — нет.
         s.auto_graded = s.status == "graded" and s.graded_by_id is None
+
+    # Итоговые работы проверяются по теме билета, поэтому она показывается рядом с работой.
+    finals = [s for s in rows if s.assignment.is_final]
+    draws = ProjectDraw.objects.filter(
+        user_id__in={s.user_id for s in finals},
+        course_id__in={s.assignment.course_id for s in finals},
+    ).select_related("topic")
+    topics = {(d.user_id, d.course_id): d.topic.title for d in draws}
+    for s in finals:
+        s.project_topic = topics.get((s.user_id, s.assignment.course_id))
     return rows
 
 
@@ -705,7 +723,32 @@ def student_card(teacher, student):
         "lessons": lessons,
         "attempts": attempts,
         "reflections": reflections,
+        "project_draws": list(
+            ProjectDraw.objects.filter(user=student, course_id__in=course_ids)
+            .select_related("topic", "course")
+            .order_by("course__title")
+        ),
     }
+
+
+def final_assignment_for(teacher, student):
+    """Итоговое задание, по которому можно зачесть защиту этому студенту.
+
+    Только из курса, на который он записан: у преподавателя может быть несколько курсов, и
+    первое попавшееся итоговое зачло бы защиту не по той дисциплине. Если билетов несколько,
+    берётся курс последнего вытянутого.
+    """
+    finals = Assignment.objects.filter(
+        is_final=True, course__in=visible_courses(teacher), course__enrollments__user=student
+    )
+    draw = (
+        ProjectDraw.objects.filter(user=student, course__in=finals.values("course"))
+        .order_by("-drawn_at")
+        .first()
+    )
+    if draw:
+        finals = finals.filter(course=draw.course_id)
+    return finals.order_by("created_at").first()
 
 
 def is_my_student(teacher, student):
