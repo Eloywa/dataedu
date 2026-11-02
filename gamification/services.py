@@ -2,12 +2,16 @@
 Порт логики из Next-версии (levels/achievements/activity/gating).
 """
 
+from collections import Counter
+
 from django.utils import timezone
+from django.utils.safestring import mark_safe
 
 from courses.models import Lesson
 from learning.models import Activity, Enrollment, LessonProgress
 from learning.sqlerrors import ERROR_CODES
 
+from .badges import badge_for
 from .gating import compute_gating
 from .levels import level_for_xp
 from .models import Achievement, UserAchievement
@@ -194,10 +198,6 @@ def check_login_streak(user):
         award_achievement(user, "no_miss_week")
 
 
-# Значки достижений в моно-стиле «Terminal» (в БД хранится только имя иконки).
-ICON_GLYPHS = {"flag": "⚑", "code": "›_", "medal": "◉", "fire": "✦", "trophy": "★"}
-
-
 def get_achievements_for_user(user):
     earned = {ua.achievement_id: ua.awarded_at for ua in UserAchievement.objects.filter(user=user)}
     items = []
@@ -207,8 +207,7 @@ def get_achievements_for_user(user):
                 "code": a.code,
                 "title": a.title,
                 "description": a.description,
-                "icon": a.icon,
-                "glyph": ICON_GLYPHS.get(a.icon or "", "◆"),
+                "badge": mark_safe(badge_for(a.icon)),
                 "xp_reward": a.xp_reward,
                 "earned": a.id in earned,
                 "awarded_at": earned.get(a.id),
@@ -292,8 +291,47 @@ def get_recent_activity(user, limit=20):
     return groups
 
 
+def get_course_progress(user):
+    """Курсы студента для профиля: сколько уроков пройдено и какая тема досталась по билету."""
+    from assessments.models import ProjectDraw
+
+    enrollments = list(
+        Enrollment.objects.filter(user=user).select_related("course").order_by("course__title")
+    )
+    course_ids = [e.course_id for e in enrollments]
+    totals = Counter(
+        Lesson.objects.filter(module__course_id__in=course_ids).values_list(
+            "module__course_id", flat=True
+        )
+    )
+    done = Counter(
+        LessonProgress.objects.filter(
+            user=user, status="completed", lesson__module__course_id__in=course_ids
+        ).values_list("lesson__module__course_id", flat=True)
+    )
+    topics = {
+        draw.course_id: draw.topic.title
+        for draw in ProjectDraw.objects.filter(user=user).select_related("topic")
+    }
+    rows = []
+    for e in enrollments:
+        total = totals[e.course_id]
+        pct = round(done[e.course_id] * 100 / total) if total else 0
+        rows.append(
+            {
+                "course": e.course,
+                "done": done[e.course_id],
+                "total": total,
+                "pct": pct,
+                "topic": topics.get(e.course_id),
+                "finished": pct >= 100,
+            }
+        )
+    return rows
+
+
 def get_profile_stats(user):
-    """Сводка для страницы прогресса: уроки, тесты, задания, запросы."""
+    """Сводка для страницы профиля: уроки, тесты, задания, запросы."""
     from assessments.models import Submission, TestAttempt
 
     return {

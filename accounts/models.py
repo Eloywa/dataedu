@@ -112,6 +112,13 @@ class User(AbstractBaseUser, PermissionsMixin):
         verbose_name="роль",
     )
     avatar_url = models.TextField(verbose_name="аватар", blank=True, null=True)
+    avatar = models.CharField(
+        "аватарка",
+        max_length=30,
+        blank=True,
+        default="",
+        help_text="Ключ рисунка из набора. Если пусто — показывается первая буква имени.",
+    )
     xp = models.IntegerField(verbose_name="XP", default=0)
     level = models.IntegerField(verbose_name="уровень", default=1)
     is_active = models.BooleanField(verbose_name="активен", default=True)

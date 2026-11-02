@@ -1,4 +1,4 @@
-{% load static %}
+{% load static account_extras %}
 <!DOCTYPE html>
 <html lang="ru">
   <head>
@@ -62,7 +62,7 @@
             <a href="{% url 'core:trainer' %}">Тренажёр</a>
             {% if user.is_authenticated and not user.is_teacher %}
               <a href="{% url 'assessments:practice' %}">Задания</a>
-              <a href="{% url 'gamification:profile' %}">Прогресс</a>
+              <a href="{% url 'gamification:profile' %}">Профиль</a>
             {% endif %}
             {% if user.is_authenticated and user.is_teacher %}
               <a href="{% url 'teaching:dashboard' %}">Панель</a>
@@ -71,10 +71,12 @@
             {% endif %}
             {% comment %}
             На узком экране имя пользователя из шапки убирается — оно занимает три
-            строки и выталкивает кнопку выхода за край. Ссылка на настройки, которую
-            имя и открывало, переезжает сюда, в сворачиваемое меню.
+            строки и выталкивает кнопку выхода за край. Ссылка на профиль, которую имя
+            открывает, переезжает сюда, в сворачиваемое меню. У студента «Профиль» уже
+            есть в основном списке, у преподавателя нет.
             {% endcomment %}
             {% if user.is_authenticated %}
+              {% if user.is_teacher %}<a class="nav-settings" href="{% url 'gamification:profile' %}">Профиль</a>{% endif %}
               <a class="nav-settings" href="{% url 'accounts:settings' %}">Настройки</a>
               <a class="nav-messages" href="{% url 'messaging:inbox' %}">
                 Сообщения<span class="unread-badge" id="unread-badge"
@@ -137,7 +139,7 @@
           </div>
 
           {% if user.is_authenticated %}
-            <a class="link-muted" href="{% url 'accounts:settings' %}">{{ user.label }}</a>
+            <a class="link-muted header-user" href="{% url 'gamification:profile' %}">{% avatar user "avatar-sm" %}<span class="header-user-name">{{ user.label }}</span></a>
             <form method="post" action="{% url 'accounts:logout' %}" style="margin: 0">
               {% csrf_token %}
               <button class="btn btn-ghost" type="submit">Выйти</button>

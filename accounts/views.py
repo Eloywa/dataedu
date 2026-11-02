@@ -164,6 +164,7 @@ def _collect_user_data(user):
         "учётная_запись": {
             "логин": user.username,
             "отображаемое_имя": user.display_name,
+            "аватарка": user.avatar,
             "email": user.email,
             "роль": user.role.name if user.role else None,
             "xp": user.xp,

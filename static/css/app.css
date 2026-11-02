@@ -539,7 +539,7 @@ summary:focus-visible,
 
 .card,
 .side-card,
-.level-card,
+.profile-card,
 .stat-tile,
 .auth-card,
 .sub-card,
@@ -674,6 +674,71 @@ summary:focus-visible,
   color: var(--on-chrome-soft);
 }
 .site-header .link-muted:hover {
+  color: var(--on-chrome);
+}
+/* Многоточие ставит имя, а не вся ссылка: иначе обрезалась бы и аватарка рядом с ним. */
+.header-user {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.header-actions .header-user {
+  overflow: visible;
+  max-width: none;
+}
+.header-user-name {
+  overflow: hidden;
+  max-width: 22ch;
+  text-overflow: ellipsis;
+}
+@media (max-width: 1200px) {
+  .header-user-name {
+    max-width: 12ch;
+  }
+}
+
+/* Аватарка: рисунок или первая буква имени. Квадратная, как снимок в студенческом. */
+.avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-sm);
+  background: var(--chrome);
+  color: var(--on-cover);
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 1;
+}
+.avatar svg {
+  width: 78%;
+  height: 78%;
+}
+.avatar-sm {
+  width: 28px;
+  height: 28px;
+  font-size: 13px;
+}
+.avatar-sm svg {
+  stroke-width: 2.25;
+}
+.avatar-md {
+  width: 56px;
+  height: 56px;
+  font-size: 24px;
+}
+.avatar-lg {
+  width: 104px;
+  height: 104px;
+  border-radius: var(--radius);
+  font-size: 44px;
+}
+.site-header .avatar {
+  border: 1px solid var(--chrome-line);
+  background: none;
   color: var(--on-chrome);
 }
 
@@ -2294,12 +2359,14 @@ a.catalog-drawer:hover {
   height: 76px;
 }
 /* Главная деталь рисунка: заливка тем же цветом, что линия, только прозрачнее. */
-.cover-icon .ci-tint {
+.cover-icon .ci-tint,
+.drawn-icon .ci-tint {
   fill: currentColor;
   fill-opacity: 0.22;
   stroke: none;
 }
-.cover-icon .ci-dot {
+.cover-icon .ci-dot,
+.drawn-icon .ci-dot {
   fill: currentColor;
   stroke: none;
 }
@@ -4749,35 +4816,200 @@ a.lesson-tree-link:hover {
   font-size: 13px;
 }
 
-/* ===== 11. Прогресс и достижения ========================================= */
+/* ===== 11. Профиль и достижения ========================================== */
 
-.level-card {
-  padding: 22px 24px;
+/* Отступ и прилипание уже есть у самой карточки ленты: вторые сдвигали её ниже профиля. */
+.progress-layout .course-side {
+  position: static;
+  padding: 0;
 }
-.level-top {
+/* Каталожная карточка с отверстием, та же, что у билета и на главной. */
+.profile-card {
+  --ground: var(--bg);
+  position: relative;
+  padding: 24px 24px 64px;
+}
+.profile-head {
   display: flex;
-  align-items: flex-end;
+  align-items: center;
+  gap: 20px;
+  padding-right: 190px;
+}
+.profile-who {
+  min-width: 0;
+}
+.profile-name {
+  margin: 0 0 4px;
+  overflow-wrap: break-word;
+  font-size: 28px;
+  line-height: 1.2;
+}
+.profile-meta {
+  margin: 0 0 6px;
+  color: var(--muted);
+  font-size: 14px;
+}
+.profile-settings {
+  color: var(--muted);
+  font-size: 14px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.profile-settings:hover {
+  color: var(--accent);
+}
+
+/* Кнопка стоит в углу карточки, а форма раскрывается под шапкой на всю ширину. */
+.profile-edit > summary {
+  position: absolute;
+  top: 24px;
+  right: 24px;
+  list-style: none;
+  cursor: pointer;
+}
+.profile-edit > summary::-webkit-details-marker {
+  display: none;
+}
+.profile-form {
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border);
+}
+.avatar-picker {
+  min-width: 0;
+  margin: 0 0 20px;
+  padding: 0;
+  border: 0;
+}
+.avatar-options {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(84px, 1fr));
+  gap: 8px;
+}
+.avatar-option {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 4px 8px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+.avatar-option:hover {
+  background: var(--surface-2);
+}
+/* Настоящая радиокнопка, только невидимая: выбор работает с клавиатуры и без скриптов. */
+.avatar-option input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}
+.avatar-option input:checked ~ .avatar,
+.avatar-option input:focus-visible ~ .avatar {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+.avatar-caption {
+  color: var(--muted);
+  font-size: 13px;
+}
+.avatar-option input:checked ~ .avatar-caption {
+  color: var(--text-strong);
+  font-weight: 600;
+}
+
+.profile-level {
+  margin-top: 24px;
+}
+.profile-level-row {
+  display: flex;
+  align-items: baseline;
   justify-content: space-between;
   gap: 16px;
-  margin-bottom: 14px;
+  margin-bottom: 8px;
 }
-.level-num {
-  font-family: var(--font-sans);
-  font-size: 40px;
-  font-weight: 700;
-  line-height: 1;
+.profile-level-num {
+  color: var(--text-strong);
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: 600;
 }
-.level-max {
+.profile-xp {
   color: var(--muted);
-  font-size: 20px;
-  font-weight: 500;
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
 }
-.level-xp {
-  color: var(--muted);
-  font-size: 15px;
+.profile-level .progress-label {
+  margin-top: 6px;
 }
 .xp-strip {
   margin-top: 10px;
+}
+
+/* Подпись идёт в разметке первой, как положено в <dl>, а на экране число стоит над ней. */
+.profile-stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin: 24px 0 0;
+  padding-top: 20px;
+  border-top: 1px solid var(--border);
+}
+.profile-stats > div {
+  display: flex;
+  flex-direction: column-reverse;
+  justify-content: flex-end;
+  padding: 0 16px;
+  border-left: 1px solid var(--border);
+}
+.profile-stats > div:first-child {
+  padding-left: 0;
+  border-left: 0;
+}
+.profile-stats dd {
+  margin: 0;
+}
+
+.profile-courses {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.profile-course {
+  padding: 14px 0;
+  border-top: 1px solid var(--border);
+}
+.profile-course:first-child {
+  padding-top: 0;
+  border-top: 0;
+}
+.profile-course-title {
+  color: var(--text-strong);
+  font-weight: 600;
+}
+.profile-course .progress-row {
+  max-width: 520px;
+  margin-top: 8px;
+}
+.profile-course-note {
+  display: block;
+  margin: 6px 0 0;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.person-head {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+.person-head .page-title {
+  margin-bottom: 4px;
+}
+.person-head .page-sub {
+  margin-bottom: 0;
 }
 
 .stat-row {
@@ -4804,46 +5036,46 @@ a.lesson-tree-link:hover {
   font-size: 13px;
 }
 
-.ach-grid {
+/* Достижения: ряд печатей, как в зачётке. Полученная залита и обведена кольцом, ещё не
+   полученная остаётся пунктирным местом под неё, и видно, сколько мест пустует. */
+.ach-shelf {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-  gap: 14px;
-  margin-top: 14px;
+  grid-template-columns: repeat(auto-fill, minmax(148px, 1fr));
+  gap: 24px 20px;
+  margin: 14px 0 0;
+  padding: 0;
+  list-style: none;
 }
-.ach-tile {
-  display: flex;
-  gap: 12px;
+.ach {
   min-width: 0;
-  padding: 16px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  background: var(--surface);
 }
-.ach-tile.earned {
-  border-color: var(--accent-line);
-}
-.ach-icon {
+.ach-seal {
   display: flex;
   align-items: center;
   justify-content: center;
-  flex: none;
-  width: 40px;
-  height: 40px;
-  border-radius: 10px;
-  background: var(--surface-2);
-  color: var(--muted);
-  font-size: 17px;
+  width: 76px;
+  height: 76px;
+  margin-bottom: 12px;
+  border: 1.5px dashed var(--accent-line);
+  border-radius: 50%;
+  color: var(--muted-soft);
 }
-.ach-tile.earned .ach-icon {
-  background: var(--accent-soft);
-  color: var(--accent);
+.ach-seal svg {
+  width: 44px;
+  height: 44px;
 }
-/* Текстовая колонка плитки должна уметь сжиматься: без `min-width: 0` элемент
-   флекса не становится уже своего содержимого и раздвигает сетку. Переносится
-   только по словам (`break-word`, а не `anywhere`): иначе при нехватке места браузер
-   предпочитает ломать слова посимвольно. */
+.ach.earned .ach-seal {
+  border: 0;
+  outline: 1px solid var(--on-cover);
+  outline-offset: -5px;
+  background: var(--chrome);
+  color: var(--on-cover);
+}
+/* Текстовая колонка должна уметь сжиматься: без `min-width: 0` элемент сетки не
+   становится уже своего содержимого и раздвигает её. Переносится только по словам
+   (`break-word`, а не `anywhere`): иначе при нехватке места браузер предпочитает ломать
+   слова посимвольно. */
 .ach-body {
-  flex: 1 1 auto;
   min-width: 0;
 }
 .ach-title {
@@ -4853,7 +5085,7 @@ a.lesson-tree-link:hover {
   line-height: 1.3;
   overflow-wrap: break-word;
 }
-.ach-tile:not(.earned) .ach-title {
+.ach:not(.earned) .ach-title {
   color: var(--muted);
 }
 .ach-desc {
@@ -4864,25 +5096,51 @@ a.lesson-tree-link:hover {
   line-height: 1.5;
 }
 .ach-foot {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 4px 12px;
-  margin-top: 10px;
-}
-.ach-xp,
-.ach-date {
+  margin-top: 8px;
   color: var(--muted-soft);
   font-size: 12px;
 }
-.ach-tile.earned .ach-xp {
+.ach.earned .ach-foot {
   color: var(--accent);
   font-weight: 600;
 }
 .ach-count {
   color: var(--muted);
   font-size: 14px;
+}
+
+@media (max-width: 620px) {
+  .profile-card {
+    padding: 20px 16px 60px;
+  }
+  .profile-head {
+    gap: 14px;
+    padding-right: 0;
+  }
+  .avatar-lg {
+    width: 72px;
+    height: 72px;
+    font-size: 32px;
+  }
+  .profile-name {
+    font-size: 22px;
+  }
+  .profile-edit > summary {
+    position: static;
+    margin-top: 16px;
+  }
+  .profile-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px 0;
+  }
+  .profile-stats > div:nth-child(odd) {
+    padding-left: 0;
+    border-left: 0;
+  }
+  .ach-shelf {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 20px 16px;
+  }
 }
 
 /* Лента активности */

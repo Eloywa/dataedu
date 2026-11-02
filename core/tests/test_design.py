@@ -431,7 +431,7 @@ class AchievementTileTests(SimpleTestCase):
             block = re.search(re.escape(selector) + r" \{(.+?)\n\}", css, re.S).group(1)
             self.assertNotIn("anywhere", block, selector)
 
-    def test_text_is_one_column_next_to_the_icon(self):
+    def test_text_is_one_column_under_the_badge(self):
         html = (TEMPLATES / "gamification" / "profile.html").read_text(encoding="utf-8")
         self.assertIn('class="ach-body"', html)
 

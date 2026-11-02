@@ -8,7 +8,7 @@
 `Consent` берут номер отсюда.
 """
 
-PRIVACY_VERSION = "2026-07-30"
+PRIVACY_VERSION = "2026-11-02"
 TERMS_VERSION = "2026-07-30"
 
 VERSIONS = {

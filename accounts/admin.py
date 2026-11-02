@@ -57,6 +57,7 @@ class UserChangeForm(forms.ModelForm):
             "display_name",
             "role",
             "avatar_url",
+            "avatar",
             "xp",
             "level",
             "is_active",
